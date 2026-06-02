@@ -1,65 +1,134 @@
-# 项目上下文
+# AGENTS.md
 
-### 版本技术栈
+## 项目概述
 
+ES+OTD助手 - SAP ERP数据查询系统，提供Web端和微信小程序端的数据查询能力。
+
+## 技术栈
+
+### Web端
 - **Framework**: Next.js 16 (App Router)
 - **Core**: React 19
 - **Language**: TypeScript 5
-- **UI 组件**: shadcn/ui (基于 Radix UI)
+- **UI Components**: shadcn/ui (基于 Radix UI)
 - **Styling**: Tailwind CSS 4
+
+### 微信小程序
+- **Framework**: 微信小程序原生框架
+- **Language**: JavaScript
+- **UI**: 自定义组件 + SAP Horizon风格
 
 ## 目录结构
 
 ```
-├── public/                 # 静态资源
-├── scripts/                # 构建与启动脚本
-│   ├── build.sh            # 构建脚本
-│   ├── dev.sh              # 开发环境启动脚本
-│   ├── prepare.sh          # 预处理脚本
-│   └── start.sh            # 生产环境启动脚本
-├── src/
-│   ├── app/                # 页面路由与布局
-│   ├── components/ui/      # Shadcn UI 组件库
-│   ├── hooks/              # 自定义 Hooks
-│   ├── lib/                # 工具库
-│   │   └── utils.ts        # 通用工具函数 (cn)
-│   └── server.ts           # 自定义服务端入口
-├── next.config.ts          # Next.js 配置
-├── package.json            # 项目依赖管理
-└── tsconfig.json           # TypeScript 配置
+├── src/                      # Web端源码
+│   ├── app/                  # Next.js App Router
+│   │   ├── layout.tsx        # 主布局（侧边栏导航）
+│   │   ├── page.tsx          # 首页
+│   │   ├── api/              # API路由
+│   │   │   └── sap/          # SAP API代理
+│   │   │       └── [service]/[entity]/route.ts
+│   │   ├── products/         # 产品查询页
+│   │   ├── sales-orders/     # 销售订单页
+│   │   ├── production-orders/# 生产订单页
+│   │   ├── material-stock/   # 库存查询页
+│   │   ├── customers/        # 客户管理页
+│   │   └── outbound-delivery/# 交货单页
+│   ├── components/ui/        # shadcn/ui组件库
+│   ├── lib/                  # 工具库
+│   │   ├── utils.ts          # 通用工具
+│   │   └ sap-service.ts      # SAP服务配置
+│   └── hooks/                # 自定义Hooks
+│
+├── miniprogram/              # 微信小程序源码
+│   ├── app.js                # 小程序入口
+│   ├── app.json              # 小程序配置
+│   ├── app.wxss              # 全局样式
+│   ├── pages/                # 页面
+│   │   ├── index/            # 首页
+│   │   ├── products/         # 产品查询
+│   │   ├── sales-orders/     # 销售订单
+│   │   ├── production-orders/# 生产订单
+│   │   ├── material-stock/   # 库存查询
+│   │   └── customers/        # 客户管理
+│   ├── utils/                # 工具
+│   │   └ api.js              # API封装
+│   └── components/           # 公共组件
+│
+├── assets/                   # 原始项目资源
+│   ├── backend_src/          # Python后端代码参考
+│   ├── ui-demo_src/          # UI演示参考
+│   └── interface_src/        # SAP接口文档
+│
+├── public/                   # 静态资源
+├── .env.local                # SAP凭证配置
+├── DESIGN.md                 # 设计规范
+└── next.config.ts            # Next.js配置
 ```
 
-- 项目文件（如 app 目录、pages 目录、components 等）默认初始化到 `src/` 目录下。
+## SAP API接口
 
-## 包管理规范
+### 可用的API服务
+| 服务名称 | 路径 | 说明 |
+|---------|------|------|
+| API_PRODUCT_SRV | /sap/opu/odata/sap/API_PRODUCT_SRV/ | 产品主数据 |
+| API_BUSINESS_PARTNER | /sap/opu/odata/sap/API_BUSINESS_PARTNER/ | 业务伙伴/客户 |
+| API_SALES_ORDER_SRV | /sap/opu/odata/sap/API_SALES_ORDER_SRV/ | 销售订单(V2) |
+| CE_SALESORDER_0001 | /sap/opu/odata4/sap/ce_salesorder_0001/... | 销售订单(V4) |
+| API_PRODUCTION_ORDER_2_SRV | /sap/opu/odata/sap/API_PRODUCTION_ORDER_2_SRV/ | 生产订单 |
+| API_MATERIAL_STOCK_SRV | /sap/opu/odata/sap/API_MATERIAL_STOCK_SRV/ | 物料库存 |
+| API_OUTBOUND_DELIVERY_SRV | /sap/opu/odata/sap/API_OUTBOUND_DELIVERY_SRV/ | 外向交货 |
+| API_BILLING_DOCUMENT_SRV | /sap/opu/odata/sap/API_BILLING_DOCUMENT_SRV/ | 开票单据 |
 
-**仅允许使用 pnpm** 作为包管理器，**严禁使用 npm 或 yarn**。
-**常用命令**：
-- 安装依赖：`pnpm add <package>`
-- 安装开发依赖：`pnpm add -D <package>`
-- 安装所有依赖：`pnpm install`
-- 移除依赖：`pnpm remove <package>`
+### 认证方式
+- Basic Auth (用户名密码)
+- SAP Client: 100
 
 ## 开发规范
 
-### 编码规范
+### 包管理
+- **仅使用pnpm**，禁止npm或yarn
+- 安装依赖: `pnpm add <package>`
+- 安装所有依赖: `pnpm install`
 
-- 默认按 TypeScript `strict` 心智写代码；优先复用当前作用域已声明的变量、函数、类型和导入，禁止引用未声明标识符或拼错变量名。
-- 禁止隐式 `any` 和 `as any`；函数参数、返回值、解构项、事件对象、`catch` 错误在使用前应有明确类型或先完成类型收窄，并清理未使用的变量和导入。
+### 代码风格
+- TypeScript strict模式
+- 禁止隐式any
+- React 17+ 不需要import React
+- 组件和函数使用前必须import
 
-### next.config 配置规范
+### UI规范
+- 默认使用shadcn/ui组件
+- 专业清晰的企业风格
+- 禁止花哨渐变和过度装饰
 
-- 配置的路径不要写死绝对路径，必须使用 path.resolve(__dirname, ...)、import.meta.dirname 或 process.cwd() 动态拼接。
+## 常用命令
 
-### Hydration 问题防范
+```bash
+# Web端开发
+pnpm install              # 安装依赖
+pnpm dev                  # 启动开发服务(5000端口)
+pnpm build                # 构建生产版本
+pnpm start                # 启动生产服务
 
-1. 严禁在 JSX 渲染逻辑中直接使用 typeof window、Date.now()、Math.random() 等动态数据。**必须使用 'use client' 并配合 useEffect + useState 确保动态内容仅在客户端挂载后渲染**；同时严禁非法 HTML 嵌套（如 <p> 嵌套 <div>）。
-2. **禁止使用 head 标签**，优先使用 metadata，详见文档：https://nextjs.org/docs/app/api-reference/functions/generate-metadata
-   1. 三方 CSS、字体等资源可在 `globals.css` 中顶部通过 `@import` 引入或使用 next/font
-   2. preload, preconnect, dns-prefetch 通过 ReactDOM 的 preload、preconnect、dns-prefetch 方法引入
-   3. json-ld 可阅读 https://nextjs.org/docs/app/guides/json-ld
+# 微信小程序
+# 在微信开发者工具中打开 miniprogram目录
+```
 
-## UI 设计与组件规范 (UI & Styling Standards)
+## 部署说明
 
-- 模板默认预装核心组件库 `shadcn/ui`，位于`src/components/ui/`目录下
-- Next.js 项目**必须默认**采用 shadcn/ui 组件、风格和规范，**除非用户指定用其他的组件和规范。**
+1. **Web端部署**
+   - 确保SAP凭证配置正确(.env.local)
+   - 执行构建: `pnpm build`
+   - 部署到生产环境
+
+2. **小程序部署**
+   - 在微信公众平台配置服务器域名
+   - 使用微信开发者工具上传代码
+   - 提交审核并发布
+
+## 参考资源
+
+- SAP API文档: `assets/interface_src/接口/`
+- Python后端参考: `assets/backend_src/backend/`
+- UI设计参考: `assets/ui-demo_src/ui-demo/`

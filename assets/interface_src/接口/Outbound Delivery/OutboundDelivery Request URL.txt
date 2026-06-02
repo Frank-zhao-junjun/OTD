@@ -1,0 +1,40 @@
+# Outbound Delivery — API_OUTBOUND_DELIVERY_SRV (OData V2, v=0002)
+# Scope Item: BD9 — SELL FROM STOCK
+# Communication Scenario: SAP_COM_0106 — Delivery Processing Integration
+
+Production Base URL:
+https://my200967-api.s4hana.sapcloud.cn/sap/opu/odata/sap/API_OUTBOUND_DELIVERY_SRV;v=0002/
+
+Auth: Basic Auth — EPC_USER + sap-client=100
+⚠️ 生产环境实测 EPC_USER 返回 403：No authorization to access service group 'API_OUTBOUND_DELIVERY_SRV'
+   需在 Fiori 创建 CA SAP_COM_0106 并授权该用户
+
+Metadata:
+https://my200967-api.s4hana.sapcloud.cn/sap/opu/odata/sap/API_OUTBOUND_DELIVERY_SRV;v=0002/$metadata?sap-client=100
+Header: Accept: application/xml
+
+Portal 过滤（已完成 PGI）:
+- GoodsMovementStatus eq 'C'
+- ActualDeliveryQuantity gt 0
+
+常用 Request URL：
+
+1) 交货单行（已过账，含凭证流）
+.../A_OutbDeliveryItem?sap-client=100&$top=50&$filter=GoodsMovementStatus eq 'C' and ActualDeliveryQuantity gt 0&$expand=to_DocumentFlow&$orderby=DeliveryDocument desc
+
+2) 按销售订单反查交货行
+.../A_OutbDeliveryItem?sap-client=100&$filter=ReferenceSDDocument eq '0000001234' and GoodsMovementStatus eq 'C'&$expand=to_DocumentFlow
+
+3) 交货单头 + 伙伴 + 行
+.../A_OutbDeliveryHeader('80001234')?$expand=to_DeliveryDocumentItem,to_DeliveryDocumentPartner/to_Address
+
+4) 单行详情（Business Hub Try Out 同款）
+.../A_OutbDeliveryItem(DeliveryDocument='80001234',DeliveryDocumentItem='10')?$expand=to_DocumentFlow
+
+Portal backend (after CA SAP_COM_0106 deployed):
+GET http://127.0.0.1:8080/api/v1/outbound-deliveries/summary?plant=1010&top=100
+GET http://127.0.0.1:8080/api/v1/outbound-deliveries/80001234/items/10
+POST http://127.0.0.1:8080/api/v1/outbound-deliveries/sync-from-sample
+
+本地样本:
+- OutboundDelivery sync sample.json

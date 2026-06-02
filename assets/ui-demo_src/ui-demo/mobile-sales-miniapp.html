@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>销售助手 · SAP S/4HANA Cloud</title>
+<link rel="stylesheet" href="sap-horizon-theme.css">
+<script src="sap-icons.js"></script>
+<style>
+:root {
+  --tab-height: 3.5rem;
+  --header-height: 2.75rem;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+body {
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Status Bar */
+.status-bar {
+  height: 28px;
+  background: var(--sapShell);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  font-size: 11px;
+  color: #BBC7D3;
+}
+
+/* Header */
+.header {
+  height: var(--header-height);
+  background: var(--sapShell);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header .back,
+.header .action {
+  position: absolute;
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+.header .back { left: 4px; color: #BBC7D3; }
+.header .action { right: 4px; color: #BBC7D3; }
+
+/* Main Content Area */
+.main-content { padding: 0 12px 80px 12px; overflow-y: auto; }
+
+/* Search Bar */
+.search-bar {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  padding: 8px 12px;
+  margin: 10px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: var(--shadow);
+  border: 1px solid #E5E5E5;
+}
+.search-bar .icon { font-size: 16px; color: var(--text-muted); }
+.search-bar input {
+  flex: 1; border: none; background: transparent; font-size: 14px;
+  color: var(--text);
+}
+.search-bar input:focus-visible { outline: none; }
+.search-bar:focus-within {
+  border-color: var(--primary);
+  box-shadow: var(--focusOutline);
+}
+.search-bar .scan {
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Quick Metrics Card */
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 10px 0;
+}
+.metric-card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  padding: 12px 8px;
+  min-height: var(--touch-min);
+  text-align: center;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform .15s;
+  border: 1px solid #E5E5E5;
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  width: 100%;
+}
+.metric-card:active { transform: scale(.96); }
+.metric-card .val { font-size: 18px; font-weight: 600; line-height: 1.2; }
+.metric-card .label { font-size: 12px; color: var(--text-secondary); margin-top: 2px; font-weight: 400; }
+.metric-card.pending .val { color: var(--warning); }
+.metric-card.producing .val { color: var(--primary); }
+.metric-card.shipping .val { color: var(--sapChart4); }
+.metric-card.completed .val { color: var(--success); }
+.metric-card.producing .val { color: var(--primary); }
+.metric-card.shipping .val { color: var(--sapChart4); }
+.metric-card.completed .val { color: var(--success); }
+
+/* Section */
+.section { margin: 14px 0; }
+.section-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  padding: 0 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--primary);
+  padding-bottom: 0.375rem;
+}
+.section-title .more {
+  font-size: 12px; color: var(--primary); font-weight: 400; cursor: pointer;
+  min-height: var(--touch-min);
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: none;
+  padding: 0 4px;
+  font-family: inherit;
+}
+
+/* Order Card */
+.order-card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform .15s;
+  border: 1px solid #E5E5E5;
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  width: 100%;
+  display: block;
+}
+.order-card:active { transform: scale(.98); }
+.order-card .order-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 8px;
+}
+.order-card .order-no { font-size: 14px; font-weight: 600; }
+.order-card .order-amount { font-size: 16px; font-weight: 600; color: var(--primary); }
+.order-card .order-info {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;
+}
+.order-card .order-info span {
+  background: #F5F6F7; border-radius: 3px; padding: 2px 6px;
+}
+
+/* Progress Bar */
+.progress-wrap { margin: 8px 0; }
+.progress-wrap .progress-label {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;
+}
+.progress-steps {
+  display: flex; align-items: center; gap: 0;
+  margin: 8px 0;
+}
+.progress-step {
+  display: flex; align-items: center; gap: 0;
+}
+.progress-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border); flex-shrink: 0;
+}
+.progress-dot.active { background: var(--primary); width: 10px; height: 10px; }
+.progress-dot.done { background: var(--success); }
+.progress-dot.alert { background: var(--danger); }
+.progress-line {
+  width: 24px; height: 2px; background: var(--border);
+}
+.progress-line.done { background: var(--success); }
+.progress-step-text {
+  font-size: 9px; color: var(--text-muted);
+  position: relative; top: 2px;
+  white-space: nowrap; margin: 0 2px;
+}
+.progress-step-text.active { color: var(--primary); font-weight: 600; }
+.progress-step-text.done { color: var(--success); }
+
+/* Progress Timeline */
+.timeline { margin: 8px 0; }
+.timeline-item {
+  display: flex; gap: 10px; padding: 8px 0;
+  border-bottom: 0.5px solid var(--border);
+  font-size: 12px;
+}
+.timeline-item:last-child { border: none; }
+.timeline-dot {
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; flex-shrink: 0;
+}
+.timeline-dot.order { background: var(--primary-light); color: var(--primary); }
+.timeline-dot.produce { background: #F3F0FF; color: #6F52ED; }
+.timeline-dot.ship { background: var(--warning-bg); color: var(--warning); }
+.timeline-dot.invoice { background: var(--success-bg); color: var(--success); }
+.timeline-dot.alert { background: var(--danger-bg); color: var(--danger); }
+.timeline-body { flex: 1; }
+.timeline-body .tl-title { font-weight: 500; margin-bottom: 2px; }
+.timeline-body .tl-desc { color: var(--text-secondary); font-size: 11px; }
+.timeline-body .tl-time { color: var(--text-muted); font-size: 10px; margin-top: 2px; }
+
+/* Finished Goods Inventory Card */
+.fgi-card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow);
+  border: 1px solid #E5E5E5;
+  border-left: 4px solid var(--primary);
+}
+.fgi-card .fgi-name {
+  font-size: 14px; font-weight: 600; margin-bottom: 2px;
+}
+.fgi-card .fgi-model {
+  font-size: 11px; color: var(--text-secondary); margin-bottom: 10px;
+}
+.fgi-card .fgi-stock-row {
+  display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;
+}
+.fgi-card .fgi-available {
+  font-size: 20px; font-weight: 300;
+}
+.fgi-card .fgi-available span {
+  font-size: 11px; font-weight: 400; color: var(--text-secondary);
+}
+
+/* Customer Badge */
+.customer-tag {
+  display: inline-block; background: var(--primary-light);
+  color: var(--primary); font-size: 11px; padding: 2px 8px;
+  border-radius: 3px; font-weight: 500;
+}
+
+/* Priority Badge */
+.prior-badge {
+  display: inline-block; font-size: 10px; padding: 1px 6px;
+  border-radius: 3px; font-weight: 600;
+}
+.prior-badge.high { background: var(--danger-bg); color: var(--danger); }
+.prior-badge.mid { background: var(--warning-bg); color: var(--warning); }
+.prior-badge.low { background: var(--success-bg); color: var(--success); }
+
+/* Bottom Tab Bar */
+.tab-bar {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 430px;
+  height: calc(var(--tab-height) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  background: #fff;
+  border-top: 1px solid #D9D9D9;
+  display: flex; align-items: center; justify-content: space-around;
+  z-index: 100;
+  box-shadow: 0 -1px 4px rgba(0,0,0,.04);
+}
+.tab-item {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px;
+  font-size: 12px; color: var(--text-muted); cursor: pointer;
+  padding: 6px 8px;
+  min-height: var(--touch-min);
+  min-width: 3.5rem;
+  transition: color .2s;
+  position: relative;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+.tab-item .tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.tab-item.active { color: var(--primary); font-weight: 600; }
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1.5rem;
+  height: 2px;
+  background: var(--primary);
+  border-radius: 1px;
+}
+.tab-item .badge {
+  position: absolute; top: 0; right: -8px;
+  background: var(--danger); color: #fff; font-size: 10px;
+  min-width: 16px; height: 16px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 3px;
+}
+
+/* Pages */
+.page { display: none; }
+.page.active { display: block; }
+
+/* Detail Page */
+.detail-header {
+  background: var(--card);
+  padding: 1rem 0.75rem;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  margin-bottom: 0.625rem;
+  box-shadow: var(--shadow-sm);
+  border-bottom: 2px solid var(--primary);
+}
+.detail-header .dh-title { font-size: 1.125rem; font-weight: 400; margin-bottom: 0.25rem; }
+.detail-header .dh-amount { font-size: 1.5rem; font-weight: 300; color: var(--primary); margin-top: 0.5rem; }
+.detail-header .dh-customer { font-size: 0.75rem; color: var(--text-secondary); }
+.detail-header .dh-meta { display: flex; gap: 1rem; margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-secondary); flex-wrap: wrap; }
+.detail-section {
+  background: var(--card); border-radius: var(--radius-lg);
+  padding: 14px; margin-bottom: 10px; box-shadow: var(--shadow);
+  border: 1px solid #E5E5E5;
+}
+.detail-section .ds-title { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+.detail-section .ds-row {
+  display: flex; justify-content: space-between;
+  font-size: 13px; padding: 6px 0; border-bottom: 0.5px solid var(--border);
+}
+.detail-section .ds-row:last-child { border: none; }
+.detail-section .ds-row .ds-val { color: var(--text-secondary); }
+
+/* Filter Tabs */
+.filter-tabs {
+  display: flex; gap: 8px; overflow-x: auto;
+  padding: 4px 0; margin: 8px 0;
+  -webkit-overflow-scrolling: touch;
+}
+.filter-tabs::-webkit-scrollbar { display: none; }
+.filter-tab {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  min-height: var(--touch-min);
+  border-radius: 4px;
+  font-size: 12px;
+  background: #fff;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+  font-family: inherit;
+}
+.filter-tab.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  font-weight: 600;
+}
+
+/* Toast */
+.toast {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  background: rgba(53,74,95,.85); color: #fff; padding: 10px 20px;
+  border-radius: 4px; font-size: 13px; z-index: 999;
+  opacity: 0; transition: opacity .3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.quick-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 14px 6px;
+  min-height: var(--touch-min);
+}
+.menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 14px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  min-height: var(--touch-min);
+}
+.menu-row .menu-label { display: inline-flex; align-items: center; gap: 8px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .metric-card:active, .order-card:active { transform: none; }
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center; padding: 40px 0; color: var(--text-muted);
+}
+.empty-state .empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 8px;
+  color: var(--text-muted);
+}
+.empty-state .empty-text { font-size: 13px; }
+
+/* Skeleton Loading */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+</style>
+</head>
+<body>
+<a href="#main-content" class="skip-link">跳到主内容</a>
+
+<!-- Status Bar -->
+<div class="status-bar" aria-hidden="true">
+  <span>09:41</span>
+  <span>100%</span>
+</div>
+
+<!-- Header -->
+<header class="header" id="pageHeader">
+  <button type="button" class="back header-btn" id="btnBack" style="display:none" aria-label="返回" onclick="goBack()">
+    <span id="back-icon" aria-hidden="true"></span>
+  </button>
+  <span id="headerTitle">销售助手</span>
+  <button type="button" class="action header-btn" id="headerAction" aria-label="通知" onclick="showNotifications()">
+    <span id="header-bell-icon" aria-hidden="true"></span>
+  </button>
+</header>
+
+<!-- Main Content -->
+<main class="main-content" id="main-content">
+
+  <!-- ========== PAGE 1: 首页 ========== -->
+  <div class="page active" id="page-home">
+    <!-- Search -->
+    <label class="search-bar" for="searchInput">
+      <span class="icon" id="search-icon" aria-hidden="true"></span>
+      <input type="search" id="searchInput" name="search" autocomplete="off" placeholder="搜索订单号 / 客户名称 / 物料…" aria-label="搜索订单">
+      <button type="button" class="scan" aria-label="扫码" onclick="showToast('扫码功能')">
+        <span id="scan-icon" aria-hidden="true"></span>
+      </button>
+    </label>
+
+    <!-- Quick Metrics -->
+    <div class="metrics-row" role="group" aria-label="订单状态快捷筛选">
+      <button type="button" class="metric-card pending" onclick="filterOrders('confirmed')">
+        <div class="val">2</div>
+        <div class="label">订单确认</div>
+      </button>
+      <button type="button" class="metric-card producing" onclick="filterOrders('scheduled')">
+        <div class="val">1</div>
+        <div class="label">排产</div>
+      </button>
+      <button type="button" class="metric-card shipping" onclick="filterOrders('producing')">
+        <div class="val">1</div>
+        <div class="label">生产中</div>
+      </button>
+      <button type="button" class="metric-card completed" onclick="filterOrders('completed_prod')">
+        <div class="val">2</div>
+        <div class="label">完工入库</div>
+      </button>
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="section">
+      <div class="section-title">
+        最近的订单
+        <button type="button" class="more" onclick="switchTab('orders')">查看全部 ›</button>
+      </div>
+      <div id="recentOrders"></div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="section">
+      <div class="section-title">快捷查询</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+        <button type="button" class="metric-card quick-action" onclick="navigateTo('orders')">
+          <span class="qa-icon" data-icon="orders" aria-hidden="true"></span>
+          <span class="label">订单追踪</span>
+        </button>
+        <button type="button" class="metric-card quick-action" onclick="navigateTo('production')">
+          <span class="qa-icon" data-icon="production" aria-hidden="true"></span>
+          <span class="label">生产订单</span>
+        </button>
+        <button type="button" class="metric-card quick-action" onclick="navigateTo('stock')">
+          <span class="qa-icon" data-icon="inventory" aria-hidden="true"></span>
+          <span class="label">库存查询</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== PAGE 2: 订单 ========== -->
+  <div class="page" id="page-orders">
+    <div class="filter-tabs" id="orderFilters" role="tablist" aria-label="订单状态筛选">
+      <button type="button" class="filter-tab active" role="tab" aria-selected="true" data-filter="all" onclick="filterOrderList('all', this)">全部</button>
+      <button type="button" class="filter-tab" role="tab" aria-selected="false" data-filter="confirmed" onclick="filterOrderList('confirmed', this)">订单确认</button>
+      <button type="button" class="filter-tab" role="tab" aria-selected="false" data-filter="scheduled" onclick="filterOrderList('scheduled', this)">排产</button>
+      <button type="button" class="filter-tab" role="tab" aria-selected="false" data-filter="producing" onclick="filterOrderList('producing', this)">生产中</button>
+      <button type="button" class="filter-tab" role="tab" aria-selected="false" data-filter="completed_prod" onclick="filterOrderList('completed_prod', this)">完工入库</button>
+      <button type="button" class="filter-tab" role="tab" aria-selected="false" data-filter="shipped" onclick="filterOrderList('shipped', this)">发货</button>
+    </div>
+    <div id="orderList"></div>
+  </div>
+
+  <!-- ========== PAGE 3: 进度跟踪 ========== -->
+  <div class="page" id="page-progress">
+    <div class="filter-tabs" id="progressFilters" role="tablist" aria-label="进度筛选">
+      <button type="button" class="filter-tab active" role="tab" aria-selected="true" data-filter="all" onclick="filterProgress('all', this)">全部</button>
+      <button type="button" class="filter-tab" role="tab" aria-selected="false" data-filter="delay" onclick="filterProgress('delay', this)">交期预警</button>
+      <button type="button" class="filter-tab" role="tab" aria-selected="false" data-filter="produce" onclick="filterProgress('produce', this)">排产中</button>
+      <button type="button" class="filter-tab" role="tab" aria-selected="false" data-filter="deliver" onclick="filterProgress('deliver', this)">发货中</button>
+    </div>
+
+    <div id="progressList"></div>
+  </div>
+
+  <!-- ========== PAGE 4: 成品库存 ========== -->
+  <div class="page" id="page-stock">
+    <div class="section">
+      <div style="display:flex;align-items:center;gap:6px;margin:8px 0 4px;padding:0 4px;">
+        <span style="font-size:13px;color:var(--text-secondary);">MM模块 · <span id="fgiCount">12</span>款ERT成品库存状态</span>
+      </div>
+    </div>
+    <div id="fgiList"></div>
+  </div>
+
+  <!-- ========== PAGE 5: 我的 ========== -->
+  <div class="page" id="page-mine">
+    <!-- Sales Stats -->
+    <div class="section">
+      <div class="section-title">本月业绩</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+        <div class="metric-card" role="group" aria-label="订单数"><div class="val tabular-nums" style="color:var(--primary);">23<span style="font-size:14px;font-weight:400;color:var(--text-muted);"> 笔</span></div><div class="label">订单数</div></div>
+        <div class="metric-card" role="group" aria-label="订单金额"><div class="val tabular-nums" style="color:var(--sapChart4);">¥520<span style="font-size:14px;font-weight:400;color:var(--text-muted);"> 万</span></div><div class="label">订单金额</div></div>
+        <div class="metric-card" role="group" aria-label="预计开票金额"><div class="val tabular-nums" style="color:var(--warning);">¥510<span style="font-size:14px;font-weight:400;color:var(--text-muted);"> 万</span></div><div class="label">预计开票金额</div></div>
+        <div class="metric-card" role="group" aria-label="实际开票金额"><div class="val tabular-nums" style="color:var(--success);">¥486<span style="font-size:14px;font-weight:400;color:var(--text-muted);"> 万</span></div><div class="label">实际开票金额</div></div>
+      </div>
+    </div>
+
+    <!-- Menu Items -->
+    <div class="section">
+      <div class="section-title">设置</div>
+      <div class="detail-section" style="padding:0;">
+        <button type="button" class="menu-row" onclick="showToast('消息设置')">
+          <span class="menu-label"><span class="mi" data-icon="bell" aria-hidden="true"></span> 消息提醒设置</span>
+          <span class="ds-val">›</span>
+        </button>
+        <button type="button" class="menu-row" onclick="showToast('客户管理')">
+          <span class="menu-label"><span class="mi" data-icon="customers" aria-hidden="true"></span> 我的客户</span>
+          <span class="ds-val">›</span>
+        </button>
+        <button type="button" class="menu-row" onclick="showToast('数据刷新')">
+          <span class="menu-label"><span class="mi" data-icon="refresh" aria-hidden="true"></span> 刷新数据</span>
+          <span class="ds-val">›</span>
+        </button>
+        <button type="button" class="menu-row" onclick="showToast('关于')">
+          <span class="menu-label"><span class="mi" data-icon="info" aria-hidden="true"></span> 关于</span>
+          <span class="ds-val">v1.0.0</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== DETAIL PAGE ========== -->
+  <div class="page" id="page-detail">
+    <div id="detailContent"></div>
+  </div>
+
+</main>
+
+<!-- Bottom Tab Bar -->
+<nav class="tab-bar" id="tabBar" aria-label="主导航">
+  <button type="button" class="tab-item active" role="tab" aria-selected="true" data-page="home" onclick="switchTab('home')">
+    <span class="tab-icon" data-icon="home" aria-hidden="true"></span>
+    <span>首页</span>
+  </button>
+  <button type="button" class="tab-item" role="tab" aria-selected="false" data-page="orders" onclick="switchTab('orders')">
+    <span class="tab-icon" data-icon="orders" aria-hidden="true"></span>
+    <span>订单</span>
+  </button>
+  <button type="button" class="tab-item" role="tab" aria-selected="false" data-page="progress" onclick="switchTab('progress')">
+    <span class="tab-icon" data-icon="chart" aria-hidden="true"></span>
+    <span>进度</span>
+    <span class="badge" aria-label="3 条预警">3</span>
+  </button>
+  <button type="button" class="tab-item" role="tab" aria-selected="false" data-page="stock" onclick="switchTab('stock')">
+    <span class="tab-icon" data-icon="inventory" aria-hidden="true"></span>
+    <span>库存</span>
+  </button>
+  <button type="button" class="tab-item" role="tab" aria-selected="false" data-page="mine" onclick="switchTab('mine')">
+    <span class="tab-icon" data-icon="user" aria-hidden="true"></span>
+    <span>我的</span>
+  </button>
+</nav>
+
+<!-- Toast -->
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<script>
+// ============ SVG Icons ============
+const SVG = {
+  home: '<svg class="sap-icon sap-icon-xl" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+  orders: '<svg class="sap-icon sap-icon-xl" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>',
+  production: '<svg class="sap-icon sap-icon-xl" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/></svg>',
+  inventory: '<svg class="sap-icon sap-icon-xl" viewBox="0 0 24 24" aria-hidden="true"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>',
+  chart: '<svg class="sap-icon sap-icon-xl" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>',
+  user: '<svg class="sap-icon sap-icon-xl" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  search: '<svg class="sap-icon sap-icon-md" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+  camera: '<svg class="sap-icon sap-icon-md" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>',
+  bell: '<svg class="sap-icon sap-icon-md" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
+  back: '<svg class="sap-icon sap-icon-md" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>',
+  refresh: '<svg class="sap-icon sap-icon-md" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>',
+  info: '<svg class="sap-icon sap-icon-md" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>',
+  customers: '<svg class="sap-icon sap-icon-md" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  delivery: '<svg class="sap-icon sap-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>',
+  invoice: '<svg class="sap-icon sap-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>',
+  box: '<svg class="sap-icon sap-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/></svg>',
+  calendar: '<svg class="sap-icon sap-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>',
+  alert: '<svg class="sap-icon sap-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+  empty: '<svg class="sap-icon sap-icon-xl" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>',
+};
+function icon(name) { return SVG[name] || ''; }
+function injectIcons() {
+  document.getElementById('search-icon').innerHTML = icon('search');
+  document.getElementById('scan-icon').innerHTML = icon('camera');
+  document.getElementById('back-icon').innerHTML = icon('back');
+  document.getElementById('header-bell-icon').innerHTML = icon('bell');
+  document.querySelectorAll('[data-icon]').forEach(el => {
+    el.innerHTML = icon(el.getAttribute('data-icon'));
+  });
+}
+</script>
+
+<script>
+// ============ Mock Data ============
+const mockOrders = [
+  { id: 'SO-20260053/0010', customer: '深圳科技电子有限公司', contact: '张经理', product: 'FG41 高精度传感器', qty: 500, unit: 'PC', amount: 128500, status: 'confirmed', priority: 'high', orderDate: '2026-05-28', reqDate: '2026-06-15', progress: { confirmed: true, scheduled: false, producing: false, completed_prod: false, shipped: false, invoiced: false }, delay: false },
+  { id: 'SO-20260052/0020', customer: '广州智能制造集团', contact: '李总', product: 'FG42 控制模块', qty: 1200, unit: 'PC', amount: 312000, status: 'scheduled', priority: 'mid', orderDate: '2026-05-27', reqDate: '2026-06-10', progress: { confirmed: true, scheduled: true, producing: false, completed_prod: false, shipped: false, invoiced: false }, delay: false },
+  { id: 'SO-20260051/0010', customer: '上海新能源科技', contact: '王总监', product: 'FG43 电源模块', qty: 800, unit: 'PC', amount: 196000, status: 'producing', priority: 'high', orderDate: '2026-05-26', reqDate: '2026-06-05', progress: { confirmed: true, scheduled: true, producing: true, completed_prod: false, shipped: false, invoiced: false }, production: { planStart: '2026-05-29', planEnd: '2026-06-07', complete: '45%', line: 'L3产线' }, delay: false },
+  { id: 'SO-20260050/0030', customer: '北京通信设备股份', contact: '赵工', product: 'FG44 通讯芯片', qty: 2000, unit: 'PC', amount: 520000, status: 'completed_prod', priority: 'low', orderDate: '2026-05-25', reqDate: '2026-05-30', progress: { confirmed: true, scheduled: true, producing: true, completed_prod: true, shipped: false, invoiced: false }, delay: false },
+  { id: 'SO-20260049/0010', customer: '深圳科技电子有限公司', contact: '张经理', product: 'FG45 数据采集器', qty: 350, unit: 'PC', amount: 87500, status: 'partial_prod', priority: 'mid', orderDate: '2026-05-24', reqDate: '2026-06-20', progress: { confirmed: true, scheduled: true, producing: true, completed_prod: false, shipped: false, invoiced: false }, production: { planStart: '2026-05-24', planEnd: '2026-06-15', complete: '65%', line: 'L5产线' }, delay: false },
+  { id: 'SO-20260048/0020', customer: '杭州云计算科技', contact: '陈总', product: 'FG46 存储模块', qty: 600, unit: 'PC', amount: 147000, status: 'completed_prod', priority: 'low', orderDate: '2026-05-23', reqDate: '2026-06-08', progress: { confirmed: true, scheduled: true, producing: true, completed_prod: true, shipped: false, invoiced: false }, delay: false },
+  { id: 'SO-20260047/0010', customer: '广州智能制造集团', contact: '李总', product: 'FG47 执行器', qty: 1500, unit: 'PC', amount: 375000, status: 'shipped', priority: 'high', orderDate: '2026-05-22', reqDate: '2026-06-12', progress: { confirmed: true, scheduled: true, producing: true, completed_prod: true, shipped: true, invoiced: false }, delivery: { no: 'DN-80001234', date: '2026-05-29', carrier: '顺丰速运', tracking: 'SF1234567890' }, delay: false },
+  { id: 'SO-20260046/0020', customer: '上海新能源科技', contact: '王总监', product: 'FG48 变频器', qty: 400, unit: 'PC', amount: 168000, status: 'partial_ship', priority: 'high', orderDate: '2026-05-21', reqDate: '2026-06-01', progress: { confirmed: true, scheduled: true, producing: true, completed_prod: true, shipped: false, invoiced: false }, delivery: { no: 'DN-80001233', date: '2026-05-28', carrier: '德邦物流', tracking: 'DP9876543210' }, delay: true, delayDays: 2 },
+  { id: 'SO-20260045/0010', customer: '深圳科技电子有限公司', contact: '张经理', product: 'FG49 接口板', qty: 1000, unit: 'PC', amount: 245000, status: 'invoiced', priority: 'mid', orderDate: '2026-05-20', reqDate: '2026-05-28', progress: { confirmed: true, scheduled: true, producing: true, completed_prod: true, shipped: true, invoiced: true }, invoice: { no: 'INV-2026-0872', date: '2026-05-28', amount: 245000 }, delay: false },
+  { id: 'SO-20260044/0010', customer: '北京通信设备股份', contact: '赵工', product: 'FG50 AI处理器', qty: 300, unit: 'PC', amount: 381000, status: 'partial_inv', priority: 'high', orderDate: '2026-05-19', reqDate: '2026-06-03', progress: { confirmed: true, scheduled: true, producing: true, completed_prod: true, shipped: true, invoiced: false }, invoice: { no: 'INV-2026-0865', date: '2026-05-27', amount: 200000 }, delay: false },
+];
+
+// Finished Goods Inventory (FERT成品库存)
+const mockFGI = [
+  { code: 'TG-100', name: '高端交换机模块', unit: 'PC', available: 850, safetyStock: 200, maxCapacity: 2000 },
+  { code: 'TG-101', name: '光纤收发器', unit: 'PC', available: 120, safetyStock: 150, maxCapacity: 800 },
+  { code: 'TG-102', name: '工业路由器模块', unit: 'PC', available: 430, safetyStock: 100, maxCapacity: 600 },
+  { code: 'TG-103', name: '网络安全网关', unit: 'SET', available: 68, safetyStock: 80, maxCapacity: 300 },
+  { code: 'TG-104', name: '无线接入点AP', unit: 'PC', available: 2150, safetyStock: 500, maxCapacity: 3000 },
+  { code: 'FG41', name: '高精度传感器', unit: 'PC', available: 1250, safetyStock: 500, maxCapacity: 2500 },
+  { code: 'FG42', name: '控制模块', unit: 'PC', available: 320, safetyStock: 500, maxCapacity: 1800 },
+  { code: 'FG43', name: '电源模块', unit: 'PC', available: 1800, safetyStock: 400, maxCapacity: 3000 },
+  { code: 'FG44', name: '通讯芯片', unit: 'PC', available: 85, safetyStock: 300, maxCapacity: 1500 },
+  { code: 'FG45', name: '数据采集器', unit: 'PC', available: 2100, safetyStock: 350, maxCapacity: 3500 },
+  { code: 'FG46', name: '存储模块', unit: 'PC', available: 450, safetyStock: 400, maxCapacity: 1200 },
+  { code: 'FG47', name: '执行器', unit: 'PC', available: 980, safetyStock: 600, maxCapacity: 2000 },
+];
+
+// ============ Render Functions ============
+function getPriorityBadge(priority) {
+  const map = { high: '高', mid: '中', low: '低' };
+  return `<span class="prior-badge ${priority}">${map[priority] || priority}</span>`;
+}
+
+function getStatusLabel(status) {
+  const map = {
+    confirmed: '订单确认', scheduled: '排产', producing: '生产中',
+    completed_prod: '完工入库', partial_prod: '部分完工入库',
+    shipped: '发货', partial_ship: '部分发货',
+    invoiced: '开票', partial_inv: '部分开票'
+  };
+  return map[status] || status;
+}
+
+function renderOrderCard(order) {
+  const delayHTML = order.delay ? `<span style="color:var(--danger);font-size:11px;display:inline-flex;align-items:center;gap:2px;">${icon('alert')} 延迟${order.delayDays || '?'}天</span>` : '';
+  let progressHTML = '';
+  const isInProgress = ['confirmed','scheduled','producing','completed_prod','partial_prod','shipped','partial_ship'].includes(order.status);
+  if (isInProgress) {
+    const stepLabels = ['订单确认', '排产', '生产', '入库', '发货', '开票'];
+    const stepKeys = ['confirmed', 'scheduled', 'producing', 'completed_prod', 'shipped', 'invoiced'];
+    const currentIdx = stepKeys.indexOf(order.status);
+    progressHTML = `
+      <div class="progress-wrap">
+        <div class="progress-label"><span>订单进度</span>${delayHTML}</div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;flex-wrap:wrap;">
+          ${stepLabels.map((label, i) => {
+            const done = i <= currentIdx && order.status !== 'confirmed' ? i < currentIdx : i === 0 && order.status !== 'confirmed' ? false : i <= currentIdx;
+            const isCurrent = i === currentIdx && !['invoiced'].includes(order.status);
+            return `<span style="color:${done ? 'var(--success)' : isCurrent ? 'var(--primary)' : 'var(--text-muted)'};font-weight:${isCurrent?'600':'400'}">${label}</span>${i < 5 ? '<span style="color:var(--text-muted)">→</span>' : ''}`;
+          }).join('')}
+        </div>
+      </div>`;
+  }
+  return `
+    <button type="button" class="order-card" onclick="showOrderDetail('${order.id}')" aria-label="查看订单 ${order.id}">
+      <div class="order-header">
+        <div>
+          <div class="order-no">${order.id} ${getPriorityBadge(order.priority)}</div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">
+            <span class="customer-tag">${order.customer}</span>
+          </div>
+        </div>
+        <div class="order-amount">¥${order.amount.toLocaleString()}</div>
+      </div>
+      <div class="order-info">
+        <span style="display:inline-flex;align-items:center;gap:4px;">${icon('box')} ${order.product}</span>
+        <span>×${order.qty} ${order.unit}</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;">${icon('calendar')} ${order.reqDate}</span>
+      </div>
+      ${progressHTML}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+        <span style="font-size:11px;background:var(--primary-light);color:var(--primary);padding:2px 8px;border-radius:4px;">${getStatusLabel(order.status)}</span>
+        <span style="font-size:10px;color:var(--text-muted)">下单: ${order.orderDate}</span>
+      </div>
+    </button>`;
+}
+
+// ============ Page Rendering ============
+function renderHome() {
+  document.getElementById('recentOrders').innerHTML = mockOrders.slice(0, 5).map(renderOrderCard).join('');
+}
+
+function renderOrders(filter = 'all') {
+  let orders = mockOrders.slice();
+  if (filter !== 'all') orders = orders.filter(o => o.status === filter);
+  if (orders.length === 0) {
+    document.getElementById('orderList').innerHTML = '<div class="empty-state"><div class="empty-icon">' + icon('empty') + '</div><div class="empty-text">暂无相关订单</div></div>';
+  } else {
+    document.getElementById('orderList').innerHTML = orders.map(renderOrderCard).join('');
+  }
+}
+
+function renderProgress(filter = 'all') {
+  let items = [];
+  mockOrders.forEach(o => {
+    if (o.status === 'completed') return;
+    if (filter === 'delay' && !o.delay) return;
+    if (filter === 'produce' && o.status !== 'producing') return;
+    if (filter === 'deliver' && !['shipped', 'partial_ship'].includes(o.status)) return;
+    items.push(o);
+  });
+  if (items.length === 0) {
+    document.getElementById('progressList').innerHTML = '<div class="empty-state"><div class="empty-icon">' + icon('chart') + '</div><div class="empty-text">暂无进度数据</div></div>';
+    return;
+  }
+  document.getElementById('progressList').innerHTML = items.map(o => {
+    const steps = [
+      { key: 'confirmed', label: '订单确认', date: o.orderDate, iconKey: 'orders' },
+      { key: 'scheduled', label: '排产', date: o.production ? o.production.planStart : '-', iconKey: 'production' },
+      { key: 'producing', label: '生产中', date: o.production ? o.production.planStart : '-', iconKey: 'production' },
+      { key: 'completed_prod', label: '完工入库', date: o.production ? o.production.planEnd : '-', iconKey: 'inventory' },
+      { key: 'shipped', label: '发货', date: o.delivery ? o.delivery.date : '-', iconKey: 'delivery' },
+      { key: 'invoiced', label: '开票', date: o.invoice ? o.invoice.date : '-', iconKey: 'invoice' },
+    ];
+    const stepHTML = steps.map((s, i) => {
+      const done = o.progress[s.key];
+      let cls = done ? 'done' : '';
+      if (i === steps.findIndex(st => !o.progress[st.key]) && !done) cls = 'active';
+      return `
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="text-align:center;">
+            <div class="timeline-dot ${o.delay && i === 1 && !o.progress.shipped ? 'alert' : o.progress[s.key] ? s.key : 'order'}" style="display:flex;align-items:center;justify-content:center;">${icon(s.iconKey)}</div>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:11px;font-weight:500;color:${done ? 'var(--success)' : i === steps.findIndex(st => !o.progress[st.key]) ? 'var(--primary)' : 'var(--text-secondary)'}">${s.label}</div>
+            <div style="font-size:10px;color:var(--text-muted)">${s.date}</div>
+          </div>
+        </div>`;
+    }).join('<div style="width:16px;height:1px;background:var(--border);flex-shrink:0;margin:0 2px;"></div>');
+
+    return `
+      <button type="button" class="order-card" onclick="showOrderDetail('${o.id}')" aria-label="查看订单 ${o.id}">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+          <div>
+            <span style="font-weight:600;font-size:13px;">${o.id}</span>
+            ${o.delay ? '<span style="color:var(--danger);font-size:10px;margin-left:6px;display:inline-flex;align-items:center;gap:2px;">' + icon('alert') + ' 延迟</span>' : ''}
+          </div>
+          <span style="font-size:11px;color:var(--text-muted);">需: ${o.reqDate}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;display:flex;align-items:center;gap:4px;">${icon('box')} ${o.product} × ${o.qty} ${o.unit}</div>
+        <div style="display:flex;align-items:center;gap:0;overflow-x:auto;padding:4px 0;">
+          ${stepHTML}
+        </div>
+      </button>`;
+  }).join('');
+}
+
+function renderFGI() {
+  document.getElementById('fgiCount').textContent = mockFGI.length;
+  document.getElementById('fgiList').innerHTML = mockFGI.map(item => `
+      <div class="fgi-card">
+        <div class="fgi-name">${item.name}</div>
+        <div class="fgi-model">${item.code} · ${item.unit}</div>
+        <div class="fgi-stock-row">
+          <div class="fgi-available">
+            ${item.available.toLocaleString()} <span>可用库存</span>
+          </div>
+        </div>
+      </div>`).join('');
+}
+
+// ============ Order Detail ============
+function showOrderDetail(orderId) {
+  const order = mockOrders.find(o => o.id === orderId);
+  if (!order) return;
+
+  document.getElementById('pageHeader').querySelector('#btnBack').style.display = 'inline-flex';
+  document.getElementById('headerTitle').textContent = '订单详情';
+  document.getElementById('tabBar').style.display = 'none';
+
+  let progressHTML = '';
+  if (order.status !== 'invoiced') {
+    const steps = ['订单确认', '排产', '生产中', '完工入库', '发货', '开票'];
+    const keys = ['confirmed', 'scheduled', 'producing', 'completed_prod', 'shipped', 'invoiced'];
+    progressHTML = `
+      <div class="detail-section">
+        <div class="ds-title">订单进度</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;">
+          ${steps.map((label, i) => {
+            const done = order.progress[keys[i]];
+            const active = !done && (i === 0 || order.progress[keys[i-1]]);
+            let dotClass = '';
+            if (done) dotClass = 'done';
+            else if (active) dotClass = 'active';
+            else if (order.delay && i >= 2) dotClass = 'alert';
+            return `<div style="text-align:center;flex:1;">
+              <div class="progress-dot ${dotClass}" style="margin:0 auto 4px;"></div>
+              <div style="font-size:10px;color:${done?'var(--success)':active?'var(--primary)':order.delay&&i>=2?'var(--danger)':'var(--text-muted)'}">${label}</div>
+            </div>`;
+          }).join('<div style="height:2px;flex:1;background:' + (order.progress.confirmed ? 'var(--success)' : 'var(--border)') + ';margin-top:-16px;"></div>')}
+        </div>
+        ${order.delay ? `<div style="text-align:center;color:var(--danger);font-size:12px;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:4px;">${icon('alert')} 当前延迟 ${order.delayDays || '?'} 天，需关注交期</div>` : ''}
+      </div>`;
+  }
+
+  let extraSection = '';
+  if (order.production) {
+    extraSection += `
+      <div class="detail-section">
+        <div class="ds-title">生产信息</div>
+        <div class="ds-row"><span>产线</span><span class="ds-val">${order.production.line}</span></div>
+        <div class="ds-row"><span>计划开始</span><span class="ds-val">${order.production.planStart}</span></div>
+        <div class="ds-row"><span>计划完成</span><span class="ds-val">${order.production.planEnd}</span></div>
+        <div class="ds-row"><span>完成率</span><span class="ds-val" style="color:var(--primary);font-weight:600;">${order.production.complete}</span></div>
+      </div>`;
+  }
+  if (order.delivery) {
+    extraSection += `
+      <div class="detail-section">
+        <div class="ds-title">发货信息</div>
+        <div class="ds-row"><span>发货单号</span><span class="ds-val">${order.delivery.no}</span></div>
+        <div class="ds-row"><span>发货日期</span><span class="ds-val">${order.delivery.date}</span></div>
+        <div class="ds-row"><span>物流承运</span><span class="ds-val">${order.delivery.carrier}</span></div>
+        <div class="ds-row"><span>运单号</span><span class="ds-val" style="color:var(--primary);">${order.delivery.tracking}</span></div>
+      </div>`;
+  }
+  if (order.invoice) {
+    extraSection += `
+      <div class="detail-section">
+        <div class="ds-title">开票信息</div>
+        <div class="ds-row"><span>发票号</span><span class="ds-val">${order.invoice.no}</span></div>
+        <div class="ds-row"><span>开票日期</span><span class="ds-val">${order.invoice.date}</span></div>
+        <div class="ds-row"><span>开票金额</span><span class="ds-val" style="color:var(--primary);font-weight:600;">¥${order.invoice.amount.toLocaleString()}</span></div>
+      </div>`;
+  }
+
+  document.getElementById('detailContent').innerHTML = `
+    <div class="detail-header">
+      <div class="dh-title">${order.id}</div>
+      <div class="dh-customer"><span class="customer-tag">${order.customer}</span> · ${order.contact}</div>
+      <div class="dh-amount">¥${order.amount.toLocaleString()}</div>
+      <div class="dh-meta">
+        <span>${getPriorityBadge(order.priority)}</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;">${icon('box')} ${order.product}</span>
+        <span>${order.qty} ${order.unit}</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;">${icon('calendar')} 下单: ${order.orderDate}</span>
+      </div>
+    </div>
+    ${progressHTML}
+    <div class="detail-section">
+      <div class="ds-title">订单概要</div>
+      <div class="ds-row"><span>订单状态</span><span class="ds-val" style="color:var(--primary);">${getStatusLabel(order.status)}</span></div>
+      <div class="ds-row"><span>客户需求日期</span><span class="ds-val">${order.reqDate}</span></div>
+      <div class="ds-row"><span>物料</span><span class="ds-val">${order.product}</span></div>
+      <div class="ds-row"><span>数量</span><span class="ds-val">${order.qty} ${order.unit}</span></div>
+      <div class="ds-row"><span>金额</span><span class="ds-val">¥${order.amount.toLocaleString()}</span></div>
+    </div>
+    ${extraSection}
+  `;
+
+  switchToDetailPage();
+}
+
+function switchToDetailPage() {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-detail').classList.add('active');
+}
+
+// ============ Navigation ============
+let currentTab = 'home';
+let historyStack = [];
+
+function getHeaderTitle(tab) {
+  const titles = { home: '销售助手', orders: '订单列表', progress: '进度跟踪', stock: '成品库存', mine: '我的' };
+  return titles[tab] || '销售助手';
+}
+
+function setFilterTabActive(containerId, activeEl) {
+  document.querySelectorAll(`#${containerId} .filter-tab`).forEach(t => {
+    const on = t === activeEl;
+    t.classList.toggle('active', on);
+    t.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  historyStack = [];
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(t => {
+    const on = t.dataset.page === tab;
+    t.classList.toggle('active', on);
+    t.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+
+  document.getElementById('tabBar').style.display = 'flex';
+  document.getElementById('headerTitle').textContent = getHeaderTitle(tab);
+  document.querySelector('#pageHeader #btnBack').style.display = 'none';
+
+  if (tab === 'home') {
+    document.getElementById('page-home').classList.add('active');
+    renderHome();
+  } else if (tab === 'orders') {
+    document.getElementById('page-orders').classList.add('active');
+    renderOrders();
+  } else if (tab === 'progress') {
+    document.getElementById('page-progress').classList.add('active');
+    renderProgress();
+  } else if (tab === 'stock') {
+    document.getElementById('page-stock').classList.add('active');
+    renderFGI();
+  } else if (tab === 'mine') {
+    document.getElementById('page-mine').classList.add('active');
+  }
+
+  window.scrollTo(0, 0);
+}
+
+function navigateTo(page) {
+  if (page === 'alerts') { switchTab('progress'); return; }
+  if (page === 'orders') { switchTab('orders'); return; }
+  if (page === 'production') { switchTab('progress'); return; }
+  if (page === 'stock') { switchTab('stock'); return; }
+}
+
+function goBack() {
+  if (document.getElementById('page-detail').classList.contains('active')) {
+    document.getElementById('page-detail').classList.remove('active');
+    document.getElementById('tabBar').style.display = 'flex';
+    document.getElementById('pageHeader').querySelector('#btnBack').style.display = 'none';
+    document.getElementById('headerTitle').textContent = getHeaderTitle(currentTab);
+    switchTab(currentTab);
+  }
+}
+
+function filterOrderList(filter, el) {
+  setFilterTabActive('orderFilters', el);
+  renderOrders(filter);
+}
+
+function filterProgress(filter, el) {
+  setFilterTabActive('progressFilters', el);
+  renderProgress(filter);
+}
+
+function filterOrders(type) {
+  switchTab('orders');
+  setTimeout(() => {
+    const filterMap = { confirmed: 'confirmed', scheduled: 'scheduled', producing: 'producing', completed_prod: 'completed_prod', shipped: 'shipped', partial_ship: 'partial_ship', invoiced: 'invoiced', alert: 'all' };
+    const filter = filterMap[type] || 'all';
+    if (type === 'alert') {
+      const allTab = document.querySelector('#orderFilters .filter-tab[data-filter="all"]');
+      setFilterTabActive('orderFilters', allTab);
+      document.getElementById('orderList').innerHTML = mockOrders.filter(o => o.delay).map(renderOrderCard).join('');
+    } else {
+      renderOrders(filter);
+      const target = document.querySelector(`#orderFilters .filter-tab[data-filter="${filter}"]`);
+      setFilterTabActive('orderFilters', target || document.querySelector('#orderFilters .filter-tab[data-filter="all"]'));
+    }
+  }, 100);
+}
+
+function showNotifications() {
+  showToast('暂无新消息');
+}
+
+// ============ Search ============
+document.getElementById('searchInput').addEventListener('input', function(e) {
+  const query = e.target.value.toLowerCase().trim();
+  if (!query) { renderHome(); return; }
+  const filtered = mockOrders.filter(o =>
+    o.id.toLowerCase().includes(query) ||
+    o.customer.toLowerCase().includes(query) ||
+    o.product.toLowerCase().includes(query)
+  );
+  document.getElementById('recentOrders').innerHTML = filtered.length > 0
+    ? filtered.map(renderOrderCard).join('')
+    : '<div class="empty-state"><div class="empty-icon">' + icon('search') + '</div><div class="empty-text">未找到匹配订单</div></div>';
+});
+
+// ============ Toast ============
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 1500);
+}
+
+// ============ Init ============
+injectIcons();
+renderHome();
+renderOrders();
+renderProgress();
+renderFGI();
+</script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!--pages/index/index.wxml - 首页模板 -->
+<view class="container">
+  <!-- 头部 -->
+  <view class="header">
+    <view class="logo-container">
+      <view class="logo">ES</view>
+      <view class="logo-text">
+        <text class="title">SAP ERP助手</text>
+        <text class="subtitle">S/4HANA Cloud</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 快捷入口 -->
+  <view class="module-grid">
+    <block wx:for="{{modules}}" wx:key="id">
+      <view class="module-card" data-id="{{item.id}}" bindtap="navigateToModule">
+        <view class="module-icon">{{item.icon}}</view>
+        <view class="module-info">
+          <text class="module-title">{{item.title}}</text>
+          <text class="module-desc">{{item.desc}}</text>
+        </view>
+        <view class="module-arrow">→</view>
+      </view>
+    </block>
+  </view>
+
+  <!-- 说明区域 -->
+  <view class="card info-card">
+    <view class="card-header">
+      <text class="card-title">系统说明</text>
+    </view>
+    <view class="info-content">
+      <view class="info-section">
+        <text class="info-title">支持的数据模块</text>
+        <text class="info-item">• 产品主数据 (API_PRODUCT_SRV)</text>
+        <text class="info-item">• 销售订单 (CE_SALESORDER_0001)</text>
+        <text class="info-item">• 生产订单 (API_PRODUCTION_ORDER_2_SRV)</text>
+        <text class="info-item">• 物料库存 (API_MATERIAL_STOCK_SRV)</text>
+        <text class="info-item">• 客户主数据 (API_BUSINESS_PARTNER)</text>
+      </view>
+    </view>
+  </view>
+</view>

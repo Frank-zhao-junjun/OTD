@@ -1,0 +1,46 @@
+{
+  "headers": [
+    {
+      "BillingDocument": "9000000122",
+      "SoldToParty": "200000",
+      "SoldToPartyName": "上海电子科技有限公司",
+      "BillingDocumentDate": "/Date(1767312000000)/",
+      "TransactionCurrency": "CNY"
+    },
+    {
+      "BillingDocument": "9000000123",
+      "SoldToParty": "1000001",
+      "SoldToPartyName": "Mr. Customer 1",
+      "BillingDocumentDate": "/Date(1767398400000)/",
+      "TransactionCurrency": "CNY"
+    }
+  ],
+  "items": [
+    {
+      "BillingDocument": "9000000122",
+      "BillingDocumentItem": "10",
+      "ReferenceSDDocument": "0000001234",
+      "ReferenceSDDocumentItem": "10",
+      "Material": "FG10",
+      "BillingDocumentItemText": "智能网关终端",
+      "BillingQuantity": "100.000",
+      "BillingQuantityUnit": "PC",
+      "NetAmount": "780000.00",
+      "TaxAmount": "101400.00",
+      "TransactionCurrency": "CNY"
+    },
+    {
+      "BillingDocument": "9000000123",
+      "BillingDocumentItem": "10",
+      "ReferenceSDDocument": "0000001235",
+      "ReferenceSDDocumentItem": "10",
+      "Material": "FG42",
+      "BillingDocumentItemText": "数据采集器",
+      "BillingQuantity": "50.000",
+      "BillingQuantityUnit": "PC",
+      "NetAmount": "44500.00",
+      "TaxAmount": "5785.00",
+      "TransactionCurrency": "CNY"
+    }
+  ]
+}

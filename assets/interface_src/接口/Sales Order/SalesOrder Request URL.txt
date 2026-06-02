@@ -1,0 +1,156 @@
+Scope Item: BD9 — SELL FROM STOCK
+API: CE_SALESORDER_0001 (OData V4.01)
+Service: API_SALESORDER / salesorder / 0001
+Schema Version: 1.8.2
+
+Production Base URL:
+https://my200967-api.s4hana.sapcloud.cn/sap/opu/odata4/sap/api_salesorder/srvd_a2x/sap/salesorder/0001/
+
+Sandbox Base URL (Postman / API Business Hub):
+https://sandbox.api.sap.com/s4hanacloud/sap/opu/odata4/sap/api_salesorder/srvd_a2x/sap/salesorder/0001/
+
+Auth: Basic Auth — EPC_USER + sap-client=100
+⚠️ 生产环境实测 EPC_USER 返回 403：No authorization to access service group 'API_SALESORDER'
+   需在 Communication Arrangement 中启用 Sales Order 入站服务并授权该用户
+
+Metadata:
+https://my200967-api.s4hana.sapcloud.cn/sap/opu/odata4/sap/api_salesorder/srvd_a2x/sap/salesorder/0001/$metadata?sap-client=100
+
+PRD 过滤条件（Sell from Stock）:
+- SalesOrderType = OR（Standard Order）
+- SalesOrganization = 1010
+- DistributionChannel = 10
+- OrganizationDivision = 00
+- BillingCompanyCode = 1010
+
+常用 Request URL：
+
+1) 销售订单列表（OR + 1010 销售范围，Top 50）
+https://my200967-api.s4hana.sapcloud.cn/sap/opu/odata4/sap/api_salesorder/srvd_a2x/sap/salesorder/0001/SalesOrder?sap-client=100&$top=50&$filter=SalesOrderType eq 'OR' and SalesOrganization eq '1010' and DistributionChannel eq '10' and OrganizationDivision eq '00'
+
+2) 销售订单 + 行项目展开
+.../SalesOrder?sap-client=100&$top=20&$expand=_Item&$filter=SalesOrderType eq 'OR' and SalesOrganization eq '1010'
+
+3) 按订单号查询（含行）
+.../SalesOrder('0000000001')?$expand=_Item
+
+4) 销售订单行（独立 EntitySet）
+.../SalesOrderItem?sap-client=100&$top=50&$filter=SalesOrder eq '0000000001'
+
+5) 计划行（交期/确认数量）
+.../SalesOrderScheduleLine?sap-client=100&$top=50
+
+6) 合作伙伴（客户名称等）
+.../SalesOrder('0000000001')?$expand=_Partner
+
+Entity Sets（metadata 定义）:
+- SalesOrder              — 订单头
+- SalesOrderItem          — 订单行
+- SalesOrderScheduleLine  — 计划行/交期
+- SalesOrderPartner       — 头合作伙伴
+- SalesOrderItemPartner   — 行合作伙伴
+- SalesOrderPricingElement / SalesOrderItemPricingElement — 定价元素
+- SalesOrderRelatedObject / SalesOrderItemRelatedObject — 关联单据
+- SalesOrderText / SalesOrderItemText — 长文本
+
+本地样本:
+- SalesOrder metaData.txt  — $metadata XML
+- SalesOrder All data.txt  — Sandbox 样本（SalesOrderType=TA, SalesOrg=1710）
+
+================================================================================
+RAISE_SHORTDUMP 排查（OData 后端 ABAP 短 dump）
+================================================================================
+
+错误含义:
+  SAP 后端在处理 OData 请求时发生未捕获 ABAP 异常，Gateway 返回
+  Runtime Error: 'RAISE_SHORTDUMP'. The OData request processing has been abnormally terminated.
+
+当前环境实测 (EPC_USER, 2026-05-30):
+  - Customer API (API_BUSINESS_PARTNER) → 200 OK
+  - Sales Order $metadata (Accept: application/json) → 406 Not Acceptable
+  - Sales Order 数据读取 → 403 No authorization to access service group 'API_SALESORDER'
+  → 若你看到 RAISE_SHORTDUMP 而非 403，说明你的用户已通过 Gateway 授权，但后端读数/展开时崩溃
+
+Step 0 — 先确认是权限还是短 dump
+  403 /IWBEP/CM_V4_COS/011 → 缺 Communication Arrangement，Basis 先配 CA
+  RAISE_SHORTDUMP → 权限已通过，是后端 ABAP 问题，按下面 Step 1–4 隔离
+
+Step 1 — 最小请求（Postman / 浏览器）
+  GET .../SalesOrder?sap-client=100&$top=1
+  Header: Accept: application/json
+  若仍 shortdump → 服务/用户/角色配置问题，交 Basis
+
+Step 2 — 逐步加参数（定位触发点）
+  a) .../SalesOrder?sap-client=100&$top=5
+  b) + $filter=SalesOrganization eq '1010'
+  c) + $filter=SalesOrderType eq 'OR' and SalesOrganization eq '1010'
+  d) + $expand=_Item
+  e) + $expand=_Partner
+  记录「从哪一步开始 shortdump」
+
+Step 3 — $metadata 单独测（Accept 必须是 XML）
+  GET .../$metadata?sap-client=100
+  Header: Accept: application/xml
+  用 application/json 请求 metadata 只会得到 406，不是 shortdump
+
+Step 4 — SAP 侧查 dump 详情（需 Fiori/Gui 权限）
+  ST22           — 按时间找 Runtime Error RAISE_SHORTDUMP，看 dump 文本与调用栈
+  /IWFND/ERROR_LOG — Gateway 错误（用响应里 @SAP__common.Timestamp 搜索）
+  /IWBEP/ERROR_LOG — OData 后端错误
+  ADT Feed Reader — SAP Gateway Error Log
+
+Basis 必做（解决 403 + 避免错误用户触发 dump）:
+  1) Fiori → Communication Arrangements → 新建/编辑 Sales Order 场景
+     - OData V4 CE_SALESORDER_0001: 查 API Business Hub 上该 API 的 Communication Scenario ID
+     - 经典 V2 API_SALES_ORDER_SRV: SAP_COM_0109
+  2) 将 EPC_USER（或 CC0000000003）绑定到该 CA 的 Inbound User
+  3) Communication System 勾选对应 Inbound Service (API_SALESORDER)
+  4) 保存后重测 Step 1
+
+常见 shortdump 触发原因（权限配好后）:
+  - $expand=_Item 与复杂 $filter 组合导致后端 SELECT 异常
+  - 订单号 key 格式错误（应 10 位如 '0000000001'，不要用 '1'）
+  - 某条业务数据损坏（异常日期/定价）导致读单条订单 dump
+  - 通信用户缺 SD 业务授权（仅 Gateway 通过、后端仍 dump）
+
+本地诊断脚本:
+  cd backend && python diagnose_sales_order_shortdump.py
+
+提 SAP 工单时请附带:
+  - 完整 Request URL + HTTP Method
+  - 响应中的 TransactionId / Timestamp（如 6DFFBDC8ADC501A0...）
+  - ST22 dump 截图或文本
+  - ComponentId: SD-SLS-API, ServiceId: API_SALESORDER
+
+================================================================================
+已分析 ST22 dump (2026-05-30, CB9980000021) — 与 Sales Order 读数无关
+================================================================================
+
+Dump 文件:
+  PWR_RAISE_SHORTDUMP_30_05_2026_08_58_13_CB9980000021.zip
+  PWR_RAISE_SHORTDUMP_30_05_2026_09_00_16_CB9980000021.zip
+
+结论: 两次 dump 根因相同，不是 Sales Order OData 查询崩溃。
+
+| 项目 | 值 |
+|------|-----|
+| 用户 | CB9980000021 (赵) — Fiori 业务用户，非 EPC_USER |
+| 触发 URL | /sap/opu/odata/sap/APS_COM_CA2_SRV/$batch |
+| 操作 | Communication Arrangement **DEPLOY（发布/激活）** |
+| 业务对象 | I_APS_COM_CA_TP |
+| 程序 | CL_APS_CA_ACTIVATE |
+| 组件 | BC-SRV-APS-COM |
+| 根因消息 | **Function locked, software update running in parallel.** |
+| 锁对象 | SZDM_LOCK — /AIF/T_INF_FEAT (INSERT) |
+
+含义:
+  在 Fiori「Communication Arrangements」里保存/发布 CA 时，系统正在进行
+  软件升级或维护（Zero-Downtime Upgrade），配置类功能被临时锁定。
+
+处理:
+  1) 等待 SAP 租户维护/升级完成（问 Basis 预计结束时间）
+  2) 维护结束后再在 Fiori 重试「Save / Deploy」Communication Arrangement
+  3) 无需为 Sales Order API 提 SAP 组件 SD-SLS-API 工单
+  4) CA 成功 Deploy 后，再用 EPC_USER 测 Sales Order 数据接口
+
+本地 dump 解压路径: 接口/Sales Order/shortdump/

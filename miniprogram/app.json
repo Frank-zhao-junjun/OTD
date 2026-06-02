@@ -1,0 +1,50 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/products/products",
+    "pages/sales-orders/sales-orders",
+    "pages/production-orders/production-orders",
+    "pages/material-stock/material-stock",
+    "pages/customers/customers"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#354A5F",
+    "navigationBarTitleText": "SAP ERP助手",
+    "navigationBarTextStyle": "white"
+  },
+  "tabBar": {
+    "color": "#8B9DAF",
+    "selectedColor": "#0070F2",
+    "backgroundColor": "#F5F6F7",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "images/home.png",
+        "selectedIconPath": "images/home-active.png"
+      },
+      {
+        "pagePath": "pages/products/products",
+        "text": "产品",
+        "iconPath": "images/product.png",
+        "selectedIconPath": "images/product-active.png"
+      },
+      {
+        "pagePath": "pages/sales-orders/sales-orders",
+        "text": "订单",
+        "iconPath": "images/order.png",
+        "selectedIconPath": "images/order-active.png"
+      },
+      {
+        "pagePath": "pages/material-stock/material-stock",
+        "text": "库存",
+        "iconPath": "images/stock.png",
+        "selectedIconPath": "images/stock-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

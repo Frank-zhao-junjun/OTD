@@ -1,0 +1,88 @@
+{
+  "headers": [
+    {
+      "DeliveryDocument": "80001234",
+      "SoldToParty": "200000",
+      "ActualGoodsMovementDate": "/Date(1767225600000)/",
+      "OverallGoodsMovementStatus": "C",
+      "to_DeliveryDocumentPartner": {
+        "results": [
+          {
+            "PartnerFunction": "SP",
+            "Customer": "200000",
+            "to_Address": {
+              "FullName": "上海电子科技有限公司",
+              "BusinessPartnerName1": "上海电子科技有限公司"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "DeliveryDocument": "80001235",
+      "SoldToParty": "1000001",
+      "ActualGoodsMovementDate": "/Date(1767312000000)/",
+      "OverallGoodsMovementStatus": "C",
+      "to_DeliveryDocumentPartner": {
+        "results": [
+          {
+            "PartnerFunction": "SP",
+            "Customer": "1000001",
+            "to_Address": {
+              "FullName": "Mr. Customer 1",
+              "BusinessPartnerName1": "Mr. Customer 1"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "items": [
+    {
+      "DeliveryDocument": "80001234",
+      "DeliveryDocumentItem": "10",
+      "ReferenceSDDocument": "0000001234",
+      "ReferenceSDDocumentItem": "10",
+      "Material": "FG10",
+      "DeliveryDocumentItemText": "智能网关终端",
+      "ActualDeliveryQuantity": "100.000",
+      "ActualDeliveredQtyInBaseUnit": "100.000",
+      "DeliveryQuantityUnit": "PC",
+      "GoodsMovementStatus": "C",
+      "Plant": "1010",
+      "to_DocumentFlow": {
+        "results": [
+          {
+            "PrecedingDocument": "80001234",
+            "PrecedingDocumentItem": "10",
+            "Subsequentdocument": "4900123456",
+            "SubsequentDocumentCategory": "R"
+          }
+        ]
+      }
+    },
+    {
+      "DeliveryDocument": "80001235",
+      "DeliveryDocumentItem": "20",
+      "ReferenceSDDocument": "0000001235",
+      "ReferenceSDDocumentItem": "20",
+      "Material": "FG41",
+      "DeliveryDocumentItemText": "数据采集器",
+      "ActualDeliveryQuantity": "50.000",
+      "ActualDeliveredQtyInBaseUnit": "50.000",
+      "DeliveryQuantityUnit": "PC",
+      "GoodsMovementStatus": "C",
+      "Plant": "1010",
+      "to_DocumentFlow": {
+        "results": [
+          {
+            "PrecedingDocument": "80001235",
+            "PrecedingDocumentItem": "20",
+            "Subsequentdocument": "4900123457",
+            "SubsequentDocumentCategory": "R"
+          }
+        ]
+      }
+    }
+  ]
+}

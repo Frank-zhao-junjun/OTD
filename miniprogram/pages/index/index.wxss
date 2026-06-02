@@ -1,0 +1,126 @@
+/* pages/index/index.wxss - 首页样式 */
+.container {
+  padding: 0;
+  background-color: #F5F6F7;
+}
+
+.header {
+  background-color: #354A5F;
+  padding: 24px 16px;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  width: 48px;
+  height: 48px;
+  background-color: #0070F2;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.logo-text {
+  margin-left: 12px;
+}
+
+.logo-text .title {
+  font-size: 18px;
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+.logo-text .subtitle {
+  font-size: 12px;
+  color: #8B9DAF;
+  display: block;
+}
+
+/* 模块网格 */
+.module-grid {
+  padding: 12px;
+}
+
+.module-card {
+  background-color: #FFFFFF;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.module-card:active {
+  background-color: #F0F2F4;
+}
+
+.module-icon {
+  width: 48px;
+  height: 48px;
+  background-color: #EAECEE;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.module-info {
+  flex: 1;
+  margin-left: 12px;
+}
+
+.module-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1D2D3E;
+  display: block;
+}
+
+.module-desc {
+  font-size: 13px;
+  color: #5F6B7A;
+  display: block;
+  margin-top: 4px;
+}
+
+.module-arrow {
+  color: #0070F2;
+  font-size: 16px;
+}
+
+/* 信息卡片 */
+.info-card {
+  margin: 12px;
+}
+
+.info-content {
+  padding: 0;
+}
+
+.info-section {
+  margin-bottom: 16px;
+}
+
+.info-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1D2D3E;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.info-item {
+  font-size: 13px;
+  color: #5F6B7A;
+  display: block;
+  line-height: 24px;
+}

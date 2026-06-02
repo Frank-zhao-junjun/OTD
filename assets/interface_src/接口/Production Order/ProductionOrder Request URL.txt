@@ -1,0 +1,73 @@
+# Production Order — CE_PRODUCTIONORDER_0001 (OData V4)
+# API Resource: sap.s4:apiResource:CE_PRODUCTIONORDER_0001:v1
+# Service Group: API_PRODUCTIONORDER
+# Min SAP Version: 2602
+
+# Communication Scenarios:
+#   SAP_COM_0104 — Production Planning Integration
+#   SAP_COM_0522 — Manufacturing Execution - Order and Confirmation Integration
+# Scope Item: BJ5 — Make-to-Stock Production – Discrete Manufacturing
+
+# --- Postman / SAP Communication Scenarios variables ---
+# {{sapScheme}}                                   → https
+# {{SAP_COM_0104_host}}                           → my200967-api.s4hana.sapcloud.cn
+# {{SAP_COM_0104_productionOrderServiceRoot}}     → sap/opu/odata4/sap/api_productionorder/srvd_a2x/sap/productionorder/0001
+# {{SAP_COM_0104_entitySet}}                      → ProductionOrder
+# {{sapClient}}                                   → 100
+
+# --- GET Metadata (Postman: "GET Metadata") ---
+# Method: GET
+# URL: {{sapScheme}}://{{SAP_COM_0104_host}}/{{SAP_COM_0104_productionOrderServiceRoot}}/$metadata?sap-client={{sapClient}}
+# Resolves to:
+#   https://my200967-api.s4hana.sapcloud.cn/sap/opu/odata4/sap/api_productionorder/srvd_a2x/sap/productionorder/0001/$metadata?sap-client=100
+# Header: Accept: application/xml  (NOT application/json — returns 406 otherwise)
+# Auth: Basic EPC_USER (CA SAP_COM_0104 must authorize API_PRODUCTIONORDER)
+# Live (2026-05-30): metadata 200 ✅ | ProductionOrder entity 403 until CA deployed
+
+GET $metadata?sap-client=100
+Accept: application/xml
+
+# --- List production orders (Postman template) ---
+# Method: GET
+# URL: {{sapScheme}}://{{SAP_COM_0104_host}}/{{SAP_COM_0104_productionOrderServiceRoot}}/{{SAP_COM_0104_entitySet}}?$filter=ProductionPlant eq '1010'&$top=20&sap-client={{sapClient}}
+# Header: Accept: application/json
+# Resolves to (example):
+#   .../ProductionOrder?$filter=ProductionPlant eq '1010'&$top=20&sap-client=100
+
+GET ProductionOrder?$top=20&sap-client=100
+GET ProductionOrder?$filter=ProductionPlant eq '1010'&$top=50&sap-client=100
+GET ProductionOrder?$filter=SalesOrder eq 'SO_NUMBER'&$expand=_Item,_Operation&sap-client=100
+GET ProductionOrder?$filter=Product eq 'FG10' and ProductionPlant eq '1010'&$top=20&sap-client=100
+
+# --- Single order + navigations ---
+GET ProductionOrder('ORDER_NUMBER')?$expand=_Item,_Operation,_Component,_Sequence&sap-client=100
+
+# --- Order item (line) ---
+GET ProductionOrderItem?$filter=ProductionOrder eq 'ORDER_NUMBER'&sap-client=100
+
+# --- Operations (报工 / 工序) ---
+GET ProductionOrderOperation?$filter=ProductionOrder eq 'ORDER_NUMBER'&sap-client=100
+GET ProductionOrder/{ProductionOrder}/_Operation?sap-client=100
+
+# --- Components (发料 BOM) ---
+GET ProductionOrder/{ProductionOrder}/_Component?sap-client=100
+
+# --- Actions (write — portal read-only phase skips these) ---
+POST ProductionOrder/{ProductionOrder}/SAP__self.Release
+POST ProductionOrder/{ProductionOrder}/SAP__self.ScheduleProductionOrder
+POST ProductionOrder/{ProductionOrder}/SAP__self.CompleteTechnically
+POST ProductionOrder/{ProductionOrder}/SAP__self.CloseProductionOrder
+POST ProductionOrderOperation/{OrderInternalID}/{OrderOperationInternalID}/SAP__self.Release
+POST ProductionOrderOperation/{OrderInternalID}/{OrderOperationInternalID}/SAP__self.DispatchOrderOperation
+
+# Portal backend (after CA SAP_COM_0104 deployed):
+# 1) Material → production order numbers
+GET http://127.0.0.1:8080/api/production-orders/by-material/FG10/numbers?plant=1010
+
+# 2) Production order detail (dates, qty, GR, status)
+GET http://127.0.0.1:8080/api/production-orders/1000001/detail
+
+# List summary for UI table
+GET http://127.0.0.1:8080/api/production-orders/summary?plant=1010&material=FG10&top=50
+
+# OpenAPI spec: 接口/Production Order/CE_PRODUCTIONORDER_0001-v1.yaml

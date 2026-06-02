@@ -1,0 +1,93 @@
+# Material Stock — API_MATERIAL_STOCK_SRV (OData V2)
+# Scenario: SAP_COM_0164 Material Stock Integration
+# Inbound Service: Material Stock - Read
+# Service Group: API_MATERIAL_STOCK_SRV_0001_IWSG
+# Schema Version: 1.1.0 (Core.SchemaVersion)
+# OData Version: 2.0
+
+# --- Postman / SAP Communication Scenarios variables ---
+# {{sapScheme}}                              → https
+# {{SAP_COM_0164_host}}                      → my200967-api.s4hana.sapcloud.cn
+# {{SAP_COM_0164_materialStockServiceRoot}}  → sap/opu/odata/sap/API_MATERIAL_STOCK_SRV
+# {{SAP_COM_0164_entitySet}}               → A_MatlStkInAcctMod  (stock qty; NOT A_MaterialStock)
+# {{sapClient}}                              → 100
+
+# --- GET Metadata (Postman: "GET Metadata") ---
+# Method: GET
+# URL: {{sapScheme}}://{{SAP_COM_0164_host}}/{{SAP_COM_0164_materialStockServiceRoot}}/$metadata?sap-client={{sapClient}}
+# Resolves to:
+#   https://my200967-api.s4hana.sapcloud.cn/sap/opu/odata/sap/API_MATERIAL_STOCK_SRV/$metadata?sap-client=100
+# Header: Accept: application/xml  (NOT application/json — returns 406 otherwise)
+# Saved response: 接口/Material Stock/MaterialStock metaData.xml
+
+GET $metadata?sap-client=100
+Accept: application/xml
+
+# --- Filter by Material (Postman template) ---
+# Method: GET
+# URL: {{sapScheme}}://{{SAP_COM_0164_host}}/{{SAP_COM_0164_materialStockServiceRoot}}/{{SAP_COM_0164_entitySet}}?$filter=Material eq 'MATERIAL_NUMBER'&$top=20&sap-client={{sapClient}}
+# Header: Accept: application/json
+# Auth: inherits from parent collection
+#
+# Set {{SAP_COM_0164_entitySet}} = A_MatlStkInAcctMod
+# Resolves to (example):
+#   .../A_MatlStkInAcctMod?$filter=Material eq 'FG10'&$top=20&sap-client=100
+#
+# Usage:
+# - Replace MATERIAL_NUMBER with actual SAP material (quotes required — Material is Edm.String)
+# - Examples in this tenant: 'FG10', 'FG41', 'TG11', 'MZ-FG-M100'
+# - Some tenants use internal 18-char zero-padded numbers; run Top 5 first to see exact format
+# - Combine filters: $filter=Material eq 'FG10' and Plant eq '1010'
+# - Add &$format=json if Accept: application/json is not enough for your client
+
+GET A_MatlStkInAcctMod?$filter=Material eq 'FG10'&$top=20&$format=json&sap-client=100
+Accept: application/json
+
+GET A_MatlStkInAcctMod?$filter=Material eq 'FG10' and Plant eq '1010'&$top=20&$format=json&sap-client=100
+Accept: application/json
+
+# --- PRD default scope: finished goods @ Plant 1010 / StorageLocation 1003 ---
+# Postman: "GET A_MaterialStock - Plant 1010 StorageLocation 1003"
+# URL: .../A_MatlStkInAcctMod?$filter=Plant eq '1010' and StorageLocation eq '1003'&$top=50&sap-client=100
+# Encoded: Plant%20eq%20'1010'%20and%20StorageLocation%20eq%20'1003'
+
+GET A_MatlStkInAcctMod?$filter=Plant eq '1010' and StorageLocation eq '1003'&$top=50&$format=json&sap-client=100
+Accept: application/json
+
+# Portal backend (same scope, filtered to portal_material codes):
+GET http://127.0.0.1:8080/api/v1/material-stock?plant=1010&storageLocation=1003&pageSize=50
+GET http://127.0.0.1:8080/api/v1/material-stock/portal-summary?plant=1010&storageLocation=1003
+
+# --- Entity Sets (read-only) ---
+# IMPORTANT: Stock QTY is on A_MatlStkInAcctMod. A_MaterialStock = Material + BaseUnit header only.
+# Postman "GET A_MaterialStock (Top 5)" may still call A_MatlStkInAcctMod — check feed <id> in response.
+
+# List stock lines (Postman: GET A_MaterialStock Top 5 → actually A_MatlStkInAcctMod)
+GET A_MatlStkInAcctMod?$top=5&$format=json&sap-client=100
+
+# Filter by material
+GET A_MatlStkInAcctMod?$filter=Material eq 'FG10'&$top=20&$format=json&sap-client=100
+
+# Filter by plant (Postman: GET A_MaterialStock with $filter Plant eq '1010')
+GET A_MatlStkInAcctMod?$filter=Plant eq '1010'&$format=json&sap-client=100
+
+# Filter by plant + storage location — see PRD block above
+GET A_MatlStkInAcctMod?$filter=Material eq 'FG10' and Plant eq '1010' and StorageLocation eq '1003'&$format=json&sap-client=100
+
+# Read ONE stock line by composite key (10 key fields — NOT A_MaterialStock)
+GET A_MatlStkInAcctMod(Material='FG10',Plant='1010',StorageLocation='1003',Batch='0000000001',Supplier='',Customer='',WBSElementInternalID='0',SDDocument='',SDDocumentItem='0',InventorySpecialStockType='',InventoryStockType='01')?$format=json&sap-client=100
+
+# Material header only (Material key) — expand stock lines
+GET A_MaterialStock('FG10')?$expand=to_MatlStkInAcctMod&$format=json&sap-client=100
+
+# Serial numbers with stock context
+GET A_MaterialSerialNumber?$top=20&$format=json&sap-client=100
+
+# Live sample aggregates: 接口/Material Stock/MaterialStock sample data.json
+
+# --- Portal backend wrappers ---
+GET http://127.0.0.1:8080/api/v1/material-stock?material=FG10&plant=1010&pageSize=50
+GET http://127.0.0.1:8080/api/v1/material-stock/FG10?plant=1010
+GET http://127.0.0.1:8080/api/v1/material-stock/summary?material=FG10&plant=1010
+GET http://127.0.0.1:8080/api/v1/material-stock/portal-summary?plant=1010
+POST http://127.0.0.1:8080/api/v1/material-stock/sync-from-portal-materials?plant=1010
