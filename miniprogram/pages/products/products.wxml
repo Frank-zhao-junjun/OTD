@@ -1,0 +1,53 @@
+<!--pages/products/products.wxml - 产品查询模板 -->
+<view class="container">
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <view class="search-input-wrap">
+      <input 
+        class="search-input" 
+        placeholder="输入产品编号或描述" 
+        value="{{searchQuery}}"
+        bindinput="onSearchInput"
+        bindconfirm="onSearch"
+      />
+    </view>
+    <button class="search-btn primary-bg" bindtap="onSearch">查询</button>
+    <button class="search-btn" bindtap="onClear">清除</button>
+  </view>
+
+  <!-- 结果统计 -->
+  <view class="result-header" wx:if="{{totalCount > 0}}">
+    <text class="result-count">共 {{totalCount}} 条记录</text>
+  </view>
+
+  <!-- 产品列表 -->
+  <view class="product-list" wx:if="{{!loading && products.length > 0}}">
+    <block wx:for="{{products}}" wx:key="Product">
+      <view class="product-card" data-id="{{item.Product}}" bindtap="onViewDetail">
+        <view class="product-header">
+          <text class="product-id primary-color">{{item.Product}}</text>
+          <text class="product-type">{{item.ProductType || '-'}}</text>
+        </view>
+        <view class="product-body">
+          <text class="product-name">{{item.ProductDescription || '暂无描述'}}</text>
+        </view>
+        <view class="product-footer">
+          <text class="product-group">物料组: {{item.ProductGroup || '-'}}</text>
+          <text class="product-unit">单位: {{item.BaseUnit || '-'}}</text>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-container" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-container" wx:if="{{!loading && products.length === 0}}">
+    <text class="empty-icon">🔍</text>
+    <text class="empty-text">暂无数据，请调整查询条件</text>
+  </view>
+</view>

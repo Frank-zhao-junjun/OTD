@@ -1,0 +1,160 @@
+/* pages/products/products.wxss - 产品查询样式 */
+.container {
+  background-color: #F5F6F7;
+  min-height: 100vh;
+}
+
+/* 搜索栏 */
+.search-bar {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #EAECEE;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.search-input-wrap {
+  flex: 1;
+}
+
+.search-input {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid #C5CACF;
+  border-radius: 4px;
+  background-color: #FFFFFF;
+  font-size: 14px;
+}
+
+.search-btn {
+  margin-left: 8px;
+  padding: 0 12px;
+  height: 32px;
+  line-height: 32px;
+  font-size: 14px;
+  border-radius: 4px;
+  background-color: #EAECEE;
+  color: #5F6B7A;
+}
+
+.search-btn.primary-bg {
+  background-color: #0070F2;
+  color: #FFFFFF;
+}
+
+/* 结果统计 */
+.result-header {
+  padding: 12px;
+  background-color: #FFFFFF;
+  margin-bottom: 8px;
+}
+
+.result-count {
+  font-size: 14px;
+  color: #5F6B7A;
+}
+
+/* 产品卡片 */
+.product-list {
+  padding: 8px;
+}
+
+.product-card {
+  background-color: #FFFFFF;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.product-card:active {
+  background-color: #F0F2F4;
+}
+
+.product-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.product-id {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.product-type {
+  font-size: 12px;
+  padding: 4px 8px;
+  background-color: #EAECEE;
+  border-radius: 4px;
+  color: #5F6B7A;
+}
+
+.product-body {
+  margin-bottom: 12px;
+}
+
+.product-name {
+  font-size: 14px;
+  color: #1D2D3E;
+  display: block;
+  line-height: 20px;
+}
+
+.product-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #8B9DAF;
+}
+
+/* 加载状态 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #EAECEE;
+  border-top-color: #0070F2;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #8B9DAF;
+}
+
+/* 空状态 */
+.empty-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.empty-text {
+  font-size: 14px;
+  color: #8B9DAF;
+}
