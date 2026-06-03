@@ -1,22 +1,21 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, Search, RotateCcw, AlertCircle, Inbox } from 'lucide-react';
+import { FioriOli, FioriBadge, FioriFilterBar, FioriPageHeader, FioriEmptyState, FioriErrorState, FioriFab } from '@/components/fiori';
+import { Package, Search, RotateCcw, Inbox } from 'lucide-react';
 
 interface Product {
   Product: string;
   ProductType?: string;
-  BaseUnit?: string;
   ProductGroup?: string;
-  ProductDescription?: string;
+  BaseUnit?: string;
+  GrossWeight?: string | number;
+  WeightUnit?: string;
   CreationDate?: string;
+  ProductDescription?: string;
 }
 
 export default function ProductsPage() {
@@ -24,7 +23,6 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [productGroup, setProductGroup] = useState('');
   const [totalCount, setTotalCount] = useState(0);
 
   const fetchProducts = useCallback(async () => {
@@ -33,23 +31,18 @@ export default function ProductsPage() {
     try {
       const params = new URLSearchParams();
       params.set('top', '50');
+      params.set('count', 'true');
 
+      const filterParts: string[] = [];
       if (searchQuery) {
-        params.set('filter', `substringof('${searchQuery}',Product) or substringof('${searchQuery}',ProductDescription)`);
+        filterParts.push(`(Product eq '${searchQuery}' or ProductGroup eq '${searchQuery}')`);
       }
-      if (productGroup) {
-        const existingFilter = params.get('filter');
-        const groupFilter = `ProductGroup eq '${productGroup}'`;
-        params.set('filter', existingFilter ? `${existingFilter} and ${groupFilter}` : groupFilter);
-      }
+      if (filterParts.length > 0) params.set('filter', filterParts.join(' and '));
+      params.set('select', 'Product,ProductType,ProductGroup,BaseUnit,GrossWeight,WeightUnit,CreationDate');
 
       const response = await fetch(`/api/sap/API_PRODUCT_SRV/A_Product?${params.toString()}`);
       const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch products');
-      }
-
+      if (!data.success) throw new Error(data.error || 'Failed to fetch');
       setProducts(data.data || []);
       setTotalCount(data.count || 0);
     } catch (err) {
@@ -57,136 +50,68 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, productGroup]);
+  }, [searchQuery]);
 
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+  useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
-  const handleSearch = () => {
-    fetchProducts();
-  };
-
-  const handleClear = () => {
-    setSearchQuery('');
-    setProductGroup('');
-    fetchProducts();
+  const PRODUCT_TYPE: Record<string, { color: 'success' | 'warning' | 'error' | 'info' | 'neutral'; label: string }> = {
+    'FERT': { color: 'info', label: '成品' },
+    'HALB': { color: 'warning', label: '半成品' },
+    'ROH': { color: 'neutral', label: '原材料' },
+    'HIBE': { color: 'success', label: '辅料' },
+    'DIEN': { color: 'info', label: '服务' },
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-lg md:text-2xl font-bold text-slate-800 flex items-center gap-2">
-          <Package className="h-5 w-5 text-blue-600" />
-          产品管理
-        </h1>
-        <p className="text-slate-600 mt-1">查询 SAP 产品主数据</p>
-      </div>
+    <div className="space-y-4">
+      <FioriPageHeader icon={<Package className="w-5 h-5" />} title="产品管理" count={totalCount} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Search className="h-4 w-4" />
-            查询条件
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-0 md:min-w-[200px]">
-              <Input
-                placeholder="输入产品编号或描述"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+      <FioriFilterBar>
+        <div className="fiori-filterbar-field flex-1 min-w-[160px]">
+          <label>搜索</label>
+          <Input placeholder="产品号 / 产品组" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchProducts()} className="h-8 text-sm" />
+        </div>
+        <Button size="sm" onClick={fetchProducts} disabled={loading} className="h-8"><Search className="w-3.5 h-3.5 mr-1" /> 查询</Button>
+        <Button variant="outline" size="sm" onClick={() => setSearchQuery('')} className="h-8"><RotateCcw className="w-3.5 h-3.5 mr-1" /> 清除</Button>
+      </FioriFilterBar>
+
+      {loading ? (
+        <div className="space-y-2">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="fiori-oli"><div className="fiori-oli-bar fiori-oli-bar--neutral" /><div className="fiori-oli-content" style={{ gap: 6 }}><Skeleton className="h-4 w-[120px]" /><Skeleton className="h-3 w-[180px]" /><Skeleton className="h-3 w-[80px]" /></div></div>
+          ))}
+        </div>
+      ) : error ? (
+        <FioriErrorState message={error} onRetry={fetchProducts} />
+      ) : products.length === 0 ? (
+        <FioriEmptyState icon={<Inbox className="w-10 h-10" />} title="暂无数据" description="请调整查询条件后重试" />
+      ) : (
+        <div>
+          {products.map((p) => {
+            const typeInfo = PRODUCT_TYPE[p.ProductType || ''] || { color: 'neutral' as const, label: p.ProductType || '-' };
+            return (
+              <FioriOli
+                key={p.Product}
+                barColor={typeInfo.color}
+                title={`${p.Product} · ${p.ProductDescription || ''}`}
+                subtitle={`产品组 ${p.ProductGroup || '-'} · 基本单位 ${p.BaseUnit || '-'}`}
+                status={
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <FioriBadge variant={typeInfo.color}>{typeInfo.label}</FioriBadge>
+                    {p.GrossWeight && (
+                      <span className="text-xs font-mono tabular-nums" style={{ color: 'var(--muted-foreground)' }}>
+                        {Number(p.GrossWeight).toLocaleString()} {p.WeightUnit || ''}
+                      </span>
+                    )}
+                  </div>
+                }
               />
-            </div>
-            <div className="w-full md:w-[200px]">
-              <Select value={productGroup} onValueChange={setProductGroup}>
-                <SelectTrigger>
-                  <SelectValue placeholder="选择物料组" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="001">001 - 原材料</SelectItem>
-                  <SelectItem value="002">002 - 半成品</SelectItem>
-                  <SelectItem value="003">003 - 成品</SelectItem>
-                  <SelectItem value="004">004 - 包装材料</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button onClick={handleSearch} className="cursor-pointer">
-              <Search className="h-4 w-4 mr-1" />
-              查询
-            </Button>
-            <Button variant="outline" onClick={handleClear} className="cursor-pointer">
-              <RotateCcw className="h-4 w-4 mr-1" />
-              重置
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            );
+          })}
+        </div>
+      )}
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">查询结果</CardTitle>
-          {!loading && !error && (
-            <Badge variant="secondary">共 {totalCount} 条记录</Badge>
-          )}
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="flex gap-4">
-                  <Skeleton className="h-4 w-[150px]" />
-                  <Skeleton className="h-4 w-[200px]" />
-                  <Skeleton className="h-4 w-[80px]" />
-                  <Skeleton className="h-4 w-[80px]" />
-                </div>
-              ))}
-            </div>
-          ) : error ? (
-            <div className="text-center py-8">
-              <AlertCircle className="h-10 w-10 text-red-400 mx-auto mb-2" />
-              <p className="text-red-600">查询失败: {error}</p>
-              <Button variant="outline" className="mt-4" onClick={handleSearch}>
-                重试
-              </Button>
-            </div>
-          ) : products.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
-              <Inbox className="h-10 w-10 text-slate-300 mx-auto mb-2" />
-              <p>暂无数据，请调整查询条件</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto -mx-4 md:mx-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[150px]">产品编号</TableHead>
-                    <TableHead>产品描述</TableHead>
-                    <TableHead className="w-[100px]">产品类型</TableHead>
-                    <TableHead className="w-[100px]">物料组</TableHead>
-                    <TableHead className="w-[80px]">单位</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {products.map((product) => (
-                    <TableRow key={product.Product}>
-                      <TableCell className="font-medium text-blue-600">
-                        {product.Product}
-                      </TableCell>
-                      <TableCell>{product.ProductDescription || '-'}</TableCell>
-                      <TableCell>{product.ProductType || '-'}</TableCell>
-                      <TableCell>{product.ProductGroup || '-'}</TableCell>
-                      <TableCell>{product.BaseUnit || '-'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <FioriFab icon={<Search className="w-5 h-5" />} onClick={fetchProducts} ariaLabel="刷新查询" />
     </div>
   );
 }

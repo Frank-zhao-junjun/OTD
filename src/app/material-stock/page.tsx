@@ -1,327 +1,122 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { SAP_DEFAULTS } from '@/lib/sap-service';
-import { BarChart3, Search, RotateCcw, AlertCircle, Inbox } from 'lucide-react';
+import { FioriOli, FioriBadge, FioriFilterBar, FioriPageHeader, FioriEmptyState, FioriErrorState, FioriFab } from '@/components/fiori';
+import { BarChart3, Search, RotateCcw, Inbox, AlertTriangle } from 'lucide-react';
 
-// A_MatlStkInAcctMod — composite key stock line entity
-interface MaterialStock {
+interface StockItem {
   Material: string;
   Plant: string;
   StorageLocation?: string;
   Batch?: string;
-  Supplier?: string;
-  InventoryStockType?: string;
-  InventorySpecialStockType?: string;
   MaterialBaseUnit?: string;
   MatlWrhsStkQtyInMatlBaseUnit?: string | number;
-  // V2 response uses __metadata etc.
+  WarehouseStockCategory?: string;
 }
 
-// Aggregated view per material
-interface MaterialStockSummary {
-  material: string;
-  plant: string;
-  storageLocation: string;
-  baseUnit: string;
-  totalQty: number;
-  batchCount: number;
-}
+const STOCK_CATEGORY: Record<string, { color: 'success' | 'warning' | 'error' | 'info' | 'neutral'; label: string }> = {
+  'F': { color: 'success', label: '非限制' },
+  'Q': { color: 'warning', label: '质检中' },
+  'S': { color: 'error', label: '冻结' },
+};
 
 export default function MaterialStockPage() {
-  const [stocks, setStocks] = useState<MaterialStock[]>([]);
+  const [stocks, setStocks] = useState<StockItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [plant, setPlant] = useState(SAP_DEFAULTS.plant);
-  const [storageLocation, setStorageLocation] = useState(SAP_DEFAULTS.storageLocation);
-  const [viewMode, setViewMode] = useState<'detail' | 'summary'>('summary');
   const [totalCount, setTotalCount] = useState(0);
-  const [summaries, setSummaries] = useState<MaterialStockSummary[]>([]);
 
   const fetchStocks = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
-      params.set('top', '200');
+      params.set('top', '50');
+      params.set('count', 'true');
 
       const filterParts: string[] = [];
       if (searchQuery) {
-        // V2 filter for material
-        filterParts.push(`Material eq '${searchQuery}'`);
+        filterParts.push(`(Material eq '${searchQuery}' or Plant eq '${searchQuery}')`);
       }
-      if (plant && plant !== 'all') {
-        filterParts.push(`Plant eq '${plant}'`);
-      }
-      if (storageLocation && storageLocation !== 'all') {
-        filterParts.push(`StorageLocation eq '${storageLocation}'`);
-      }
-
-      if (filterParts.length > 0) {
-        params.set('filter', filterParts.join(' and '));
-      }
+      if (filterParts.length > 0) params.set('filter', filterParts.join(' and '));
+      params.set('select', 'Material,Plant,StorageLocation,Batch,MaterialBaseUnit,MatlWrhsStkQtyInMatlBaseUnit,WarehouseStockCategory');
 
       const response = await fetch(`/api/sap/API_MATERIAL_STOCK_SRV/A_MatlStkInAcctMod?${params.toString()}`);
       const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch material stock');
-      }
-
-      const results: MaterialStock[] = data.data || [];
-      setStocks(results);
-      setTotalCount(data.count || results.length);
-
-      // Compute aggregated summary per material
-      const map = new Map<string, MaterialStockSummary>();
-      for (const s of results) {
-        const key = `${s.Material}|${s.Plant}|${s.StorageLocation || ''}`;
-        const existing = map.get(key);
-        const qty = Number(s.MatlWrhsStkQtyInMatlBaseUnit) || 0;
-        if (existing) {
-          existing.totalQty += qty;
-          existing.batchCount += 1;
-        } else {
-          map.set(key, {
-            material: s.Material,
-            plant: s.Plant,
-            storageLocation: s.StorageLocation || '-',
-            baseUnit: s.MaterialBaseUnit || '-',
-            totalQty: qty,
-            batchCount: 1,
-          });
-        }
-      }
-      setSummaries(Array.from(map.values()).sort((a, b) => b.totalQty - a.totalQty));
-
+      if (!data.success) throw new Error(data.error || 'Failed to fetch');
+      setStocks(data.data || []);
+      setTotalCount(data.count || 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, plant, storageLocation]);
+  }, [searchQuery]);
 
-  useEffect(() => {
-    fetchStocks();
-  }, [fetchStocks]);
+  useEffect(() => { fetchStocks(); }, [fetchStocks]);
 
-  const handleSearch = () => fetchStocks();
-  const handleClear = () => {
-    setSearchQuery('');
-    setPlant(SAP_DEFAULTS.plant);
-    setStorageLocation(SAP_DEFAULTS.storageLocation);
-  };
-
-  // Get stock type label
-  const getStockTypeLabel = (type: string | undefined) => {
-    if (!type) return '-';
-    const typeMap: Record<string, string> = {
-      '01': '非限制',
-      '02': '质检',
-      '03': '冻结',
-      '04': '在途',
-    };
-    return typeMap[type] || type;
-  };
-
-  const getStockTypeBadge = (type: string | undefined) => {
-    if (!type) return <Badge variant="outline">-</Badge>;
-    const variantMap: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-      '01': 'default',
-      '02': 'secondary',
-      '03': 'destructive',
-      '04': 'outline',
-    };
-    return <Badge variant={variantMap[type] || 'outline'}>{getStockTypeLabel(type)}</Badge>;
+  const isLowStock = (item: StockItem): boolean => {
+    const qty = Number(item.MatlWrhsStkQtyInMatlBaseUnit || 0);
+    return qty > 0 && qty < 10;
   };
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-lg md:text-2xl font-bold text-slate-800">库存查询</h1>
-        <p className="text-slate-600 mt-1">查询 SAP 物料库存数据</p>
-      </div>
+    <div className="space-y-4">
+      <FioriPageHeader icon={<BarChart3 className="w-5 h-5" />} title="库存查询" count={totalCount} />
 
-      {/* Search Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">查询条件</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-0 md:min-w-[200px]">
-              <Input
-                placeholder="输入物料号 (如 FG10, FG41, TG11)"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+      <FioriFilterBar>
+        <div className="fiori-filterbar-field flex-1 min-w-[160px]">
+          <label>搜索</label>
+          <Input placeholder="物料号 / 工厂" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchStocks()} className="h-8 text-sm" />
+        </div>
+        <Button size="sm" onClick={fetchStocks} disabled={loading} className="h-8"><Search className="w-3.5 h-3.5 mr-1" /> 查询</Button>
+        <Button variant="outline" size="sm" onClick={() => setSearchQuery('')} className="h-8"><RotateCcw className="w-3.5 h-3.5 mr-1" /> 清除</Button>
+      </FioriFilterBar>
+
+      {loading ? (
+        <div className="space-y-2">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="fiori-oli"><div className="fiori-oli-bar fiori-oli-bar--neutral" /><div className="fiori-oli-content" style={{ gap: 6 }}><Skeleton className="h-4 w-[140px]" /><Skeleton className="h-3 w-[200px]" /><Skeleton className="h-3 w-[80px]" /></div></div>
+          ))}
+        </div>
+      ) : error ? (
+        <FioriErrorState message={error} onRetry={fetchStocks} />
+      ) : stocks.length === 0 ? (
+        <FioriEmptyState icon={<Inbox className="w-10 h-10" />} title="暂无数据" description="请调整查询条件后重试" />
+      ) : (
+        <div>
+          {stocks.map((item, idx) => {
+            const catInfo = STOCK_CATEGORY[item.WarehouseStockCategory || ''] || { color: 'neutral' as const, label: item.WarehouseStockCategory || '-' };
+            const lowStock = isLowStock(item);
+            const qty = Number(item.MatlWrhsStkQtyInMatlBaseUnit || 0);
+            return (
+              <FioriOli
+                key={`${item.Material}-${item.Plant}-${item.WarehouseStockCategory}-${idx}`}
+                barColor={qty === 0 ? 'error' : lowStock ? 'warning' : catInfo.color}
+                title={`${item.Material} · ${item.Plant}`}
+                subtitle={`${item.StorageLocation || '-'} · 批次 ${item.Batch || '-'} · ${item.MaterialBaseUnit || '-'}`}
+                status={
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <FioriBadge variant={qty === 0 ? 'error' : lowStock ? 'warning' : catInfo.color}>
+                      {qty === 0 ? '缺货' : lowStock ? '低库存' : catInfo.label}
+                    </FioriBadge>
+                    <span className="text-xs font-mono tabular-nums" style={{ color: qty === 0 ? 'var(--color-fiori-error)' : lowStock ? 'var(--color-fiori-warning)' : 'var(--foreground)' }}>
+                      {qty.toLocaleString()} {item.MaterialBaseUnit || ''}
+                    </span>
+                    {lowStock && <AlertTriangle className="w-3.5 h-3.5" style={{ color: 'var(--color-fiori-warning)' }} />}
+                  </div>
+                }
               />
-            </div>
-            <div className="w-full md:w-[160px]">
-              <Select value={plant} onValueChange={setPlant}>
-                <SelectTrigger>
-                  <SelectValue placeholder="选择工厂" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部工厂</SelectItem>
-                  <SelectItem value="1010">1010 - 生产工厂</SelectItem>
-                  <SelectItem value="1000">1000 - 集团工厂</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-full md:w-[160px]">
-              <Select value={storageLocation} onValueChange={setStorageLocation}>
-                <SelectTrigger>
-                  <SelectValue placeholder="存储位置" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部位置</SelectItem>
-                  <SelectItem value="1003">1003 - 成品仓</SelectItem>
-                  <SelectItem value="1001">1001 - 原材料仓</SelectItem>
-                  <SelectItem value="101A">101A - 发货仓</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex gap-1">
-              <Button
-                variant={viewMode === 'summary' ? 'default' : 'outline'}
-                onClick={() => setViewMode('summary')}
-                size="sm"
-              >
-                汇总视图
-              </Button>
-              <Button
-                variant={viewMode === 'detail' ? 'default' : 'outline'}
-                onClick={() => setViewMode('detail')}
-                size="sm"
-              >
-                明细视图
-              </Button>
-            </div>
-            <Button onClick={handleSearch}>查询</Button>
-            <Button variant="outline" onClick={handleClear}>清除</Button>
-          </div>
-        </CardContent>
-      </Card>
+            );
+          })}
+        </div>
+      )}
 
-      {/* Results Card */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">
-            {viewMode === 'summary' ? '库存汇总' : '库存明细'}
-          </CardTitle>
-          {!loading && !error && (
-            <Badge variant="secondary">
-              {viewMode === 'summary'
-                ? `${summaries.length} 种物料 / ${totalCount} 条记录`
-                : `共 ${totalCount} 条记录`}
-            </Badge>
-          )}
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="flex gap-4">
-                  <Skeleton className="h-4 w-[150px]" />
-                  <Skeleton className="h-4 w-[80px]" />
-                  <Skeleton className="h-4 w-[100px]" />
-                  <Skeleton className="h-4 w-[100px]" />
-                  <Skeleton className="h-4 w-[80px]" />
-                </div>
-              ))}
-            </div>
-          ) : error ? (
-            <div className="text-center py-8 text-red-600">
-              <p>查询失败: {error}</p>
-              <Button variant="outline" className="mt-4" onClick={handleSearch}>
-                重试
-              </Button>
-            </div>
-          ) : viewMode === 'summary' ? (
-            summaries.length === 0 ? (
-              <div className="text-center py-8 text-slate-500">
-                <p>暂无数据，请调整查询条件</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[150px]">物料号</TableHead>
-                    <TableHead className="w-[80px]">工厂</TableHead>
-                    <TableHead className="w-[100px]">存储位置</TableHead>
-                    <TableHead className="w-[100px]">可用数量</TableHead>
-                    <TableHead className="w-[60px]">单位</TableHead>
-                    <TableHead className="w-[80px]">批次数</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {summaries.map((s) => (
-                    <TableRow key={`${s.material}-${s.plant}-${s.storageLocation}`}>
-                      <TableCell className="font-medium text-blue-600">
-                        {s.material}
-                      </TableCell>
-                      <TableCell>{s.plant}</TableCell>
-                      <TableCell>{s.storageLocation}</TableCell>
-                      <TableCell className="text-right font-medium text-green-700">
-                        {s.totalQty.toLocaleString()}
-                      </TableCell>
-                      <TableCell>{s.baseUnit}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{s.batchCount}</Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )
-          ) : stocks.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
-              <p>暂无数据，请调整查询条件</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[130px]">物料号</TableHead>
-                  <TableHead className="w-[70px]">工厂</TableHead>
-                  <TableHead className="w-[90px]">存储位置</TableHead>
-                  <TableHead className="w-[100px]">批次</TableHead>
-                  <TableHead className="w-[80px]">库存类型</TableHead>
-                  <TableHead className="w-[90px]">库存数量</TableHead>
-                  <TableHead className="w-[60px]">单位</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {stocks.map((stock, index) => (
-                  <TableRow key={`${stock.Material}-${stock.Plant}-${stock.StorageLocation || ''}-${stock.Batch || ''}-${index}`}>
-                    <TableCell className="font-medium text-blue-600">
-                      {stock.Material}
-                    </TableCell>
-                    <TableCell>{stock.Plant}</TableCell>
-                    <TableCell>{stock.StorageLocation || '-'}</TableCell>
-                    <TableCell>{stock.Batch || '-'}</TableCell>
-                    <TableCell>{getStockTypeBadge(stock.InventoryStockType)}</TableCell>
-                    <TableCell className="text-right font-medium">
-                      {Number(stock.MatlWrhsStkQtyInMatlBaseUnit || 0).toLocaleString()}
-                    </TableCell>
-                    <TableCell>{stock.MaterialBaseUnit || '-'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      <FioriFab icon={<Search className="w-5 h-5" />} onClick={fetchStocks} ariaLabel="刷新查询" />
     </div>
   );
 }

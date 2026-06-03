@@ -1,0 +1,12 @@
+[
+  { "Product": "FG-001", "ProductName": "智能控制模组A", "ProductType": "FERT", "ProductGroup": "01", "ProductGroupText": "成品", "BaseUnit": "EA", "Weight": "0.85", "WeightUnit": "KG", "Plant": "1010", "MRPType": "PD", "MRPTypeText": "MRP" },
+  { "Product": "FG-002", "ProductName": "电源适配器B", "ProductType": "FERT", "ProductGroup": "01", "ProductGroupText": "成品", "BaseUnit": "EA", "Weight": "0.32", "WeightUnit": "KG", "Plant": "1010", "MRPType": "PD", "MRPTypeText": "MRP" },
+  { "Product": "FG-003", "ProductName": "连接器组件C", "ProductType": "FERT", "ProductGroup": "01", "ProductGroupText": "成品", "BaseUnit": "EA", "Weight": "0.12", "WeightUnit": "KG", "Plant": "1010", "MRPType": "PD", "MRPTypeText": "MRP" },
+  { "Product": "FG-004", "ProductName": "传感器模块D", "ProductType": "FERT", "ProductGroup": "01", "ProductGroupText": "成品", "BaseUnit": "EA", "Weight": "0.25", "WeightUnit": "KG", "Plant": "1010", "MRPType": "PD", "MRPTypeText": "MRP" },
+  { "Product": "FG-005", "ProductName": "显示面板E", "ProductType": "FERT", "ProductGroup": "01", "ProductGroupText": "成品", "BaseUnit": "EA", "Weight": "1.50", "WeightUnit": "KG", "Plant": "1010", "MRPType": "PD", "MRPTypeText": "MRP" },
+  { "Product": "RM-001", "ProductName": "PCB基板", "ProductType": "HALB", "ProductGroup": "02", "ProductGroupText": "半成品", "BaseUnit": "EA", "Weight": "0.05", "WeightUnit": "KG", "Plant": "1010", "MRPType": "PD", "MRPTypeText": "MRP" },
+  { "Product": "RM-002", "ProductName": "电解电容", "ProductType": "ROH", "ProductGroup": "03", "ProductGroupText": "原材料", "BaseUnit": "EA", "Weight": "0.002", "WeightUnit": "KG", "Plant": "1010", "MRPType": "PD", "MRPTypeText": "MRP" },
+  { "Product": "RM-003", "ProductName": "连接端子", "ProductType": "ROH", "ProductGroup": "03", "ProductGroupText": "原材料", "BaseUnit": "EA", "Weight": "0.008", "WeightUnit": "KG", "Plant": "1010", "MRPType": "PD", "MRPTypeText": "MRP" },
+  { "Product": "RM-004", "ProductName": "电阻排", "ProductType": "ROH", "ProductGroup": "03", "ProductGroupText": "原材料", "BaseUnit": "EA", "Weight": "0.001", "WeightUnit": "KG", "Plant": "1010", "MRPType": "PD", "MRPTypeText": "MRP" },
+  { "Product": "RM-005", "ProductName": "外壳组件", "ProductType": "HALB", "ProductGroup": "02", "ProductGroupText": "半成品", "BaseUnit": "EA", "Weight": "0.35", "WeightUnit": "KG", "Plant": "1010", "MRPType": "PD", "MRPTypeText": "MRP" }
+]

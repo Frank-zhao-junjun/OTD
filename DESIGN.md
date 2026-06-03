@@ -9,72 +9,66 @@ SAP ERP数据查询助手，面向企业内部用户，提供8大核心业务数
 - **关键词**：专业、清晰、高效、数据驱动
 - **具象场景**：企业办公环境，用户在简洁的工作台前快速检索业务数据，屏幕上是整洁的数据表格，没有多余装饰，信息一目了然
 
-### 设计风格：Data-Dense Dashboard
-- **风格**：数据密集型仪表盘，最大化信息密度
-- **布局**：12列网格，8px间距，紧凑但可读
+### 设计风格：SAP Fiori 3
+- **风格**：SAP Fiori 3 设计语言，数据密集型仪表盘
+- **主色**：#0070F2 (Fiori Blue)
+- **8px基准网格**：所有间距基于8的倍数
 - **设计变量**：
-  - `--grid-gap: 8px`
-  - `--card-padding: 12px`
-  - `--table-row-height: 36px`
-  - `--sidebar-width: 240px`
-  - `--header-height: 56px`
+  - `--fiori-shell-height: 44px`
+  - `--fiori-tile-height: 120px`
+  - `--fiori-oli-height: 72px`
+  - `--fiori-status-bar: 4px`
+  - `--fiori-grid-base: 8px`
 
 ### 配色方案
-- **Primary**: `#1E40AF` (深蓝 - 企业级专业感)
-- **Secondary**: `#3B82F6` (亮蓝 - 操作与链接)
-- **CTA/Highlight**: `#F59E0B` (琥珀 - 关键操作和警示)
-- **Background**: `#F8FAFC` (slate-50 - 轻灰背景)
-- **Surface**: `#FFFFFF` (白色卡片)
-- **Text Primary**: `#1E3A8A` (深蓝文字)
-- **Text Muted**: `#64748B` (slate-500 - 辅助文字)
-- **Border**: `#E2E8F0` (slate-200 - 边框)
-- **功能色**：
-  - 成功/正向：`#22C55E` (green-500)
-  - 警告/待处理：`#F59E0B` (amber-500)
-  - 错误/异常：`#EF4444` (red-500)
-  - 信息：`#3B82F6` (blue-500)
+- **Primary**: #0070F2 (Fiori Blue)
+- **Background**: #FAFAFA (浅灰背景)
+- **Surface**: #FFFFFF (白色卡片)
+- **Text Primary**: #1A2228
+- **Text Muted**: #6A6D70
+- **Border**: #E4E4E4
+- **状态色**：
+  - 成功：#107E3E
+  - 警告：#E9730C
+  - 错误：#BB0000
+  - 信息：#0A6ED1
+  - 中性：#6A6D70
 
 ### 字体排版
-- **字体族**：Inter (英文) + 系统中文字体栈
-- **表格数据**：`text-sm` (14px)，行高36px，紧凑排列
+- **字体族**：72, 72full, Inter, PingFang SC (Fiori 72字体优先，Inter回退)
+- **数据数字**：tabular-nums 等宽对齐
 - **标题层级**：
-  - H1: `text-2xl font-bold` (24px)
-  - H2: `text-xl font-semibold` (20px)
-  - H3: `text-lg font-medium` (18px)
-- **数据数字**：`font-mono tabular-nums` 等宽数字对齐
+  - H1: 20px font-bold (ObjectHeader标题)
+  - H2: 16px font-semibold (ShellBar标题)
+  - Body: 14px (正文)
+  - Small: 12px (辅助文字)
+  - Label: 11px uppercase tracking-wide (字段标签)
 
 ### 页面结构
-- **侧边栏**：固定左侧240px，模块导航 + 折叠
-- **顶部栏**：面包屑 + 搜索 + 用户信息
-- **查询区**：搜索框 + 筛选条件 + 查询按钮（水平排列，节省垂直空间）
-- **数据区**：shadcn Table组件，支持排序、分页、行高亮
-- **详情区**：行展开或Sheet侧边面板
+- **ShellBar**：44px高度，主色背景，汉堡菜单+标题+搜索+通知+头像
+- **侧边栏**：固定左侧240px，分组导航，移动端overlay
+- **首页**：Tile网格，图标+KPI数字+副标题
+- **列表页**：ObjectListItem卡片(左4px状态色条+三行布局)，桌面端可切换表格
+- **详情页**：ObjectHeader+字段两列网格
+- **筛选**：FilterBar抽屉+FAB浮动按钮
 
 ### 组件规范
-- **表格**：shadcn Table，紧凑型(zebra stripe)，行hover高亮，sticky header
-- **按钮**：shadcn Button，微圆角(6px)，primary/secondary/outline/ghost变体
-- **输入框**：shadcn Input，聚焦ring-2 ring-blue-500，带label
-- **卡片**：shadcn Card，`shadow-sm`，白底，1px border
-- **Badge**：shadcn Badge，状态色背景+文字
-- **对话框**：shadcn Sheet(侧边) / Dialog(居中)
-- **加载态**：Skeleton骨架屏(pulse动画)，查询按钮loading+disabled
-- **空状态**：图标+文案+操作引导
-- **错误态**：Alert variant=destructive，明确原因+重试按钮
+- **Tile**：120px高度，8px圆角，hover边框变蓝，active scale(0.98)
+- **ObjectListItem**：72px高度，左4px状态色条，hover阴影+边框
+- **Badge**：4px圆角，状态色背景12%透明度
+- **FAB**：48px圆形，fixed右下角，z-40
+- **Sidebar**：分组标签uppercase 11px，item 13px 36px行高
 
 ### 交互与状态
-- **Hover**：行hover背景`bg-slate-50`，过渡150ms
-- **点击**：cursor-pointer所有可交互元素
-- **加载**：Skeleton骨架屏 > Spinner，查询按钮显示loading
-- **筛选**：smooth filter animations，过渡200ms
-- **展开**：Sheet侧边面板滑入，duration-300
-- **Toast**：shadcn Toast通知操作结果
-- **分页**：shadcn Pagination，每页选择器
+- **Hover**：Tile/ObjectListItem边框变蓝+阴影加深
+- **Active**：scale(0.98)点击反馈
+- **Loading**：Skeleton骨架屏
+- **状态色条**：ObjectListItem左侧4px彩色竖条标识状态
 
 ### 响应式
-- Desktop (1440px+): 侧边栏展开 + 主内容区
-- Laptop (1024px): 侧边栏折叠为icons + 主内容区
-- Tablet (768px): 侧边栏overlay + 表格横向滚动
-- Mobile (375px): 底部导航 + 卡片列表替代表格
+- Desktop (1024px+): 侧边栏展开 + Tile 3列
+- Laptop/Tablet (768px): 侧边栏折叠 + Tile 2列
+- Mobile (640px-): 侧边栏overlay + Tile 1列 + ObjectListItem卡片 + 表格pop-in
 
 ### 设计禁忌
 - 禁止花哨渐变和过度装饰

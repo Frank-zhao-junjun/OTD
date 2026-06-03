@@ -1,0 +1,14 @@
+[
+  { "Material": "FG-001", "MaterialName": "智能控制模组A", "Plant": "1010", "StorageLocation": "1003", "Batch": "B2024001", "MaterialBaseQuantity": "500", "BaseUnit": "EA", "StockType": "01", "StockTypeText": "非限制", "SupplyArea": "LINE-01" },
+  { "Material": "FG-001", "MaterialName": "智能控制模组A", "Plant": "1010", "StorageLocation": "1003", "Batch": "B2024002", "MaterialBaseQuantity": "320", "BaseUnit": "EA", "StockType": "01", "StockTypeText": "非限制", "SupplyArea": "LINE-01" },
+  { "Material": "FG-002", "MaterialName": "电源适配器B", "Plant": "1010", "StorageLocation": "1003", "Batch": "B2024003", "MaterialBaseQuantity": "1200", "BaseUnit": "EA", "StockType": "01", "StockTypeText": "非限制", "SupplyArea": "LINE-02" },
+  { "Material": "FG-002", "MaterialName": "电源适配器B", "Plant": "1010", "StorageLocation": "1003", "Batch": "B2024004", "MaterialBaseQuantity": "50", "BaseUnit": "EA", "StockType": "03", "StockTypeText": "冻结", "SupplyArea": "LINE-02" },
+  { "Material": "FG-003", "MaterialName": "连接器组件C", "Plant": "1010", "StorageLocation": "1003", "Batch": "B2024005", "MaterialBaseQuantity": "0", "BaseUnit": "EA", "StockType": "01", "StockTypeText": "非限制", "SupplyArea": "LINE-03" },
+  { "Material": "FG-004", "MaterialName": "传感器模块D", "Plant": "1010", "StorageLocation": "1003", "Batch": "B2024006", "MaterialBaseQuantity": "80", "BaseUnit": "EA", "StockType": "02", "StockTypeText": "质检", "SupplyArea": "LINE-04" },
+  { "Material": "FG-004", "MaterialName": "传感器模块D", "Plant": "1010", "StorageLocation": "1003", "Batch": "B2024007", "MaterialBaseQuantity": "15", "BaseUnit": "EA", "StockType": "01", "StockTypeText": "非限制", "SupplyArea": "LINE-04" },
+  { "Material": "FG-005", "MaterialName": "显示面板E", "Plant": "1010", "StorageLocation": "1003", "Batch": "B2024008", "MaterialBaseQuantity": "2600", "BaseUnit": "EA", "StockType": "01", "StockTypeText": "非限制", "SupplyArea": "LINE-05" },
+  { "Material": "FG-005", "MaterialName": "显示面板E", "Plant": "1010", "StorageLocation": "1003", "Batch": "B2024009", "MaterialBaseQuantity": "0", "BaseUnit": "EA", "StockType": "01", "StockTypeText": "非限制", "SupplyArea": "LINE-05" },
+  { "Material": "RM-001", "MaterialName": "PCB基板", "Plant": "1010", "StorageLocation": "1003", "Batch": "B2024010", "MaterialBaseQuantity": "5000", "BaseUnit": "EA", "StockType": "01", "StockTypeText": "非限制", "SupplyArea": "WH-01" },
+  { "Material": "RM-002", "MaterialName": "电解电容", "Plant": "1010", "StorageLocation": "1003", "Batch": "B2024011", "MaterialBaseQuantity": "12000", "BaseUnit": "EA", "StockType": "01", "StockTypeText": "非限制", "SupplyArea": "WH-01" },
+  { "Material": "RM-003", "MaterialName": "连接端子", "Plant": "1010", "StorageLocation": "1003", "Batch": "B2024012", "MaterialBaseQuantity": "8", "BaseUnit": "EA", "StockType": "01", "StockTypeText": "非限制", "SupplyArea": "WH-02" }
+]
