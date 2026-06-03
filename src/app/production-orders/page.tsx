@@ -8,40 +8,57 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PRODUCTION_ORDER_STATUS_MAP, SAP_DEFAULTS } from '@/lib/sap-service';
 
 interface ProductionOrder {
   ProductionOrder: string;
   Material?: string;
   ProductionPlant?: string;
   ManufacturingOrderType?: string;
-  PlannedTotalQty?: number;
-  ConfirmedQty?: number;
+  PlannedTotalQty?: string | number;
+  MfgOrderPlannedStartDate?: string;
+  MfgOrderPlannedEndDate?: string;
   ProductionOrderStatus?: string;
+  ProductionOrderStatusText?: string;
   CreationDate?: string;
-  OrderStartDate?: string;
-  OrderEndDate?: string;
+  LastChangeDateTime?: string;
+  TotalQuantity?: string | number;
+  ConfirmedQuantity?: string | number;
+  MfgOrderActualStartDate?: string;
+  MfgOrderActualEndDate?: string;
+  // V4 nested
+  _Item?: { value?: Array<ProductionOrderItem> };
+  _Operation?: { value?: Array<ProductionOrderOperation> };
+}
+
+interface ProductionOrderItem {
+  ProductionOrder: string;
+  ProductionOrderItem: string;
+  Material?: string;
+  ProductionOrderItemText?: string;
+  PlannedTotalQty?: string | number;
+  MfgOrderItemPlannedScrapQty?: string | number;
+  ProductionPlant?: string;
+}
+
+interface ProductionOrderOperation {
+  ProductionOrder: string;
+  Operation: string;
+  WorkCenter?: string;
+  OperationText?: string;
+  OpPlannedTotalQuantity?: string | number;
+  OpConfirmedQty?: string | number;
 }
 
 // Status mapping for production orders
 const getStatusInfo = (status: string | undefined) => {
-  if (!status) return { variant: 'outline' as const, label: '未知' };
-  
-  // SAP Production Order Status codes
-  const statusMap: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string }> = {
-    'CRTD': { variant: 'outline', label: '已创建' },
-    'REL': { variant: 'default', label: '已释放' },
-    'PCNF': { variant: 'secondary', label: '部分确认' },
-    'CNF': { variant: 'default', label: '已确认' },
-    'PDLV': { variant: 'secondary', label: '部分交货' },
-    'DLV': { variant: 'default', label: '已交货' },
-    'TECO': { variant: 'outline', label: '技术完成' },
-    'CLSD': { variant: 'outline', label: '已关闭' },
-    'DLFL': { variant: 'destructive', label: '已删除' },
-  };
-  
-  // Handle combined status like "REL PCNF"
+  if (!status) return { variant: 'outline' as const, label: '-' };
+
+  // Handle combined status like "REL PCNF" — take the first one
   const primaryStatus = status.split(' ')[0];
-  return statusMap[primaryStatus] || { variant: 'outline', label: status };
+  const mapped = PRODUCTION_ORDER_STATUS_MAP[primaryStatus];
+  if (mapped) return mapped;
+  return { variant: 'outline' as const, label: status };
 };
 
 export default function ProductionOrdersPage() {
@@ -49,8 +66,10 @@ export default function ProductionOrdersPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [plant, setPlant] = useState('');
+  const [plant, setPlant] = useState(SAP_DEFAULTS.plant);
   const [totalCount, setTotalCount] = useState(0);
+  const [selectedOrder, setSelectedOrder] = useState<ProductionOrder | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -58,17 +77,28 @@ export default function ProductionOrdersPage() {
     try {
       const params = new URLSearchParams();
       params.set('top', '50');
-      
+      params.set('count', 'true');
+
+      // Build filter
+      const filterParts: string[] = [];
+      if (plant) filterParts.push(`ProductionPlant eq '${plant}'`);
       if (searchQuery) {
-        params.set('filter', `substringof('${searchQuery}',ProductionOrder) or substringof('${searchQuery}',Material)`);
-      }
-      if (plant) {
-        const existingFilter = params.get('filter');
-        const plantFilter = `ProductionPlant eq '${plant}'`;
-        params.set('filter', existingFilter ? `${existingFilter} and ${plantFilter}` : plantFilter);
+        filterParts.push(`(ProductionOrder eq '${searchQuery}' or Material eq '${searchQuery}')`);
       }
 
-      const response = await fetch(`/api/sap/API_PRODUCTION_ORDER_2_SRV/A_ProductionOrder?${params.toString()}`);
+      if (filterParts.length > 0) {
+        params.set('filter', filterParts.join(' and '));
+      }
+
+      // Select key fields
+      params.set('select', 'ProductionOrder,Material,ProductionPlant,ManufacturingOrderType,PlannedTotalQty,MfgOrderPlannedStartDate,MfgOrderPlannedEndDate,ProductionOrderStatus,ProductionOrderStatusText,CreationDate,TotalQuantity,ConfirmedQuantity,MfgOrderActualStartDate,MfgOrderActualEndDate');
+
+      if (showDetails) {
+        params.set('expand', '_Item,_Operation');
+      }
+
+      // Use V4 API for better data quality
+      const response = await fetch(`/api/sap/CE_PRODUCTIONORDER_0001/ProductionOrder?${params.toString()}`);
       const data = await response.json();
 
       if (!data.success) {
@@ -82,7 +112,7 @@ export default function ProductionOrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, plant]);
+  }, [searchQuery, plant, showDetails]);
 
   useEffect(() => {
     fetchOrders();
@@ -91,8 +121,26 @@ export default function ProductionOrdersPage() {
   const handleSearch = () => fetchOrders();
   const handleClear = () => {
     setSearchQuery('');
-    setPlant('');
-    fetchOrders();
+    setPlant(SAP_DEFAULTS.plant);
+    setShowDetails(false);
+    setSelectedOrder(null);
+  };
+
+  // Extract items from V4 nested structure
+  const getOrderItems = (order: ProductionOrder): ProductionOrderItem[] => {
+    const nested = order._Item;
+    if (!nested) return [];
+    if (nested.value && Array.isArray(nested.value)) return nested.value;
+    if (Array.isArray(nested)) return nested;
+    return [];
+  };
+
+  const getOrderOperations = (order: ProductionOrder): ProductionOrderOperation[] => {
+    const nested = order._Operation;
+    if (!nested) return [];
+    if (nested.value && Array.isArray(nested.value)) return nested.value;
+    if (Array.isArray(nested)) return nested;
+    return [];
   };
 
   return (
@@ -125,11 +173,18 @@ export default function ProductionOrdersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">全部工厂</SelectItem>
-                  <SelectItem value="1000">1000 - 主工厂</SelectItem>
-                  <SelectItem value="2000">2000 - 分工厂</SelectItem>
+                  <SelectItem value="1010">1010 - 主工厂</SelectItem>
+                  <SelectItem value="1020">1020</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            <Button
+              variant={showDetails ? 'default' : 'outline'}
+              onClick={() => setShowDetails(!showDetails)}
+              title="展开订单明细"
+            >
+              {showDetails ? '明细: 开' : '明细: 关'}
+            </Button>
             <Button onClick={handleSearch}>查询</Button>
             <Button variant="outline" onClick={handleClear}>清除</Button>
           </div>
@@ -153,6 +208,7 @@ export default function ProductionOrdersPage() {
                   <Skeleton className="h-4 w-[120px]" />
                   <Skeleton className="h-4 w-[80px]" />
                   <Skeleton className="h-4 w-[100px]" />
+                  <Skeleton className="h-4 w-[100px]" />
                   <Skeleton className="h-4 w-[80px]" />
                 </div>
               ))}
@@ -160,6 +216,7 @@ export default function ProductionOrdersPage() {
           ) : error ? (
             <div className="text-center py-8 text-red-600">
               <p>查询失败: {error}</p>
+              <p className="text-sm text-slate-500 mt-2">请检查SAP凭证配置和网络连接</p>
               <Button variant="outline" className="mt-4" onClick={handleSearch}>
                 重试
               </Button>
@@ -177,33 +234,102 @@ export default function ProductionOrdersPage() {
                   <TableHead className="w-[80px]">工厂</TableHead>
                   <TableHead className="w-[100px]">计划数量</TableHead>
                   <TableHead className="w-[100px]">确认数量</TableHead>
+                  <TableHead className="w-[100px]">计划开始</TableHead>
+                  <TableHead className="w-[100px]">计划结束</TableHead>
                   <TableHead className="w-[100px]">状态</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {orders.map((order) => {
                   const statusInfo = getStatusInfo(order.ProductionOrderStatus);
+                  const isExpanded = selectedOrder?.ProductionOrder === order.ProductionOrder;
+                  const items = showDetails && isExpanded ? getOrderItems(order) : [];
+                  const operations = showDetails && isExpanded ? getOrderOperations(order) : [];
+
                   return (
-                    <TableRow key={order.ProductionOrder}>
-                      <TableCell className="font-medium text-blue-600">
-                        {order.ProductionOrder}
-                      </TableCell>
-                      <TableCell>{order.Material || '-'}</TableCell>
-                      <TableCell>{order.ProductionPlant || '-'}</TableCell>
-                      <TableCell>
-                        {order.PlannedTotalQty 
-                          ? `${order.PlannedTotalQty}` 
-                          : '-'}
-                      </TableCell>
-                      <TableCell>
-                        {order.ConfirmedQty 
-                          ? `${order.ConfirmedQty}` 
-                          : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
-                      </TableCell>
-                    </TableRow>
+                    <>
+                      <TableRow
+                        key={order.ProductionOrder}
+                        className={`cursor-pointer hover:bg-slate-50 ${isExpanded ? 'bg-slate-50' : ''}`}
+                        onClick={() => setSelectedOrder(isExpanded ? null : order)}
+                      >
+                        <TableCell className="font-medium text-blue-600">
+                          {order.ProductionOrder}
+                        </TableCell>
+                        <TableCell>{order.Material || '-'}</TableCell>
+                        <TableCell>{order.ProductionPlant || '-'}</TableCell>
+                        <TableCell>{order.PlannedTotalQty || order.TotalQuantity || '-'}</TableCell>
+                        <TableCell>{order.ConfirmedQuantity || '-'}</TableCell>
+                        <TableCell>{order.MfgOrderPlannedStartDate || '-'}</TableCell>
+                        <TableCell>{order.MfgOrderPlannedEndDate || '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+                        </TableCell>
+                      </TableRow>
+                      {/* Expanded details */}
+                      {showDetails && isExpanded && (items.length > 0 || operations.length > 0) && (
+                        <TableRow key={`${order.ProductionOrder}-detail`}>
+                          <TableCell colSpan={8} className="bg-slate-50 p-4">
+                            {/* Items */}
+                            {items.length > 0 && (
+                              <div className="mb-4">
+                                <div className="text-sm font-medium mb-2 text-slate-600">订单组件</div>
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>行号</TableHead>
+                                      <TableHead>物料</TableHead>
+                                      <TableHead>描述</TableHead>
+                                      <TableHead>计划数量</TableHead>
+                                      <TableHead>工厂</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {items.map((item) => (
+                                      <TableRow key={item.ProductionOrderItem}>
+                                        <TableCell>{item.ProductionOrderItem}</TableCell>
+                                        <TableCell className="font-medium">{item.Material || '-'}</TableCell>
+                                        <TableCell>{item.ProductionOrderItemText || '-'}</TableCell>
+                                        <TableCell>{item.PlannedTotalQty || '-'}</TableCell>
+                                        <TableCell>{item.ProductionPlant || '-'}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            )}
+                            {/* Operations */}
+                            {operations.length > 0 && (
+                              <div>
+                                <div className="text-sm font-medium mb-2 text-slate-600">工序</div>
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>工序号</TableHead>
+                                      <TableHead>工作中心</TableHead>
+                                      <TableHead>描述</TableHead>
+                                      <TableHead>计划数量</TableHead>
+                                      <TableHead>确认数量</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {operations.map((op) => (
+                                      <TableRow key={op.Operation}>
+                                        <TableCell>{op.Operation}</TableCell>
+                                        <TableCell>{op.WorkCenter || '-'}</TableCell>
+                                        <TableCell>{op.OperationText || '-'}</TableCell>
+                                        <TableCell>{op.OpPlannedTotalQuantity || '-'}</TableCell>
+                                        <TableCell>{op.OpConfirmedQty || '-'}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
                   );
                 })}
               </TableBody>
