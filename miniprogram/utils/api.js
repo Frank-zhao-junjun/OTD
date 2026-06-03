@@ -1,5 +1,5 @@
 // utils/api.js - API请求封装
-const API_BASE_URL = 'https://your-domain.coze.site/api/sap';
+const API_BASE_URL = 'https://7f286be5-741a-4bb9-af5b-90fecb106734.dev.coze.site/api/sap';
 
 /**
  * 通用请求方法
