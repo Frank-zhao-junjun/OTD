@@ -5,14 +5,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const NAV_ITEMS = [
-  { id: 'products', label: '产品管理', icon: '📦', path: '/products' },
   { id: 'sales-orders', label: '销售订单', icon: '📝', path: '/sales-orders' },
   { id: 'production-orders', label: '生产订单', icon: '🏭', path: '/production-orders' },
   { id: 'material-stock', label: '库存查询', icon: '📊', path: '/material-stock' },
-  { id: 'customers', label: '客户管理', icon: '👥', path: '/customers' },
   { id: 'outbound-delivery', label: '交货单', icon: '🚚', path: '/outbound-delivery' },
   { id: 'billing-documents', label: '开票单据', icon: '🧾', path: '/billing-documents' },
   { id: 'material-documents', label: '物料凭证', icon: '📄', path: '/material-documents' },
+  { id: 'products', label: '产品管理', icon: '📦', path: '/products' },
+  { id: 'customers', label: '客户管理', icon: '👥', path: '/customers' },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
