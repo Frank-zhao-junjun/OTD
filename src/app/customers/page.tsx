@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Customer {
   Customer: string;
@@ -14,7 +15,27 @@ interface Customer {
   CityName?: string;
   Country?: string;
   CustomerGroup?: string;
+  Industry?: string;
+  SalesOrganization?: string;
+  DistributionChannel?: string;
+  Division?: string;
   CustomerType?: string;
+  to_CustomerSalesArea?: {
+    results?: Array<{
+      SalesOrganization: string;
+      DistributionChannel: string;
+      Division: string;
+      CustomerGroup?: string;
+      Currency?: string;
+    }>;
+  };
+  to_CustomerCompany?: {
+    results?: Array<{
+      CompanyCode: string;
+      ReconciliationAccount?: string;
+      PaymentTerms?: string;
+    }>;
+  };
 }
 
 export default function CustomersPage() {
@@ -22,6 +43,8 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchField, setSearchField] = useState<'customer' | 'name'>('customer');
+  const [expandSalesArea, setExpandSalesArea] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
 
   const fetchCustomers = useCallback(async () => {
@@ -30,9 +53,19 @@ export default function CustomersPage() {
     try {
       const params = new URLSearchParams();
       params.set('top', '50');
-      
+
       if (searchQuery) {
-        params.set('filter', `substringof('${searchQuery}',Customer) or substringof('${searchQuery}',CustomerName)`);
+        if (searchField === 'customer') {
+          // V2 OData filter for customer number
+          params.set('filter', `substringof('${searchQuery}',Customer)`);
+        } else {
+          // V2 OData filter for customer name
+          params.set('filter', `substringof('${searchQuery}',CustomerName)`);
+        }
+      }
+
+      if (expandSalesArea) {
+        params.set('expand', 'to_CustomerSalesArea,to_CustomerCompany');
       }
 
       const response = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_Customer?${params.toString()}`);
@@ -49,7 +82,7 @@ export default function CustomersPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery]);
+  }, [searchQuery, searchField, expandSalesArea]);
 
   useEffect(() => {
     fetchCustomers();
@@ -58,7 +91,17 @@ export default function CustomersPage() {
   const handleSearch = () => fetchCustomers();
   const handleClear = () => {
     setSearchQuery('');
-    fetchCustomers();
+    setSearchField('customer');
+    setExpandSalesArea(false);
+  };
+
+  // Extract sales area from nested V2 structure
+  const getSalesAreas = (customer: Customer) => {
+    const nested = customer.to_CustomerSalesArea;
+    if (!nested) return [];
+    if (nested.results && Array.isArray(nested.results)) return nested.results;
+    if (Array.isArray(nested)) return nested;
+    return [];
   };
 
   return (
@@ -66,7 +109,7 @@ export default function CustomersPage() {
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-800">客户管理</h1>
-        <p className="text-slate-600 mt-1">查询 SAP 客户主数据</p>
+        <p className="text-slate-600 mt-1">查询 SAP 客户主数据 (API_BUSINESS_PARTNER)</p>
       </div>
 
       {/* Search Card */}
@@ -76,14 +119,32 @@ export default function CustomersPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">
+            <div className="w-[140px]">
+              <Select value={searchField} onValueChange={(v) => setSearchField(v as 'customer' | 'name')}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="customer">客户编号</SelectItem>
+                  <SelectItem value="name">客户名称</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex-1 min-w-[200px]">
               <Input
-                placeholder="输入客户编号或名称"
+                placeholder={searchField === 'customer' ? '输入客户编号' : '输入客户名称'}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
             </div>
+            <Button
+              variant={expandSalesArea ? 'default' : 'outline'}
+              onClick={() => setExpandSalesArea(!expandSalesArea)}
+              title="展开销售范围和公司代码信息"
+            >
+              {expandSalesArea ? '销售范围: 开' : '销售范围: 关'}
+            </Button>
             <Button onClick={handleSearch}>查询</Button>
             <Button variant="outline" onClick={handleClear}>清除</Button>
           </div>
@@ -127,25 +188,39 @@ export default function CustomersPage() {
                 <TableRow>
                   <TableHead className="w-[120px]">客户编号</TableHead>
                   <TableHead>客户名称</TableHead>
-                  <TableHead className="w-[150px]">城市</TableHead>
+                  <TableHead className="w-[120px]">城市</TableHead>
                   <TableHead className="w-[80px]">国家</TableHead>
-                  <TableHead className="w-[100px]">客户类型</TableHead>
+                  {expandSalesArea && (
+                    <>
+                      <TableHead className="w-[80px]">销售组织</TableHead>
+                      <TableHead className="w-[80px]">分销渠道</TableHead>
+                      <TableHead className="w-[80px]">产品组</TableHead>
+                    </>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {customers.map((customer) => (
-                  <TableRow key={customer.Customer}>
-                    <TableCell className="font-medium text-blue-600">
-                      {customer.Customer}
-                    </TableCell>
-                    <TableCell>{customer.CustomerName || '-'}</TableCell>
-                    <TableCell>{customer.CityName || '-'}</TableCell>
-                    <TableCell>{customer.Country || '-'}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{customer.CustomerType || '-'}</Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {customers.map((customer) => {
+                  const salesAreas = getSalesAreas(customer);
+                  const firstSalesArea = salesAreas[0];
+                  return (
+                    <TableRow key={customer.Customer}>
+                      <TableCell className="font-medium text-blue-600">
+                        {customer.Customer}
+                      </TableCell>
+                      <TableCell>{customer.CustomerName || '-'}</TableCell>
+                      <TableCell>{customer.CityName || '-'}</TableCell>
+                      <TableCell>{customer.Country || '-'}</TableCell>
+                      {expandSalesArea && (
+                        <>
+                          <TableCell>{firstSalesArea?.SalesOrganization || '-'}</TableCell>
+                          <TableCell>{firstSalesArea?.DistributionChannel || '-'}</TableCell>
+                          <TableCell>{firstSalesArea?.Division || '-'}</TableCell>
+                        </>
+                      )}
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
