@@ -166,7 +166,7 @@ export default function SalesOrdersPage() {
               <Select value={orderType} onValueChange={setOrderType}>
                 <SelectTrigger><SelectValue placeholder="订单类型" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">全部类型</SelectItem>
+                  <SelectItem value="all">全部类型</SelectItem>
                   <SelectItem value="OR">OR - 标准订单</SelectItem>
                   <SelectItem value="CR">CR - 退货订单</SelectItem>
                   <SelectItem value="DR">DR - 借记订单</SelectItem>
@@ -179,7 +179,7 @@ export default function SalesOrdersPage() {
               <Select value={salesOrg} onValueChange={setSalesOrg}>
                 <SelectTrigger><SelectValue placeholder="销售组织" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">全部组织</SelectItem>
+                  <SelectItem value="all">全部组织</SelectItem>
                   <SelectItem value="1010">1010</SelectItem>
                   <SelectItem value="1020">1020</SelectItem>
                 </SelectContent>

@@ -173,7 +173,7 @@ export default function ProductionOrdersPage() {
                   <SelectValue placeholder="选择工厂" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">全部工厂</SelectItem>
+                  <SelectItem value="all">全部工厂</SelectItem>
                   <SelectItem value="1010">1010 - 主工厂</SelectItem>
                   <SelectItem value="1020">1020</SelectItem>
                 </SelectContent>

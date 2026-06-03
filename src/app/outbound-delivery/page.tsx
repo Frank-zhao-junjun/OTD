@@ -97,7 +97,7 @@ export default function OutboundDeliveryPage() {
         params.set('top', '50');
 
         const filterParts: string[] = [];
-        if (filterStatus) filterParts.push(`OverallGoodsMovementStatus eq '${filterStatus}'`);
+        if (filterStatus && filterStatus !== 'all') filterParts.push(`OverallGoodsMovementStatus eq '${filterStatus}'`);
         if (searchQuery) {
           filterParts.push(`DeliveryDocument eq '${searchQuery}'`);
         }
@@ -187,7 +187,7 @@ export default function OutboundDeliveryPage() {
                   <SelectValue placeholder="过账状态" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">全部状态</SelectItem>
+                  <SelectItem value="all">全部状态</SelectItem>
                   <SelectItem value="A">未处理</SelectItem>
                   <SelectItem value="B">处理中</SelectItem>
                   <SelectItem value="C">已完成</SelectItem>
