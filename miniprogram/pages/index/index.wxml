@@ -5,7 +5,7 @@
     <view class="logo-container">
       <view class="logo">ES</view>
       <view class="logo-text">
-        <text class="title">ES+OTD助手</text>
+        <text class="title">OTD助手</text>
         <text class="subtitle">SAP S/4HANA Cloud</text>
       </view>
     </view>
