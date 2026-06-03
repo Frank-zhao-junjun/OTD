@@ -1,0 +1,4 @@
+/* pages/production-orders/production-orders.wxss */
+.container { padding-bottom: 20px; }
+.filter-hint { padding: 6px 12px; background-color: #F0F9FF; }
+.hint-text { font-size: 11px; color: #64748B; }

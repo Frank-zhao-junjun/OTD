@@ -1,0 +1,2 @@
+/* pages/material-documents/material-documents.wxss */
+.container { padding-bottom: 20px; }

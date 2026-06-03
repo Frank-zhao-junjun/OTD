@@ -1,0 +1,54 @@
+<!--pages/billing-documents/billing-documents.wxml -->
+<view class="container">
+  <view class="search-bar">
+    <view class="search-input-wrap">
+      <input class="search-input" placeholder="开票单号/客户编号" value="{{searchQuery}}" bindinput="onSearchInput" bindconfirm="onSearch"/>
+    </view>
+    <button class="search-btn primary-bg" bindtap="onSearch">查询</button>
+    <button class="search-btn default" bindtap="onClear">重置</button>
+  </view>
+
+  <view class="result-header" wx:if="{{totalCount > 0}}">
+    <text class="result-count">共 {{totalCount}} 条记录</text>
+  </view>
+
+  <view wx:if="{{!loading && documents.length > 0}}">
+    <block wx:for="{{documents}}" wx:key="BillingDocument">
+      <view class="list-card">
+        <view class="card-header">
+          <text class="card-title">{{item.BillingDocument}}</text>
+          <text class="card-badge" style="background-color: {{item.BillingIsCancelled === true ? '#FEE2E2' : '#DCFCE7'}}; color: {{item.BillingIsCancelled === true ? '#991B1B' : '#166534'}};">
+            {{item.BillingIsCancelled === true ? '已取消' : '有效'}}
+          </text>
+        </view>
+        <view class="card-body">
+          <view class="card-row">
+            <text class="card-label">客户</text>
+            <text class="card-value">{{item.SoldToParty || '-'}}</text>
+          </view>
+          <view class="card-row">
+            <text class="card-label">开票日期</text>
+            <text class="card-value">{{item.BillingDocumentDate}}</text>
+          </view>
+          <view class="card-row">
+            <text class="card-label">类型</text>
+            <text class="card-value">{{item.BillingDocumentType || '-'}}</text>
+          </view>
+        </view>
+        <view class="card-footer">
+          <text class="card-amount">¥{{item.TotalNetAmount}}</text>
+          <text class="card-label">税额: ¥{{item.TotalTaxAmount}}</text>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <view class="loading-container" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <view class="empty-container" wx:if="{{!loading && documents.length === 0}}">
+    <text class="empty-text">暂无开票数据</text>
+  </view>
+</view>

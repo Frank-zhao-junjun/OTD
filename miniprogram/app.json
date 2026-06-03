@@ -1,22 +1,25 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/products/products",
     "pages/sales-orders/sales-orders",
     "pages/production-orders/production-orders",
     "pages/material-stock/material-stock",
+    "pages/outbound-delivery/outbound-delivery",
+    "pages/billing-documents/billing-documents",
+    "pages/material-documents/material-documents",
+    "pages/products/products",
     "pages/customers/customers"
   ],
   "window": {
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#354A5F",
-    "navigationBarTitleText": "SAP ERP助手",
+    "navigationBarBackgroundColor": "#1E3A5F",
+    "navigationBarTitleText": "ES+OTD助手",
     "navigationBarTextStyle": "white"
   },
   "tabBar": {
-    "color": "#8B9DAF",
-    "selectedColor": "#0070F2",
-    "backgroundColor": "#F5F6F7",
+    "color": "#64748B",
+    "selectedColor": "#1E40AF",
+    "backgroundColor": "#FFFFFF",
     "borderStyle": "black",
     "list": [
       {
@@ -26,14 +29,8 @@
         "selectedIconPath": "images/home-active.png"
       },
       {
-        "pagePath": "pages/products/products",
-        "text": "产品",
-        "iconPath": "images/product.png",
-        "selectedIconPath": "images/product-active.png"
-      },
-      {
         "pagePath": "pages/sales-orders/sales-orders",
-        "text": "订单",
+        "text": "销售订单",
         "iconPath": "images/order.png",
         "selectedIconPath": "images/order-active.png"
       },
@@ -42,6 +39,12 @@
         "text": "库存",
         "iconPath": "images/stock.png",
         "selectedIconPath": "images/stock-active.png"
+      },
+      {
+        "pagePath": "pages/products/products",
+        "text": "产品",
+        "iconPath": "images/product.png",
+        "selectedIconPath": "images/product-active.png"
       }
     ]
   },

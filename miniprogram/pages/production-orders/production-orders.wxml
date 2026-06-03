@@ -1,0 +1,58 @@
+<!--pages/production-orders/production-orders.wxml -->
+<view class="container">
+  <view class="search-bar">
+    <view class="search-input-wrap">
+      <input class="search-input" placeholder="订单号/物料编号" value="{{searchQuery}}" bindinput="onSearchInput" bindconfirm="onSearch"/>
+    </view>
+    <button class="search-btn primary-bg" bindtap="onSearch">查询</button>
+    <button class="search-btn default" bindtap="onClear">重置</button>
+  </view>
+
+  <view class="filter-hint">
+    <text class="hint-text">默认工厂: {{plantFilter}}</text>
+  </view>
+
+  <view class="result-header" wx:if="{{totalCount > 0}}">
+    <text class="result-count">共 {{totalCount}} 条记录</text>
+  </view>
+
+  <view wx:if="{{!loading && orders.length > 0}}">
+    <block wx:for="{{orders}}" wx:key="ManufacturingOrder">
+      <view class="list-card" data-id="{{item.ManufacturingOrder}}" bindtap="onViewDetail">
+        <view class="card-header">
+          <text class="card-title">{{item.ManufacturingOrder}}</text>
+          <text class="card-badge" style="background-color: {{item.MfgOrderStatus === 'DLV' || item.MfgOrderStatus === 'TECO' ? '#DCFCE7' : item.MfgOrderStatus === 'REL' ? '#DBEAFE' : '#FEF3C7'}}; color: {{item.MfgOrderStatus === 'DLV' || item.MfgOrderStatus === 'TECO' ? '#166534' : item.MfgOrderStatus === 'REL' ? '#1E40AF' : '#92400E'}};">
+            {{item.StatusText}}
+          </text>
+        </view>
+        <view class="card-body">
+          <view class="card-row">
+            <text class="card-label">物料</text>
+            <text class="card-value">{{item.Material || '-'}}</text>
+          </view>
+          <view class="card-row">
+            <text class="card-label">工厂</text>
+            <text class="card-value">{{item.ProductionPlant || '-'}}</text>
+          </view>
+          <view class="card-row">
+            <text class="card-label">开始日期</text>
+            <text class="card-value">{{item.MfgOrderStartDate}}</text>
+          </view>
+          <view class="card-row">
+            <text class="card-label">计划数量</text>
+            <text class="card-value">{{item.MfgOrderPlannedTotalQty || '0'}} {{item.ProductionUnit || ''}}</text>
+          </view>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <view class="loading-container" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <view class="empty-container" wx:if="{{!loading && orders.length === 0}}">
+    <text class="empty-text">暂无生产订单数据</text>
+  </view>
+</view>

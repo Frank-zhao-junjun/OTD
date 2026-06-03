@@ -1,0 +1,21 @@
+/* pages/sales-orders/sales-orders.wxss */
+.container { padding-bottom: 20px; }
+
+.filter-hint {
+  padding: 6px 12px;
+  background-color: #F0F9FF;
+}
+
+.hint-text {
+  font-size: 11px;
+  color: #64748B;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #F1F5F9;
+}

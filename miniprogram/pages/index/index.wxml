@@ -1,43 +1,97 @@
-<!--pages/index/index.wxml - 首页模板 -->
+<!--pages/index/index.wxml - 首页 -->
 <view class="container">
   <!-- 头部 -->
   <view class="header">
     <view class="logo-container">
       <view class="logo">ES</view>
       <view class="logo-text">
-        <text class="title">SAP ERP助手</text>
-        <text class="subtitle">S/4HANA Cloud</text>
+        <text class="title">ES+OTD助手</text>
+        <text class="subtitle">SAP S/4HANA Cloud</text>
       </view>
     </view>
   </view>
 
-  <!-- 快捷入口 -->
+  <!-- 业务交易模块 -->
+  <view class="section-title">
+    <text class="section-label">业务交易</text>
+  </view>
   <view class="module-grid">
-    <block wx:for="{{modules}}" wx:key="id">
+    <block wx:for="{{businessModules}}" wx:key="id">
       <view class="module-card" data-id="{{item.id}}" bindtap="navigateToModule">
-        <view class="module-icon">{{item.icon}}</view>
+        <view class="module-icon" style="background-color: {{item.color}}15;">
+          <text style="font-size: 24px;">{{item.icon}}</text>
+        </view>
         <view class="module-info">
           <text class="module-title">{{item.title}}</text>
           <text class="module-desc">{{item.desc}}</text>
         </view>
-        <view class="module-arrow">→</view>
+        <view class="module-arrow">
+          <text style="color: #CBD5E1;">›</text>
+        </view>
       </view>
     </block>
   </view>
 
-  <!-- 说明区域 -->
+  <!-- 主数据模块 -->
+  <view class="section-title">
+    <text class="section-label">主数据</text>
+  </view>
+  <view class="module-grid">
+    <block wx:for="{{masterModules}}" wx:key="id">
+      <view class="module-card" data-id="{{item.id}}" bindtap="navigateToModule">
+        <view class="module-icon" style="background-color: {{item.color}}15;">
+          <text style="font-size: 24px;">{{item.icon}}</text>
+        </view>
+        <view class="module-info">
+          <text class="module-title">{{item.title}}</text>
+          <text class="module-desc">{{item.desc}}</text>
+        </view>
+        <view class="module-arrow">
+          <text style="color: #CBD5E1;">›</text>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <!-- 系统说明 -->
   <view class="card info-card">
-    <view class="card-header">
-      <text class="card-title">系统说明</text>
+    <view class="card-section-title">
+      <text class="card-title-text">8大接口</text>
     </view>
     <view class="info-content">
-      <view class="info-section">
-        <text class="info-title">支持的数据模块</text>
-        <text class="info-item">• 产品主数据 (API_PRODUCT_SRV)</text>
-        <text class="info-item">• 销售订单 (CE_SALESORDER_0001)</text>
-        <text class="info-item">• 生产订单 (API_PRODUCTION_ORDER_2_SRV)</text>
-        <text class="info-item">• 物料库存 (API_MATERIAL_STOCK_SRV)</text>
-        <text class="info-item">• 客户主数据 (API_BUSINESS_PARTNER)</text>
+      <view class="api-list">
+        <view class="api-item">
+          <text class="api-badge v4">V4</text>
+          <text class="api-name">销售订单 CE_SALESORDER_0001</text>
+        </view>
+        <view class="api-item">
+          <text class="api-badge v4">V4</text>
+          <text class="api-name">生产订单 CE_PRODUCTIONORDER_0001</text>
+        </view>
+        <view class="api-item">
+          <text class="api-badge v2">V2</text>
+          <text class="api-name">产品 API_PRODUCT_SRV</text>
+        </view>
+        <view class="api-item">
+          <text class="api-badge v2">V2</text>
+          <text class="api-name">客户 API_BUSINESS_PARTNER</text>
+        </view>
+        <view class="api-item">
+          <text class="api-badge v2">V2</text>
+          <text class="api-name">库存 API_MATERIAL_STOCK_SRV</text>
+        </view>
+        <view class="api-item">
+          <text class="api-badge v2">V2</text>
+          <text class="api-name">交货 API_OUTBOUND_DELIVERY_SRV</text>
+        </view>
+        <view class="api-item">
+          <text class="api-badge v2">V2</text>
+          <text class="api-name">开票 API_BILLING_DOCUMENT_SRV</text>
+        </view>
+        <view class="api-item">
+          <text class="api-badge v2">V2</text>
+          <text class="api-name">物料凭证 API_MATERIAL_DOCUMENT_SRV</text>
+        </view>
       </view>
     </view>
   </view>

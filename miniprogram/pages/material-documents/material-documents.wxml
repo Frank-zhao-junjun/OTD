@@ -1,0 +1,54 @@
+<!--pages/material-documents/material-documents.wxml -->
+<view class="container">
+  <view class="search-bar">
+    <view class="search-input-wrap">
+      <input class="search-input" placeholder="凭证号/物料编号" value="{{searchQuery}}" bindinput="onSearchInput" bindconfirm="onSearch"/>
+    </view>
+    <button class="search-btn primary-bg" bindtap="onSearch">查询</button>
+    <button class="search-btn default" bindtap="onClear">重置</button>
+  </view>
+
+  <view class="result-header" wx:if="{{totalCount > 0}}">
+    <text class="result-count">共 {{totalCount}} 条记录</text>
+  </view>
+
+  <view wx:if="{{!loading && documents.length > 0}}">
+    <block wx:for="{{documents}}" wx:key="MaterialDocument">
+      <view class="list-card">
+        <view class="card-header">
+          <text class="card-title">{{item.MaterialDocument}}</text>
+          <text class="card-badge" style="background-color: {{item.GoodsMovementCode === '101' || item.GoodsMovementCode === '311' ? '#DCFCE7' : item.GoodsMovementCode === '261' || item.GoodsMovementCode === '601' ? '#FEF3C7' : '#DBEAFE'}}; color: {{item.GoodsMovementCode === '101' || item.GoodsMovementCode === '311' ? '#166534' : item.GoodsMovementCode === '261' || item.GoodsMovementCode === '601' ? '#92400E' : '#1E40AF'}};">
+            {{item.MoveTypeText}}
+          </text>
+        </view>
+        <view class="card-body">
+          <view class="card-row">
+            <text class="card-label">物料</text>
+            <text class="card-value">{{item.Material || '-'}}</text>
+          </view>
+          <view class="card-row">
+            <text class="card-label">工厂</text>
+            <text class="card-value">{{item.Plant || '-'}}</text>
+          </view>
+          <view class="card-row">
+            <text class="card-label">过账日期</text>
+            <text class="card-value">{{item.PostingDate}}</text>
+          </view>
+          <view class="card-row">
+            <text class="card-label">参考</text>
+            <text class="card-value">{{item.ReferenceDocument || '-'}}</text>
+          </view>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <view class="loading-container" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <view class="empty-container" wx:if="{{!loading && documents.length === 0}}">
+    <text class="empty-text">暂无物料凭证数据</text>
+  </view>
+</view>
