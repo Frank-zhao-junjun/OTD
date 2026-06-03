@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,6 +14,7 @@ interface SalesOrder {
   SalesOrder: string;
   SalesOrderType?: string;
   SoldToParty?: string;
+  SoldToPartyName?: string;
   SalesOrganization?: string;
   DistributionChannel?: string;
   OrganizationDivision?: string;
@@ -25,6 +27,7 @@ interface SalesOrder {
   OverallBillingStatus?: string;
   PurchaseOrderByCustomer?: string;
   CreationDate?: string;
+  StatusText?: string;
 }
 
 export default function SalesOrdersPage() {
@@ -61,8 +64,6 @@ export default function SalesOrdersPage() {
         params.set('filter', filterParts.join(' and '));
       }
 
-      params.set('select', 'SalesOrder,SalesOrderType,SoldToParty,SalesOrganization,TotalNetAmount,TransactionCurrency,SalesOrderDate,OverallSDProcessStatus,OverallDeliveryStatus,OverallBillingStatus,PurchaseOrderByCustomer');
-
       const response = await fetch(`/api/sap/CE_SALESORDER_0001/SalesOrder?${params.toString()}`);
       const data = await response.json();
 
@@ -84,19 +85,26 @@ export default function SalesOrdersPage() {
     setSalesOrg(SAP_DEFAULTS.salesOrganization);
   };
 
-  // Derive status color from OverallSDProcessStatus
-  const getOrderStatusColor = (order: SalesOrder): 'success' | 'warning' | 'error' | 'info' | 'neutral' => {
-    const s = order.OverallSDProcessStatus;
-    if (!s) return 'neutral';
-    const mapped = SALES_ORDER_STATUS_MAP[s];
-    if (!mapped) return getSapStatusColor(s);
-    switch (mapped.variant) {
-      case 'default': return 'success';
-      case 'secondary': return 'info';
-      case 'outline': return 'neutral';
-      case 'destructive': return 'error';
-      default: return 'neutral';
+  const getStatusColor = (status: string | undefined): 'success' | 'warning' | 'error' | 'info' | 'neutral' => {
+    if (!status) return 'neutral';
+    const mapped = SALES_ORDER_STATUS_MAP[status];
+    if (mapped) {
+      switch (mapped.variant) {
+        case 'default': return 'success';
+        case 'secondary': return 'info';
+        case 'outline': return 'neutral';
+        case 'destructive': return 'error';
+        default: return 'neutral';
+      }
     }
+    return getSapStatusColor(status);
+  };
+
+  const formatDate = (dateStr: string | undefined) => {
+    if (!dateStr) return '-';
+    const match = dateStr.match(/\/Date\((\d+)\)\//);
+    if (match) return new Date(parseInt(match[1])).toLocaleDateString('zh-CN');
+    return dateStr;
   };
 
   return (
@@ -122,7 +130,6 @@ export default function SalesOrdersPage() {
           <RotateCcw className="w-3.5 h-3.5 mr-1" /> 清除
         </Button>
 
-        {/* Expandable filters */}
         {showFilter && (
           <>
             <div className="fiori-filterbar-field w-[140px]">
@@ -180,33 +187,32 @@ export default function SalesOrdersPage() {
       ) : (
         <div className="space-y-0">
           {orders.map((order) => {
-            const statusColor = getOrderStatusColor(order);
-            const statusLabel = SALES_ORDER_STATUS_MAP[order.OverallSDProcessStatus || '']?.label || getSapStatusLabel(order.OverallSDProcessStatus);
-            const deliveryLabel = SALES_ORDER_STATUS_MAP[order.OverallDeliveryStatus || '']?.label || getSapStatusLabel(order.OverallDeliveryStatus);
+            const statusColor = getStatusColor(order.OverallSDProcessStatus);
+            const statusLabel = order.StatusText || SALES_ORDER_STATUS_MAP[order.OverallSDProcessStatus || '']?.label || getSapStatusLabel(order.OverallSDProcessStatus);
             return (
-              <FioriOli
-                key={order.SalesOrder}
-                barColor={statusColor}
-                title={`${order.SalesOrder} · ${order.SoldToParty || '-'}`}
-                subtitle={`${order.SalesOrderDate || '-'} · ${order.PurchaseOrderByCustomer || '-'}`}
-                status={
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <FioriBadge variant={statusColor}>{statusLabel}</FioriBadge>
-                    <FioriBadge variant={getSapStatusColor(order.OverallDeliveryStatus)}>{deliveryLabel}</FioriBadge>
-                    {order.TotalNetAmount && (
-                      <span className="text-xs font-mono tabular-nums" style={{ color: 'var(--foreground)' }}>
-                        {Number(order.TotalNetAmount).toLocaleString()} {order.TransactionCurrency || 'CNY'}
-                      </span>
-                    )}
-                  </div>
-                }
-              />
+              <Link key={order.SalesOrder} href={`/sales-orders/${order.SalesOrder}`} className="block">
+                <FioriOli
+                  barColor={statusColor}
+                  title={`${order.SalesOrder} · ${order.SoldToPartyName || order.SoldToParty || '-'}`}
+                  subtitle={`${formatDate(order.SalesOrderDate)} · ${order.PurchaseOrderByCustomer || '-'}`}
+                  status={
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <FioriBadge variant={statusColor}>{statusLabel}</FioriBadge>
+                      {order.TotalNetAmount && (
+                        <span className="text-xs font-mono tabular-nums" style={{ color: 'var(--foreground)' }}>
+                          {Number(order.TotalNetAmount).toLocaleString()} {order.TransactionCurrency || 'CNY'}
+                        </span>
+                      )}
+                    </div>
+                  }
+                />
+              </Link>
             );
           })}
         </div>
       )}
 
-      {/* FAB - refresh */}
+      {/* FAB */}
       <FioriFab icon={<Search className="w-5 h-5" />} onClick={fetchOrders} ariaLabel="刷新查询" />
     </div>
   );
