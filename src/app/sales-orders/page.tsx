@@ -143,7 +143,6 @@ export default function SalesOrdersPage() {
           </div>
           <div>
             <h1 className="text-lg md:text-xl font-bold text-slate-800">销售订单</h1>
-            <p className="text-xs md:text-sm text-slate-500">BD9 Sell from Stock</p>
           </div>
         </div>
       </div>

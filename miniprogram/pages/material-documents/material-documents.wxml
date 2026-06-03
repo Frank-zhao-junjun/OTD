@@ -49,6 +49,6 @@
   </view>
 
   <view class="empty-container" wx:if="{{!loading && documents.length === 0}}">
-    <text class="empty-text">暂无物料凭证数据</text>
+    <text class="empty-text">暂无入库单数据</text>
   </view>
 </view>

@@ -110,7 +110,7 @@ const api = {
     data: params
   }),
 
-  // 6. 交货单查询 (V2)
+  // 6. 发货单查询 (V2)
   getOutboundDeliveries: (params = {}) => request({
     url: `/API_OUTBOUND_DELIVERY_SRV/A_OutbDeliveryHeader`,
     data: params
@@ -122,7 +122,7 @@ const api = {
     data: params
   }),
 
-  // 8. 物料凭证查询 (V2)
+  // 8. 入库单查询 (V2)
   getMaterialDocuments: (params = {}) => request({
     url: `/API_MATERIAL_DOCUMENT_SRV/A_MaterialDocumentHeader`,
     data: params

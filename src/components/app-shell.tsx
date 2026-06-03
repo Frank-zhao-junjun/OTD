@@ -22,10 +22,10 @@ import {
 const BUSINESS_ITEMS = [
   { id: 'sales-orders', label: '销售订单', icon: FileText, path: '/sales-orders' },
   { id: 'production-orders', label: '生产订单', icon: Factory, path: '/production-orders' },
-  { id: 'material-stock', label: '库存查询', icon: BarChart3, path: '/material-stock' },
-  { id: 'outbound-delivery', label: '交货单', icon: Truck, path: '/outbound-delivery' },
+  { id: 'outbound-delivery', label: '发货单', icon: Truck, path: '/outbound-delivery' },
   { id: 'billing-documents', label: '开票单据', icon: Receipt, path: '/billing-documents' },
-  { id: 'material-documents', label: '物料凭证', icon: FileSpreadsheet, path: '/material-documents' },
+  { id: 'material-stock', label: '库存查询', icon: BarChart3, path: '/material-stock' },
+  { id: 'material-documents', label: '入库单', icon: FileSpreadsheet, path: '/material-documents' },
 ];
 
 const MASTER_ITEMS = [
@@ -317,7 +317,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="grid grid-cols-3 h-10 border-t border-slate-100">
           {[
             { icon: Receipt, label: '开票', path: '/billing-documents' },
-            { icon: FileSpreadsheet, label: '物料凭证', path: '/material-documents' },
+            { icon: FileSpreadsheet, label: '入库单', path: '/material-documents' },
             { icon: Package, label: '更多', path: '/products' },
           ].map((tab) => {
             const isActive = pathname === tab.path || pathname.startsWith(tab.path);

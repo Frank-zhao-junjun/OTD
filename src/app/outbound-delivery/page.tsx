@@ -162,8 +162,8 @@ export default function OutboundDeliveryPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-lg md:text-2xl font-bold text-slate-800">交货单</h1>
-        <p className="text-slate-600 mt-1">查询 SAP 外向交货单数据 (BD9 - Outbound Delivery)</p>
+        <h1 className="text-lg md:text-2xl font-bold text-slate-800">发货单</h1>
+        <p className="text-slate-600 mt-1">查询 SAP 外向发货单数据</p>
       </div>
 
       {/* Search Card */}
@@ -175,7 +175,7 @@ export default function OutboundDeliveryPage() {
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-0 md:min-w-[200px]">
               <Input
-                placeholder="输入交货单号或参考销售订单号"
+                placeholder="输入发货单号或参考销售订单号"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -201,14 +201,14 @@ export default function OutboundDeliveryPage() {
                 onClick={() => setActiveTab('headers')}
                 size="sm"
               >
-                交货单头
+                发货单头
               </Button>
               <Button
                 variant={activeTab === 'items' ? 'default' : 'outline'}
                 onClick={() => setActiveTab('items')}
                 size="sm"
               >
-                交货单行
+                发货单行
               </Button>
             </div>
             <Button onClick={handleSearch}>查询</Button>
@@ -221,7 +221,7 @@ export default function OutboundDeliveryPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg">
-            {activeTab === 'headers' ? '交货单头' : '交货单行项目'}
+            {activeTab === 'headers' ? '发货单头' : '发货单行项目'}
           </CardTitle>
           {!loading && !error && (
             <Badge variant="secondary">共 {totalCount} 条记录</Badge>
@@ -243,7 +243,7 @@ export default function OutboundDeliveryPage() {
             <div className="text-center py-8 text-red-600">
               <p>查询失败: {error}</p>
               <p className="text-sm text-slate-500 mt-2">
-                提示: 交货单API需要SAP_COM_0106通信安排已部署且EPC_USER已授权
+                发货单API需要通信安排已部署且用户已授权
               </p>
               <Button variant="outline" className="mt-4" onClick={handleSearch}>
                 重试
@@ -258,7 +258,7 @@ export default function OutboundDeliveryPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[150px]">交货单号</TableHead>
+                    <TableHead className="w-[150px]">发货单号</TableHead>
                     <TableHead className="w-[100px]">单据类型</TableHead>
                     <TableHead>售达方</TableHead>
                     <TableHead className="w-[120px]">过账日期</TableHead>
@@ -290,7 +290,7 @@ export default function OutboundDeliveryPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[120px]">交货单号</TableHead>
+                  <TableHead className="w-[120px]">发货单号</TableHead>
                   <TableHead className="w-[60px]">行号</TableHead>
                   <TableHead className="w-[120px]">参考订单</TableHead>
                   <TableHead className="w-[100px]">物料</TableHead>
