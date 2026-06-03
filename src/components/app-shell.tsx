@@ -108,7 +108,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* Title */}
         <div className="fiori-shellbar-title">
-          ES+OTD助手
+          OTD助手
         </div>
 
         {/* Page title breadcrumb - PC only */}

@@ -1,7 +1,7 @@
 // app.js - 小程序入口
 App({
   onLaunch() {
-    console.log('ES+OTD助手启动');
+    console.log('OTD助手启动');
     this.checkNetwork();
   },
 
