@@ -286,7 +286,6 @@ body {
 
 /* ===== Fiori ObjectListItem ===== */
 .fiori-oli {
-  height: var(--fiori-oli-height);
   display: flex;
   align-items: stretch;
   background: var(--card);
@@ -297,10 +296,26 @@ body {
   transition: box-shadow 150ms ease, border-color 150ms ease;
   border: 1px solid transparent;
   margin-bottom: 8px;
+  text-decoration: none;
 }
 .fiori-oli:hover {
   box-shadow: var(--fiori-shadow-hover);
   border-color: var(--primary);
+  text-decoration: none;
+}
+
+/* Mobile: compact OLI */
+@media (max-width: 1023px) {
+  .fiori-oli {
+    min-height: 64px;
+  }
+}
+
+/* PC: taller OLI */
+@media (min-width: 1024px) {
+  .fiori-oli {
+    min-height: var(--fiori-oli-height);
+  }
 }
 
 .fiori-oli-bar {
