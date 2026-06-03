@@ -148,6 +148,26 @@ export const SAP_FIELD_LABELS = {
   ProductType: '产品类型',
   BaseUnit: '基本单位',
   CreationDate: '创建日期',
+  GrossWeight: '毛重',
+  NetWeight: '净重',
+  WeightUnit: '重量单位',
+  IsMarkedForDeletion: '删除标记',
+  CrossPlantStatus: '跨工厂状态',
+  CreatedByUser: '创建人',
+  // Product Plant expand fields
+  Plant: '工厂',
+  MRPType: 'MRP类型',
+  ProductionInvtryManagedLoc: '生产库存地点',
+  ProcurementType: '采购类型',
+  ProfitCenter: '利润中心',
+  AvailabilityCheckType: '可用性检查',
+  // Product Valuation expand fields
+  ValuationArea: '评估范围',
+  ValuationClass: '评估类',
+  StandardPrice: '标准价格',
+  MovingAveragePrice: '移动平均价',
+  PriceUnitQty: '价格单位',
+  Currency: '货币',
 
   // Sales Order fields
   SalesOrder: '销售订单号',
@@ -178,7 +198,6 @@ export const SAP_FIELD_LABELS = {
   MfgOrderPlannedEndDate: '计划结束日期',
 
   // Stock fields
-  Plant: '工厂',
   StorageLocation: '存储位置',
   Batch: '批次',
   MatlWrhsStkQtyInMatlBaseUnit: '库存数量',
@@ -223,9 +242,9 @@ export const SAP_DEFAULT_SELECTS: Record<string, string> = {
   // Sales Order (V4)
   'CE_SALESORDER_0001:SalesOrder':
     'SalesOrder,SalesOrderType,SalesOrganization,DistributionChannel,OrganizationDivision,SoldToParty,PurchaseOrderByCustomer,SalesOrderDate,TotalNetAmount,TransactionCurrency,OverallSDProcessStatus,OverallDeliveryStatus,OverallBillingStatus',
-  // Products (V2)
+  // Products (V2) — $select only basic fields; $expand fetches description & plant
   'API_PRODUCT_SRV:A_Product':
-    'Product,ProductName,ProductType,ProductGroup,BaseUnit,Weight,WeightUnit,Plant,MRPType',
+    'Product,ProductType,ProductGroup,BaseUnit,WeightUnit,GrossWeight,NetWeight,IsMarkedForDeletion,CrossPlantStatus,CreatedByUser,CreationDate',
   // Customers (V2)
   'API_BUSINESS_PARTNER:A_Customer':
     'Customer,CustomerName,Country,CityName,PostalCode,SalesOrganization,DistributionChannel,Division,CustomerGroup,Currency',
@@ -241,6 +260,12 @@ export const SAP_DEFAULT_SELECTS: Record<string, string> = {
   // Material Document (V2)
   'API_MATERIAL_DOCUMENT_SRV:A_MaterialDocumentItem':
     'MaterialDocument,MaterialDocumentYear,PostingDate,Material,Plant,MovementType,Quantity,BaseUnit,GoodsRecipient,ReferenceDocument',
+};
+
+// Default $expand per service:entity (SAP navigation properties)
+export const SAP_DEFAULT_EXPANDS: Record<string, string> = {
+  // Products (V2) — expand description (ZH name) and plant (MRP/production info)
+  'API_PRODUCT_SRV:A_Product': 'to_Description,to_Plant,to_SalesDelivery,to_Valuation',
 };
 
 // Status display helpers
