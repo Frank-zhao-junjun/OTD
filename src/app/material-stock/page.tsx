@@ -58,10 +58,10 @@ export default function MaterialStockPage() {
         // V2 filter for material
         filterParts.push(`Material eq '${searchQuery}'`);
       }
-      if (plant) {
+      if (plant && plant !== 'all') {
         filterParts.push(`Plant eq '${plant}'`);
       }
-      if (storageLocation) {
+      if (storageLocation && storageLocation !== 'all') {
         filterParts.push(`StorageLocation eq '${storageLocation}'`);
       }
 
@@ -172,7 +172,7 @@ export default function MaterialStockPage() {
                   <SelectValue placeholder="选择工厂" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">全部工厂</SelectItem>
+                  <SelectItem value="all">全部工厂</SelectItem>
                   <SelectItem value="1010">1010 - 生产工厂</SelectItem>
                   <SelectItem value="1000">1000 - 集团工厂</SelectItem>
                 </SelectContent>
@@ -184,7 +184,7 @@ export default function MaterialStockPage() {
                   <SelectValue placeholder="存储位置" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">全部位置</SelectItem>
+                  <SelectItem value="all">全部位置</SelectItem>
                   <SelectItem value="1003">1003 - 成品仓</SelectItem>
                   <SelectItem value="1001">1001 - 原材料仓</SelectItem>
                   <SelectItem value="101A">101A - 发货仓</SelectItem>

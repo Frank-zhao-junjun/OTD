@@ -71,7 +71,7 @@ export default function MaterialDocumentPage() {
   const [materialDocNo, setMaterialDocNo] = useState('');
   const [material, setMaterial] = useState('');
   const [plant, setPlant] = useState('1010');
-  const [movementType, setMovementType] = useState('');
+  const [movementType, setMovementType] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [page, setPage] = useState(0);
@@ -93,7 +93,7 @@ export default function MaterialDocumentPage() {
       if (plant) {
         filters.push(`Plant eq '${plant}'`);
       }
-      if (movementType) {
+      if (movementType && movementType !== 'all') {
         filters.push(`GoodsMovementType eq '${movementType}'`);
       }
       if (dateFrom) {
@@ -196,7 +196,7 @@ export default function MaterialDocumentPage() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1010">1010</SelectItem>
-                  <SelectItem value="">全部</SelectItem>
+                  <SelectItem value="all">全部</SelectItem>
                 </SelectContent>
               </Select>
             </div>
