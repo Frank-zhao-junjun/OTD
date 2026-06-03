@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FileSpreadsheet, Search, RotateCcw, AlertCircle, Inbox } from 'lucide-react';
 
 interface MaterialDocItem {
   MaterialDocument: string;

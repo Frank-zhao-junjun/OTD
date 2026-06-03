@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SALES_ORDER_STATUS_MAP, SAP_DEFAULTS } from '@/lib/sap-service';
+import { Search, RotateCcw, ChevronDown, ChevronRight, FileText, AlertCircle, Inbox } from 'lucide-react';
 
 interface SalesOrder {
   SalesOrder: string;
@@ -135,31 +136,35 @@ export default function SalesOrdersPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">销售订单</h1>
-        <p className="text-slate-600 mt-1">查询 SAP 销售订单数据 (BD9 - Sell from Stock)</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+            <FileText className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-800">销售订单</h1>
+            <p className="text-sm text-slate-500">BD9 Sell from Stock &middot; CE_SALESORDER_0001 (V4)</p>
+          </div>
+        </div>
       </div>
 
       {/* Search Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">查询条件</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4">
+      <Card className="border-slate-200">
+        <CardContent className="p-4">
+          <div className="flex flex-wrap gap-3 items-end">
             <div className="flex-1 min-w-[200px]">
+              <label className="text-xs font-medium text-slate-500 mb-1.5 block">搜索</label>
               <Input
-                placeholder="输入订单号/客户编号/客户采购单号"
+                placeholder="订单号 / 客户编号 / 客户采购单号"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
             </div>
-            <div className="w-[180px]">
+            <div className="w-[160px]">
+              <label className="text-xs font-medium text-slate-500 mb-1.5 block">订单类型</label>
               <Select value={orderType} onValueChange={setOrderType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="订单类型" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="订单类型" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">全部类型</SelectItem>
                   <SelectItem value="OR">OR - 标准订单</SelectItem>
@@ -169,11 +174,10 @@ export default function SalesOrdersPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="w-[180px]">
+            <div className="w-[140px]">
+              <label className="text-xs font-medium text-slate-500 mb-1.5 block">销售组织</label>
               <Select value={salesOrg} onValueChange={setSalesOrg}>
-                <SelectTrigger>
-                  <SelectValue placeholder="销售组织" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="销售组织" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">全部组织</SelectItem>
                   <SelectItem value="1010">1010</SelectItem>
@@ -183,127 +187,156 @@ export default function SalesOrdersPage() {
             </div>
             <Button
               variant={expandItems ? 'default' : 'outline'}
+              size="sm"
               onClick={() => setExpandItems(!expandItems)}
               title="展开订单行项目"
             >
               {expandItems ? '行项目: 开' : '行项目: 关'}
             </Button>
-            <Button onClick={handleSearch}>查询</Button>
-            <Button variant="outline" onClick={handleClear}>清除</Button>
+            <Button size="sm" onClick={handleSearch} disabled={loading}>
+              <Search className="w-3.5 h-3.5 mr-1" />
+              查询
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleClear}>
+              <RotateCcw className="w-3.5 h-3.5 mr-1" />
+              清除
+            </Button>
           </div>
         </CardContent>
       </Card>
 
       {/* Results Card */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">查询结果</CardTitle>
-          {!loading && !error && (
-            <Badge variant="secondary">共 {totalCount} 条记录</Badge>
-          )}
-        </CardHeader>
-        <CardContent>
+      <Card className="border-slate-200">
+        <CardContent className="p-0">
+          {/* Results Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+            <span className="text-sm font-medium text-slate-700">查询结果</span>
+            {!loading && !error && (
+              <Badge variant="secondary" className="font-mono text-xs">{totalCount} 条</Badge>
+            )}
+          </div>
+          
           {loading ? (
-            <div className="space-y-4">
+            <div className="p-4 space-y-3">
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="flex gap-4">
                   <Skeleton className="h-4 w-[120px]" />
-                  <Skeleton className="h-4 w-[80px]" />
+                  <Skeleton className="h-4 w-[60px]" />
                   <Skeleton className="h-4 w-[100px]" />
                   <Skeleton className="h-4 w-[120px]" />
-                  <Skeleton className="h-4 w-[80px]" />
+                  <Skeleton className="h-4 w-[100px]" />
                   <Skeleton className="h-4 w-[80px]" />
                   <Skeleton className="h-4 w-[80px]" />
                 </div>
               ))}
             </div>
           ) : error ? (
-            <div className="text-center py-8 text-red-600">
-              <p>查询失败: {error}</p>
-              <p className="text-sm text-slate-500 mt-2">请检查SAP凭证配置和网络连接</p>
-              <Button variant="outline" className="mt-4" onClick={handleSearch}>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <AlertCircle className="w-10 h-10 text-red-400 mb-3" />
+              <p className="text-sm font-medium text-red-600">查询失败</p>
+              <p className="text-xs text-slate-500 mt-1">{error}</p>
+              <Button variant="outline" size="sm" className="mt-4" onClick={handleSearch}>
                 重试
               </Button>
             </div>
           ) : orders.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
-              <p>暂无数据，请调整查询条件</p>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Inbox className="w-10 h-10 text-slate-300 mb-3" />
+              <p className="text-sm text-slate-500">暂无数据</p>
+              <p className="text-xs text-slate-400 mt-1">请调整查询条件后重试</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[120px]">订单号</TableHead>
-                  <TableHead className="w-[80px]">类型</TableHead>
-                  <TableHead>客户</TableHead>
-                  <TableHead>客户采购单号</TableHead>
-                  <TableHead className="w-[120px]">金额</TableHead>
-                  <TableHead className="w-[100px]">订单日期</TableHead>
-                  <TableHead className="w-[80px]">处理状态</TableHead>
-                  <TableHead className="w-[80px]">交货状态</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders.map((order) => (
-                  <>
-                    <TableRow
-                      key={order.SalesOrder}
-                      className="cursor-pointer hover:bg-slate-50"
-                      onClick={() => setSelectedOrder(selectedOrder?.SalesOrder === order.SalesOrder ? null : order)}
-                    >
-                      <TableCell className="font-medium text-blue-600">
-                        {order.SalesOrder}
-                      </TableCell>
-                      <TableCell>{order.SalesOrderType || '-'}</TableCell>
-                      <TableCell>{order.SoldToParty || '-'}</TableCell>
-                      <TableCell>{order.PurchaseOrderByCustomer || '-'}</TableCell>
-                      <TableCell>
-                        {order.TotalNetAmount
-                          ? `${order.TotalNetAmount} ${order.TransactionCurrency || 'CNY'}`
-                          : '-'}
-                      </TableCell>
-                      <TableCell>{order.SalesOrderDate || '-'}</TableCell>
-                      <TableCell>{getStatusBadge(order.OverallSDProcessStatus)}</TableCell>
-                      <TableCell>{getStatusBadge(order.OverallDeliveryStatus)}</TableCell>
-                    </TableRow>
-                    {/* Expanded items row */}
-                    {expandItems && selectedOrder?.SalesOrder === order.SalesOrder && getOrderItems(order).length > 0 && (
-                      <TableRow key={`${order.SalesOrder}-items`}>
-                        <TableCell colSpan={8} className="bg-slate-50 p-4">
-                          <div className="text-sm font-medium mb-2 text-slate-600">行项目明细</div>
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>行号</TableHead>
-                                <TableHead>产品</TableHead>
-                                <TableHead>描述</TableHead>
-                                <TableHead>数量</TableHead>
-                                <TableHead>单位</TableHead>
-                                <TableHead>净额</TableHead>
-                                <TableHead>工厂</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {getOrderItems(order).map((item) => (
-                                <TableRow key={item.SalesOrderItem}>
-                                  <TableCell>{item.SalesOrderItem}</TableCell>
-                                  <TableCell className="font-medium">{item.Product || '-'}</TableCell>
-                                  <TableCell>{item.SalesOrderItemText || '-'}</TableCell>
-                                  <TableCell>{item.RequestedQuantity || '-'}</TableCell>
-                                  <TableCell>{item.RequestedQuantityUnit || '-'}</TableCell>
-                                  <TableCell>{item.NetAmount || '-'}</TableCell>
-                                  <TableCell>{item.Plant || '-'}</TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
+                    <TableHead className="w-[120px] font-medium text-slate-600">订单号</TableHead>
+                    <TableHead className="w-[70px] font-medium text-slate-600">类型</TableHead>
+                    <TableHead className="font-medium text-slate-600">客户</TableHead>
+                    <TableHead className="font-medium text-slate-600">客户采购单号</TableHead>
+                    <TableHead className="w-[120px] font-medium text-slate-600 text-right">金额</TableHead>
+                    <TableHead className="w-[100px] font-medium text-slate-600">订单日期</TableHead>
+                    <TableHead className="w-[80px] font-medium text-slate-600">处理</TableHead>
+                    <TableHead className="w-[80px] font-medium text-slate-600">交货</TableHead>
+                    <TableHead className="w-[40px]" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orders.map((order) => {
+                    const isExpanded = selectedOrder?.SalesOrder === order.SalesOrder;
+                    const items = expandItems ? getOrderItems(order) : [];
+                    return (
+                      <>
+                        <TableRow
+                          key={order.SalesOrder}
+                          className={`cursor-pointer transition-colors duration-150 ${isExpanded ? 'bg-blue-50/50' : 'hover:bg-slate-50'}`}
+                          onClick={() => setSelectedOrder(isExpanded ? null : order)}
+                        >
+                          <TableCell className="font-mono text-sm text-blue-600 font-medium">
+                            {order.SalesOrder}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="font-mono text-xs">{order.SalesOrderType || '-'}</Badge>
+                          </TableCell>
+                          <TableCell className="text-sm">{order.SoldToParty || '-'}</TableCell>
+                          <TableCell className="text-sm text-slate-500">{order.PurchaseOrderByCustomer || '-'}</TableCell>
+                          <TableCell className="text-sm text-right font-mono tabular-nums">
+                            {order.TotalNetAmount
+                              ? `${Number(order.TotalNetAmount).toLocaleString()} ${order.TransactionCurrency || 'CNY'}`
+                              : '-'}
+                          </TableCell>
+                          <TableCell className="text-sm text-slate-500">{order.SalesOrderDate || '-'}</TableCell>
+                          <TableCell>{getStatusBadge(order.OverallSDProcessStatus)}</TableCell>
+                          <TableCell>{getStatusBadge(order.OverallDeliveryStatus)}</TableCell>
+                          <TableCell>
+                            {expandItems && items.length > 0 && (
+                              isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-slate-400" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                            )}
+                          </TableCell>
+                        </TableRow>
+                        {/* Expanded items row */}
+                        {expandItems && isExpanded && items.length > 0 && (
+                          <TableRow key={`${order.SalesOrder}-items`} className="bg-slate-50/60">
+                            <TableCell colSpan={9} className="p-4">
+                              <div className="text-xs font-medium text-slate-500 mb-2 flex items-center gap-1.5">
+                                <FileText className="w-3 h-3" />
+                                行项目明细 ({items.length})
+                              </div>
+                              <Table>
+                                <TableHeader>
+                                  <TableRow className="hover:bg-transparent">
+                                    <TableHead className="text-xs text-slate-500">行号</TableHead>
+                                    <TableHead className="text-xs text-slate-500">产品</TableHead>
+                                    <TableHead className="text-xs text-slate-500">描述</TableHead>
+                                    <TableHead className="text-xs text-slate-500 text-right">数量</TableHead>
+                                    <TableHead className="text-xs text-slate-500">单位</TableHead>
+                                    <TableHead className="text-xs text-slate-500 text-right">净额</TableHead>
+                                    <TableHead className="text-xs text-slate-500">工厂</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {items.map((item) => (
+                                    <TableRow key={item.SalesOrderItem} className="hover:bg-white/60">
+                                      <TableCell className="text-xs font-mono">{item.SalesOrderItem}</TableCell>
+                                      <TableCell className="text-xs font-medium font-mono">{item.Product || '-'}</TableCell>
+                                      <TableCell className="text-xs text-slate-600">{item.SalesOrderItemText || '-'}</TableCell>
+                                      <TableCell className="text-xs text-right font-mono tabular-nums">{item.RequestedQuantity || '-'}</TableCell>
+                                      <TableCell className="text-xs">{item.RequestedQuantityUnit || '-'}</TableCell>
+                                      <TableCell className="text-xs text-right font-mono tabular-nums">{item.NetAmount || '-'}</TableCell>
+                                      <TableCell className="text-xs font-mono">{item.Plant || '-'}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
