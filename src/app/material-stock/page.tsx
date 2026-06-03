@@ -148,7 +148,7 @@ export default function MaterialStockPage() {
       {/* Page Header */}
       <div>
         <h1 className="text-lg md:text-2xl font-bold text-slate-800">库存查询</h1>
-        <p className="text-slate-600 mt-1">查询 SAP 物料库存数据 (SAP_COM_0164 | A_MatlStkInAcctMod)</p>
+        <p className="text-slate-600 mt-1">查询 SAP 物料库存数据</p>
       </div>
 
       {/* Search Card */}

@@ -161,8 +161,8 @@ export default function MaterialDocumentPage() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-800">物料凭证</h1>
-        <p className="text-xs md:text-sm text-slate-500 mt-1">查询SAP物料移动记录</p>
+        <h1 className="text-2xl font-semibold text-slate-800">入库单</h1>
+        <p className="text-xs md:text-sm text-slate-500 mt-1">查询SAP入库记录</p>
       </div>
 
       {/* Search Area */}
@@ -173,7 +173,7 @@ export default function MaterialDocumentPage() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div>
-              <label className="text-xs text-slate-500 mb-1 block">物料凭证号</label>
+              <label className="text-xs text-slate-500 mb-1 block">入库单号</label>
               <Input
                 placeholder="输入凭证号"
                 value={materialDocNo}
@@ -360,7 +360,7 @@ export default function MaterialDocumentPage() {
         <Card>
           <CardContent className="py-16 text-center">
             <div className="text-4xl mb-3">📄</div>
-            <div className="text-slate-500 text-sm">输入查询条件后点击"查询"获取物料凭证</div>
+            <div className="text-slate-500 text-sm">输入查询条件后点击"查询"获取入库单</div>
           </CardContent>
         </Card>
       )}

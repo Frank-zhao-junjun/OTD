@@ -2,7 +2,7 @@
 <view class="container">
   <view class="search-bar">
     <view class="search-input-wrap">
-      <input class="search-input" placeholder="交货单号/客户编号" value="{{searchQuery}}" bindinput="onSearchInput" bindconfirm="onSearch"/>
+      <input class="search-input" placeholder="发货单号/客户编号" value="{{searchQuery}}" bindinput="onSearchInput" bindconfirm="onSearch"/>
     </view>
     <button class="search-btn primary-bg" bindtap="onSearch">查询</button>
     <button class="search-btn default" bindtap="onClear">重置</button>
@@ -47,6 +47,6 @@
   </view>
 
   <view class="empty-container" wx:if="{{!loading && deliveries.length === 0}}">
-    <text class="empty-text">暂无交货单数据</text>
+    <text class="empty-text">暂无发货单数据</text>
   </view>
 </view>
