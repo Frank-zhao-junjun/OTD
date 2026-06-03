@@ -1,19 +1,19 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { FioriOli, FioriBadge, FioriFilterBar, FioriPageHeader, FioriEmptyState, FioriErrorState, FioriFab, getSapStatusColor } from '@/components/fiori';
-import { Truck, Search, RotateCcw, Inbox } from 'lucide-react';
+import { FioriBadge, FioriFab, getSapStatusColor } from '@/components/fiori';
+import { Truck, Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
 
 interface Delivery {
   DeliveryDocument: string;
-  DeliveryDocumentType?: string;
+  DeliveryType?: string;
   SoldToParty?: string;
-  ActualGoodsMovementDate?: string;
+  SoldToPartyName?: string;
+  DeliveryDate?: string;
   OverallGoodsMovementStatus?: string;
-  CreationDate?: string;
+  StatusText?: string;
+  TotalNetAmount?: string;
+  TransactionCurrency?: string;
 }
 
 const MOVEMENT_STATUS: Record<string, { color: 'success' | 'warning' | 'error' | 'info' | 'neutral'; label: string }> = {
@@ -23,12 +23,30 @@ const MOVEMENT_STATUS: Record<string, { color: 'success' | 'warning' | 'error' |
   'D': { color: 'error', label: '已取消' },
 };
 
+function formatDate(dateStr: string | undefined | null): string {
+  if (!dateStr) return '-';
+  const match = dateStr.match(/\/Date\((\d+)\)\//);
+  if (match) {
+    const d = new Date(parseInt(match[1]));
+    return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  }
+  return dateStr;
+}
+
+function formatAmount(amount: string | undefined, currency: string | undefined): string {
+  if (!amount) return '-';
+  const num = parseFloat(amount);
+  if (isNaN(num)) return amount;
+  return num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (currency ? ' ' + currency : '');
+}
+
 export default function OutboundDeliveryPage() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalCount, setTotalCount] = useState(0);
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
   const fetchDeliveries = useCallback(async () => {
     setLoading(true);
@@ -37,19 +55,13 @@ export default function OutboundDeliveryPage() {
       const params = new URLSearchParams();
       params.set('top', '50');
       params.set('count', 'true');
-
-      const filterParts: string[] = [];
-      if (searchQuery) {
-        filterParts.push(`(DeliveryDocument eq '${searchQuery}' or SoldToParty eq '${searchQuery}')`);
-      }
-      if (filterParts.length > 0) params.set('filter', filterParts.join(' and '));
-      params.set('select', 'DeliveryDocument,DeliveryDocumentType,SoldToParty,ActualGoodsMovementDate,OverallGoodsMovementStatus,CreationDate');
+      if (searchQuery) params.set('filter', `(DeliveryDocument eq '${searchQuery}' or SoldToParty eq '${searchQuery}')`);
 
       const response = await fetch(`/api/sap/API_OUTBOUND_DELIVERY_SRV/A_OutbDeliveryHeader?${params.toString()}`);
       const data = await response.json();
       if (!data.success) throw new Error(data.error || 'Failed to fetch');
       setDeliveries(data.data || []);
-      setTotalCount(data.count || 0);
+      setTotalCount(data.totalCount || data.count || 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -61,48 +73,89 @@ export default function OutboundDeliveryPage() {
 
   return (
     <div className="space-y-4">
-      <FioriPageHeader icon={<Truck className="w-5 h-5" />} title="发货单" count={totalCount} />
+      <div className="lg:hidden">
+        <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>发货单</h1>
+      </div>
 
-      <FioriFilterBar>
-        <div className="fiori-filterbar-field flex-1 min-w-[160px]">
-          <label>搜索</label>
-          <Input placeholder="交货单号 / 客户编号" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchDeliveries()} className="h-8 text-sm" />
+      <div className="fiori-filterbar">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--muted-foreground)' }} />
+            <input type="text" placeholder="交货单号 / 客户" className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchDeliveries()} />
+          </div>
         </div>
-        <Button size="sm" onClick={fetchDeliveries} disabled={loading} className="h-8"><Search className="w-3.5 h-3.5 mr-1" /> 查询</Button>
-        <Button variant="outline" size="sm" onClick={() => setSearchQuery('')} className="h-8"><RotateCcw className="w-3.5 h-3.5 mr-1" /> 清除</Button>
-      </FioriFilterBar>
+        <div className="hidden lg:flex items-center border rounded overflow-hidden" style={{ borderColor: 'var(--border)' }}>
+          <button className={`h-8 w-8 flex items-center justify-center ${viewMode === 'card' ? 'text-white' : ''}`} style={viewMode === 'card' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }} onClick={() => setViewMode('card')}><LayoutList className="w-4 h-4" /></button>
+          <button className={`h-8 w-8 flex items-center justify-center ${viewMode === 'table' ? 'text-white' : ''}`} style={viewMode === 'table' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }} onClick={() => setViewMode('table')}><Table2 className="w-4 h-4" /></button>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={fetchDeliveries} disabled={loading}><Search className="w-3.5 h-3.5 inline mr-1" /> 查询</button>
+          <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={() => setSearchQuery('')}><RotateCcw className="w-3.5 h-3.5 inline mr-1" /> 清除</button>
+        </div>
+      </div>
 
-      {loading ? (
+      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>共 {totalCount} 条记录</div>
+
+      {loading && (
+        <div className="flex items-center justify-center py-12"><div className="h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} /></div>
+      )}
+      {error && !loading && (
+        <div className="text-center py-12" style={{ color: 'var(--color-fiori-error)' }}><p className="text-sm">{error}</p><button className="mt-2 text-sm underline" onClick={fetchDeliveries}>重试</button></div>
+      )}
+      {!loading && !error && deliveries.length === 0 && (
+        <div className="text-center py-12" style={{ color: 'var(--muted-foreground)' }}><Inbox className="w-10 h-10 mx-auto mb-2" /><p className="text-sm">暂无数据</p></div>
+      )}
+
+      {/* Card View */}
+      {!loading && !error && deliveries.length > 0 && viewMode === 'card' && (
         <div className="space-y-2">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="fiori-oli"><div className="fiori-oli-bar fiori-oli-bar--neutral" /><div className="fiori-oli-content" style={{ gap: 6 }}><Skeleton className="h-4 w-[120px]" /><Skeleton className="h-3 w-[180px]" /><Skeleton className="h-3 w-[80px]" /></div></div>
-          ))}
-        </div>
-      ) : error ? (
-        <FioriErrorState message={error} onRetry={fetchDeliveries} />
-      ) : deliveries.length === 0 ? (
-        <FioriEmptyState icon={<Inbox className="w-10 h-10" />} title="暂无数据" description="请调整查询条件后重试" />
-      ) : (
-        <div>
           {deliveries.map((d) => {
-            const statusInfo = MOVEMENT_STATUS[d.OverallGoodsMovementStatus || ''] || { color: getSapStatusColor(d.OverallGoodsMovementStatus), label: d.OverallGoodsMovementStatus || '-' };
+            const statusInfo = MOVEMENT_STATUS[d.OverallGoodsMovementStatus || ''] || { color: getSapStatusColor(d.OverallGoodsMovementStatus), label: d.StatusText || d.OverallGoodsMovementStatus || '-' };
             return (
-              <FioriOli
-                key={d.DeliveryDocument}
-                barColor={statusInfo.color}
-                title={`${d.DeliveryDocument} · ${d.DeliveryDocumentType || '-'}`}
-                subtitle={`客户 ${d.SoldToParty || '-'} · ${d.CreationDate || '-'}`}
-                status={
-                  <div className="flex items-center gap-2 mt-0.5">
+              <div key={d.DeliveryDocument} className="fiori-oli">
+                <div className={`fiori-oli-bar fiori-oli-bar--${statusInfo.color}`} />
+                <div className="fiori-oli-content">
+                  <div className="fiori-oli-title">{d.DeliveryDocument} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {d.SoldToPartyName || d.SoldToParty || '-'}</div>
+                  <div className="fiori-oli-subtitle">{formatDate(d.DeliveryDate)} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {d.DeliveryType || '-'}</div>
+                  <div className="flex items-center gap-2">
                     <FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge>
-                    {d.ActualGoodsMovementDate && (
-                      <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>过账 {d.ActualGoodsMovementDate}</span>
-                    )}
+                    {d.TotalNetAmount && <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>{formatAmount(d.TotalNetAmount, d.TransactionCurrency)}</span>}
                   </div>
-                }
-              />
+                </div>
+              </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Table View */}
+      {!loading && !error && deliveries.length > 0 && viewMode === 'table' && (
+        <div className="hidden lg:block rounded-lg border overflow-hidden" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ background: 'var(--muted)' }}>
+                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>交货单号</th>
+                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>客户</th>
+                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>交货日期</th>
+                <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>金额</th>
+                <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              {deliveries.map((d) => {
+                const statusInfo = MOVEMENT_STATUS[d.OverallGoodsMovementStatus || ''] || { color: getSapStatusColor(d.OverallGoodsMovementStatus), label: d.StatusText || '-' };
+                return (
+                  <tr key={d.DeliveryDocument} className="border-t hover:bg-accent/50 transition-colors" style={{ borderColor: 'var(--border)' }}>
+                    <td className="px-4 py-3 font-medium">{d.DeliveryDocument}</td>
+                    <td className="px-4 py-3">{d.SoldToPartyName || d.SoldToParty || '-'}</td>
+                    <td className="px-4 py-3 tabular-nums">{formatDate(d.DeliveryDate)}</td>
+                    <td className="px-4 py-3 text-right font-medium tabular-nums">{formatAmount(d.TotalNetAmount, d.TransactionCurrency)}</td>
+                    <td className="px-4 py-3 text-center"><FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 

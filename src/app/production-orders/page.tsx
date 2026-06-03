@@ -5,22 +5,21 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FioriBadge, FioriFab, getSapStatusColor, getSapStatusLabel } from '@/components/fiori';
 import { SAP_DEFAULTS } from '@/lib/sap-service';
-import { FioriOli, FioriBadge, FioriFilterBar, FioriPageHeader, FioriEmptyState, FioriErrorState, FioriFab, getSapStatusColor, getSapStatusLabel } from '@/components/fiori';
-import { Factory, Search, RotateCcw, Filter, Inbox } from 'lucide-react';
+import { Factory, Search, RotateCcw, Filter, Inbox, LayoutList, Table2 } from 'lucide-react';
 
 interface ProductionOrder {
-  ProductionOrder: string;
+  ManufacturingOrder: string;
   Material?: string;
-  ProductionPlant?: string;
+  MaterialName?: string;
+  Plant?: string;
   ManufacturingOrderType?: string;
-  PlannedTotalQty?: string | number;
   MfgOrderPlannedStartDate?: string;
   MfgOrderPlannedEndDate?: string;
   ProductionOrderStatus?: string;
-  ProductionOrderStatusText?: string;
-  TotalQuantity?: string | number;
-  ConfirmedQuantity?: string | number;
+  StatusText?: string;
+  MfgOrderActualEndDate?: string | null;
 }
 
 const getStatusInfo = (status: string | undefined): { color: 'success' | 'warning' | 'error' | 'info' | 'neutral'; label: string } => {
@@ -39,6 +38,16 @@ const getStatusInfo = (status: string | undefined): { color: 'success' | 'warnin
   return statusMap[primaryStatus] || { color: getSapStatusColor(primaryStatus), label: getSapStatusLabel(primaryStatus) };
 };
 
+function formatDate(dateStr: string | undefined | null): string {
+  if (!dateStr) return '-';
+  const match = dateStr.match(/\/Date\((\d+)\)\//);
+  if (match) {
+    const d = new Date(parseInt(match[1]));
+    return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  }
+  return dateStr;
+}
+
 export default function ProductionOrdersPage() {
   const [orders, setOrders] = useState<ProductionOrder[]>([]);
   const [loading, setLoading] = useState(false);
@@ -47,6 +56,7 @@ export default function ProductionOrdersPage() {
   const [plant, setPlant] = useState(SAP_DEFAULTS.plant);
   const [totalCount, setTotalCount] = useState(0);
   const [showFilter, setShowFilter] = useState(false);
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -59,16 +69,15 @@ export default function ProductionOrdersPage() {
       const filterParts: string[] = [];
       if (plant && plant !== 'all') filterParts.push(`ProductionPlant eq '${plant}'`);
       if (searchQuery) {
-        filterParts.push(`(ProductionOrder eq '${searchQuery}' or Material eq '${searchQuery}')`);
+        filterParts.push(`(ManufacturingOrder eq '${searchQuery}' or Material eq '${searchQuery}')`);
       }
       if (filterParts.length > 0) params.set('filter', filterParts.join(' and '));
-      params.set('select', 'ProductionOrder,Material,ProductionPlant,ManufacturingOrderType,PlannedTotalQty,MfgOrderPlannedStartDate,MfgOrderPlannedEndDate,ProductionOrderStatus,ProductionOrderStatusText,TotalQuantity,ConfirmedQuantity');
 
       const response = await fetch(`/api/sap/CE_PRODUCTIONORDER_0001/ProductionOrder?${params.toString()}`);
       const data = await response.json();
       if (!data.success) throw new Error(data.error || 'Failed to fetch');
       setOrders(data.data || []);
-      setTotalCount(data.count || 0);
+      setTotalCount(data.totalCount || data.count || 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -85,72 +94,167 @@ export default function ProductionOrdersPage() {
 
   return (
     <div className="space-y-4">
-      <FioriPageHeader icon={<Factory className="w-5 h-5" />} title="生产订单" count={totalCount} />
+      {/* Page Title - mobile */}
+      <div className="lg:hidden">
+        <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>生产订单</h1>
+      </div>
 
-      <FioriFilterBar>
-        <div className="fiori-filterbar-field flex-1 min-w-[160px]">
-          <label>搜索</label>
-          <Input placeholder="生产订单号 / 物料号" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchOrders()} className="h-8 text-sm" />
-        </div>
-        <Button size="sm" onClick={fetchOrders} disabled={loading} className="h-8"><Search className="w-3.5 h-3.5 mr-1" /> 查询</Button>
-        <Button variant="outline" size="sm" onClick={handleClear} className="h-8"><RotateCcw className="w-3.5 h-3.5 mr-1" /> 清除</Button>
-        {showFilter && (
-          <div className="fiori-filterbar-field w-[140px]">
-            <label>工厂</label>
-            <Select value={plant} onValueChange={setPlant}>
-              <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部</SelectItem>
-                <SelectItem value="1010">1010</SelectItem>
-                <SelectItem value="1020">1020</SelectItem>
-              </SelectContent>
-            </Select>
+      {/* Filter Bar */}
+      <div className="fiori-filterbar">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--muted-foreground)' }} />
+            <input
+              type="text"
+              placeholder="订单号 / 物料号"
+              className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none"
+              style={{ background: 'var(--background)', borderColor: 'var(--border)' }}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && fetchOrders()}
+            />
           </div>
-        )}
-        <Button variant="ghost" size="sm" onClick={() => setShowFilter(!showFilter)} className="h-8 text-xs"><Filter className="w-3.5 h-3.5 mr-1" />{showFilter ? '收起' : '筛选'}</Button>
-      </FioriFilterBar>
-
-      {loading ? (
-        <div className="space-y-2">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="fiori-oli">
-              <div className="fiori-oli-bar fiori-oli-bar--neutral" />
-              <div className="fiori-oli-content" style={{ gap: 6 }}><Skeleton className="h-4 w-[120px]" /><Skeleton className="h-3 w-[180px]" /><Skeleton className="h-3 w-[80px]" /></div>
-            </div>
-          ))}
+          <button
+            className="h-8 px-3 text-sm rounded border flex items-center gap-1.5"
+            style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+            onClick={() => setShowFilter(!showFilter)}
+          >
+            <Filter className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">筛选</span>
+          </button>
         </div>
-      ) : error ? (
-        <FioriErrorState message={error} onRetry={fetchOrders} />
-      ) : orders.length === 0 ? (
-        <FioriEmptyState icon={<Inbox className="w-10 h-10" />} title="暂无数据" description="请调整查询条件后重试" />
-      ) : (
-        <div>
+
+        {/* View Toggle - PC only */}
+        <div className="hidden lg:flex items-center border rounded overflow-hidden" style={{ borderColor: 'var(--border)' }}>
+          <button
+            className={`h-8 w-8 flex items-center justify-center ${viewMode === 'card' ? 'text-white' : ''}`}
+            style={viewMode === 'card' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }}
+            onClick={() => setViewMode('card')}
+          >
+            <LayoutList className="w-4 h-4" />
+          </button>
+          <button
+            className={`h-8 w-8 flex items-center justify-center ${viewMode === 'table' ? 'text-white' : ''}`}
+            style={viewMode === 'table' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }}
+            onClick={() => setViewMode('table')}
+          >
+            <Table2 className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={fetchOrders} disabled={loading}>
+            <Search className="w-3.5 h-3.5 inline mr-1" /> 查询
+          </button>
+          <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={handleClear}>
+            <RotateCcw className="w-3.5 h-3.5 inline mr-1" /> 清除
+          </button>
+        </div>
+      </div>
+
+      {/* Expandable Filter */}
+      {showFilter && (
+        <div className="p-3 rounded-lg border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="fiori-filterbar-field">
+              <label>工厂</label>
+              <select className="h-8 px-2 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={plant} onChange={(e) => setPlant(e.target.value)}>
+                <option value="all">全部</option>
+                <option value="1010">1010</option>
+                <option value="1020">1020</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Result Count */}
+      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>共 {totalCount} 条记录</div>
+
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
+        </div>
+      )}
+
+      {/* Error */}
+      {error && !loading && (
+        <div className="text-center py-12" style={{ color: 'var(--color-fiori-error)' }}>
+          <p className="text-sm">{error}</p>
+          <button className="mt-2 text-sm underline" onClick={fetchOrders}>重试</button>
+        </div>
+      )}
+
+      {/* Empty */}
+      {!loading && !error && orders.length === 0 && (
+        <div className="text-center py-12" style={{ color: 'var(--muted-foreground)' }}>
+          <Inbox className="w-10 h-10 mx-auto mb-2" style={{ color: 'var(--muted-foreground)' }} />
+          <p className="text-sm">暂无数据</p>
+        </div>
+      )}
+
+      {/* ===== Card View (Mobile: always, PC: when selected) ===== */}
+      {!loading && !error && orders.length > 0 && viewMode === 'card' && (
+        <div className="space-y-2">
           {orders.map((order) => {
             const statusInfo = getStatusInfo(order.ProductionOrderStatus);
             return (
-              <FioriOli
-                key={order.ProductionOrder}
-                barColor={statusInfo.color}
-                title={`${order.ProductionOrder} · ${order.Material || '-'}`}
-                subtitle={`${order.ProductionPlant || '-'} · ${order.MfgOrderPlannedStartDate || '-'} ~ ${order.MfgOrderPlannedEndDate || '-'}`}
-                status={
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge>
-                    {order.PlannedTotalQty && (
-                      <span className="text-xs font-mono tabular-nums" style={{ color: 'var(--foreground)' }}>
-                        计划 {Number(order.PlannedTotalQty).toLocaleString()}
-                      </span>
-                    )}
-                    {order.ConfirmedQuantity && Number(order.ConfirmedQuantity) > 0 && (
-                      <span className="text-xs font-mono tabular-nums" style={{ color: 'var(--color-fiori-success)' }}>
-                        / 确认 {Number(order.ConfirmedQuantity).toLocaleString()}
-                      </span>
-                    )}
+              <div key={order.ManufacturingOrder} className="fiori-oli">
+                <div className={`fiori-oli-bar fiori-oli-bar--${statusInfo.color}`} />
+                <div className="fiori-oli-content">
+                  <div className="fiori-oli-title">
+                    {order.ManufacturingOrder}
+                    <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
+                    {order.MaterialName || order.Material || '-'}
                   </div>
-                }
-              />
+                  <div className="fiori-oli-subtitle">
+                    {order.Plant || '-'}
+                    <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
+                    {formatDate(order.MfgOrderPlannedStartDate)} ~ {formatDate(order.MfgOrderPlannedEndDate)}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge>
+                  </div>
+                </div>
+              </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ===== Table View (PC only) ===== */}
+      {!loading && !error && orders.length > 0 && viewMode === 'table' && (
+        <div className="hidden lg:block rounded-lg border overflow-hidden" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ background: 'var(--muted)' }}>
+                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>订单号</th>
+                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>物料</th>
+                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>工厂</th>
+                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>计划开始</th>
+                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>计划结束</th>
+                <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((order) => {
+                const statusInfo = getStatusInfo(order.ProductionOrderStatus);
+                return (
+                  <tr key={order.ManufacturingOrder} className="border-t hover:bg-accent/50 transition-colors" style={{ borderColor: 'var(--border)' }}>
+                    <td className="px-4 py-3 font-medium">{order.ManufacturingOrder}</td>
+                    <td className="px-4 py-3">{order.MaterialName || order.Material || '-'}</td>
+                    <td className="px-4 py-3">{order.Plant || '-'}</td>
+                    <td className="px-4 py-3 tabular-nums">{formatDate(order.MfgOrderPlannedStartDate)}</td>
+                    <td className="px-4 py-3 tabular-nums">{formatDate(order.MfgOrderPlannedEndDate)}</td>
+                    <td className="px-4 py-3 text-center">
+                      <FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 

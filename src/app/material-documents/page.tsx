@@ -1,116 +1,121 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { FioriOli, FioriBadge, FioriFilterBar, FioriPageHeader, FioriEmptyState, FioriErrorState, FioriFab, getSapStatusColor } from '@/components/fiori';
-import { FileSpreadsheet, Search, RotateCcw, Inbox } from 'lucide-react';
+import { FioriBadge, FioriFab, getSapStatusColor } from '@/components/fiori';
+import { FileSpreadsheet, Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
 
-interface MaterialDocumentItem {
+interface MaterialDocument {
   MaterialDocument: string;
-  MaterialDocumentItem: string;
-  Material?: string;
-  Plant?: string;
-  StorageLocation?: string;
-  Batch?: string;
-  GoodsMovementCode?: string;
-  PostingDate?: string;
-  Quantity?: string | number;
-  BaseUnit?: string;
-  MovementType?: string;
-  MaterialDocumentItemText?: string;
+  MaterialDocumentYear: string;
+  PostingDate: string;
+  Material: string;
+  MaterialName: string;
+  Plant: string;
+  MovementType: string;
+  MovementTypeText: string;
+  Quantity: string;
+  BaseUnit: string;
+  GoodsRecipient: string;
+  ReferenceDocument: string;
+}
+
+const MOVEMENT_COLORS: Record<string, 'success' | 'warning' | 'error' | 'info' | 'neutral'> = {
+  '101': 'success',
+  '261': 'warning',
+  '311': 'info',
+  '102': 'error',
+  '262': 'error',
+};
+
+function formatDate(dateStr: string | undefined): string {
+  if (!dateStr) return '-';
+  const match = dateStr.match(/\/Date\((\d+)\)\//);
+  if (match) { const d = new Date(parseInt(match[1])); return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }); }
+  return dateStr;
 }
 
 export default function MaterialDocumentsPage() {
-  const [documents, setDocuments] = useState<MaterialDocumentItem[]>([]);
+  const [data, setData] = useState<MaterialDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalCount, setTotalCount] = useState(0);
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
-  const fetchDocuments = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const fetchData = useCallback(async () => {
+    setLoading(true); setError(null);
     try {
-      const params = new URLSearchParams();
-      params.set('top', '50');
-      params.set('count', 'true');
-
-      const filterParts: string[] = [];
-      if (searchQuery) {
-        filterParts.push(`(MaterialDocument eq '${searchQuery}' or Material eq '${searchQuery}')`);
-      }
-      if (filterParts.length > 0) params.set('filter', filterParts.join(' and '));
-      params.set('select', 'MaterialDocument,MaterialDocumentItem,Material,Plant,StorageLocation,Batch,PostingDate,Quantity,BaseUnit,MovementType,MaterialDocumentItemText');
-
-      const response = await fetch(`/api/sap/API_MATERIAL_DOCUMENT_SRV/A_MaterialDocumentItem?${params}`);
-      const data = await response.json();
-      if (!data.success) throw new Error(data.error || 'Failed to fetch');
-      setDocuments(data.data || []);
-      setTotalCount(data.count || 0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
+      const params = new URLSearchParams({ top: '50', count: 'true' });
+      if (searchQuery) params.set('filter', `(MaterialDocument eq '${searchQuery}' or Material eq '${searchQuery}')`);
+      const res = await fetch(`/api/sap/API_MATERIAL_DOCUMENT_SRV/A_MaterialDocumentItem?${params}`);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Failed');
+      setData(json.data || []); setTotalCount(json.totalCount || json.count || 0);
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
+    finally { setLoading(false); }
   }, [searchQuery]);
 
-  useEffect(() => { fetchDocuments(); }, [fetchDocuments]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   return (
     <div className="space-y-4">
-      <FioriPageHeader icon={<FileSpreadsheet className="w-5 h-5" />} title="入库单" count={totalCount} />
+      <div className="lg:hidden"><h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>入库单</h1></div>
 
-      <FioriFilterBar>
-        <div className="fiori-filterbar-field flex-1 min-w-[160px]">
-          <label>搜索</label>
-          <Input placeholder="物料凭证号 / 物料号" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchDocuments()} className="h-8 text-sm" />
+      <div className="fiori-filterbar">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--muted-foreground)' }} />
+            <input type="text" placeholder="凭证号 / 物料号" className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchData()} />
+          </div>
         </div>
-        <Button size="sm" onClick={fetchDocuments} disabled={loading} className="h-8"><Search className="w-3.5 h-3.5 mr-1" /> 查询</Button>
-        <Button variant="outline" size="sm" onClick={() => setSearchQuery('')} className="h-8"><RotateCcw className="w-3.5 h-3.5 mr-1" /> 清除</Button>
-      </FioriFilterBar>
+        <div className="hidden lg:flex items-center border rounded overflow-hidden" style={{ borderColor: 'var(--border)' }}>
+          <button className={`h-8 w-8 flex items-center justify-center ${viewMode === 'card' ? 'text-white' : ''}`} style={viewMode === 'card' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }} onClick={() => setViewMode('card')}><LayoutList className="w-4 h-4" /></button>
+          <button className={`h-8 w-8 flex items-center justify-center ${viewMode === 'table' ? 'text-white' : ''}`} style={viewMode === 'table' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }} onClick={() => setViewMode('table')}><Table2 className="w-4 h-4" /></button>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={fetchData} disabled={loading}><Search className="w-3.5 h-3.5 inline mr-1" /> 查询</button>
+          <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={() => setSearchQuery('')}><RotateCcw className="w-3.5 h-3.5 inline mr-1" /> 清除</button>
+        </div>
+      </div>
 
-      {loading ? (
+      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>共 {totalCount} 条记录</div>
+      {loading && <div className="flex items-center justify-center py-12"><div className="h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} /></div>}
+      {error && !loading && <div className="text-center py-12" style={{ color: 'var(--color-fiori-error)' }}><p className="text-sm">{error}</p><button className="mt-2 text-sm underline" onClick={fetchData}>重试</button></div>}
+      {!loading && !error && data.length === 0 && <div className="text-center py-12" style={{ color: 'var(--muted-foreground)' }}><Inbox className="w-10 h-10 mx-auto mb-2" /><p className="text-sm">暂无数据</p></div>}
+
+      {!loading && !error && data.length > 0 && viewMode === 'card' && (
         <div className="space-y-2">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="fiori-oli"><div className="fiori-oli-bar fiori-oli-bar--neutral" /><div className="fiori-oli-content" style={{ gap: 6 }}><Skeleton className="h-4 w-[120px]" /><Skeleton className="h-3 w-[180px]" /><Skeleton className="h-3 w-[80px]" /></div></div>
-          ))}
-        </div>
-      ) : error ? (
-        <FioriErrorState message={error} onRetry={fetchDocuments} />
-      ) : documents.length === 0 ? (
-        <FioriEmptyState icon={<Inbox className="w-10 h-10" />} title="暂无数据" description="请调整查询条件后重试" />
-      ) : (
-        <div>
-          {documents.map((doc, idx) => {
-            const isInbound = doc.MovementType === '101' || doc.MovementType === '311';
+          {data.map((item, idx) => {
+            const barColor = MOVEMENT_COLORS[item.MovementType] || 'neutral';
             return (
-              <FioriOli
-                key={`${doc.MaterialDocument}-${doc.MaterialDocumentItem}-${idx}`}
-                barColor={isInbound ? 'success' : 'info'}
-                title={`${doc.MaterialDocument}-${doc.MaterialDocumentItem} · ${doc.Material || '-'}`}
-                subtitle={`${doc.Plant || '-'} · ${doc.StorageLocation || '-'} · ${doc.PostingDate || '-'}`}
-                status={
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <FioriBadge variant={isInbound ? 'success' : 'info'}>{isInbound ? '入库' : '出库'}</FioriBadge>
-                    {doc.Quantity && (
-                      <span className="text-xs font-mono tabular-nums" style={{ color: 'var(--foreground)' }}>
-                        {Number(doc.Quantity).toLocaleString()} {doc.BaseUnit || ''}
-                      </span>
-                    )}
-                    {doc.MaterialDocumentItemText && (
-                      <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{doc.MaterialDocumentItemText}</span>
-                    )}
+              <div key={`${item.MaterialDocument}-${idx}`} className="fiori-oli">
+                <div className={`fiori-oli-bar fiori-oli-bar--${barColor}`} />
+                <div className="fiori-oli-content">
+                  <div className="fiori-oli-title">{item.MaterialDocument} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.MaterialName || item.Material}</div>
+                  <div className="fiori-oli-subtitle">{formatDate(item.PostingDate)} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.MovementTypeText} ({item.MovementType})</div>
+                  <div className="flex items-center gap-2">
+                    <FioriBadge variant={barColor}>{item.MovementTypeText}</FioriBadge>
+                    <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>{parseFloat(item.Quantity).toLocaleString()} {item.BaseUnit}</span>
                   </div>
-                }
-              />
+                </div>
+              </div>
             );
           })}
         </div>
       )}
 
-      <FioriFab icon={<Search className="w-5 h-5" />} onClick={fetchDocuments} ariaLabel="刷新查询" />
+      {!loading && !error && data.length > 0 && viewMode === 'table' && (
+        <div className="hidden lg:block rounded-lg border overflow-hidden" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+          <table className="w-full text-sm">
+            <thead><tr style={{ background: 'var(--muted)' }}><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>凭证号</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>物料</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>工厂</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>移动类型</th><th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>数量</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>过账日期</th></tr></thead>
+            <tbody>{data.map((item, idx) => {
+              const barColor = MOVEMENT_COLORS[item.MovementType] || 'neutral';
+              return (<tr key={`${item.MaterialDocument}-${idx}`} className="border-t hover:bg-accent/50 transition-colors" style={{ borderColor: 'var(--border)' }}><td className="px-4 py-3 font-medium">{item.MaterialDocument}</td><td className="px-4 py-3">{item.MaterialName || item.Material}</td><td className="px-4 py-3">{item.Plant}</td><td className="px-4 py-3"><FioriBadge variant={barColor}>{item.MovementTypeText}</FioriBadge></td><td className="px-4 py-3 text-right font-medium tabular-nums">{parseFloat(item.Quantity).toLocaleString()} {item.BaseUnit}</td><td className="px-4 py-3 tabular-nums">{formatDate(item.PostingDate)}</td></tr>);
+            })}</tbody>
+          </table>
+        </div>
+      )}
+      <FioriFab icon={<Search className="w-5 h-5" />} onClick={fetchData} ariaLabel="刷新查询" />
     </div>
   );
 }

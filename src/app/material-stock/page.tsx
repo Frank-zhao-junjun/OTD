@@ -1,122 +1,148 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { FioriOli, FioriBadge, FioriFilterBar, FioriPageHeader, FioriEmptyState, FioriErrorState, FioriFab } from '@/components/fiori';
-import { BarChart3, Search, RotateCcw, Inbox, AlertTriangle } from 'lucide-react';
+import { FioriBadge, FioriFab } from '@/components/fiori';
+import { BarChart3, Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
 
 interface StockItem {
   Material: string;
+  MaterialName: string;
   Plant: string;
-  StorageLocation?: string;
-  Batch?: string;
-  MaterialBaseUnit?: string;
-  MatlWrhsStkQtyInMatlBaseUnit?: string | number;
-  WarehouseStockCategory?: string;
+  StorageLocation: string;
+  Batch: string;
+  MaterialBaseQuantity: string;
+  BaseUnit: string;
+  StockType: string;
+  StockTypeText: string;
+  SupplyArea: string;
 }
 
-const STOCK_CATEGORY: Record<string, { color: 'success' | 'warning' | 'error' | 'info' | 'neutral'; label: string }> = {
-  'F': { color: 'success', label: '非限制' },
-  'Q': { color: 'warning', label: '质检中' },
-  'S': { color: 'error', label: '冻结' },
-};
+function formatNumber(num: string | undefined): string {
+  if (!num) return '-';
+  const n = parseFloat(num);
+  if (isNaN(n)) return num;
+  return n.toLocaleString('zh-CN');
+}
 
 export default function MaterialStockPage() {
-  const [stocks, setStocks] = useState<StockItem[]>([]);
+  const [data, setData] = useState<StockItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalCount, setTotalCount] = useState(0);
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
-  const fetchStocks = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const fetchData = useCallback(async () => {
+    setLoading(true); setError(null);
     try {
-      const params = new URLSearchParams();
-      params.set('top', '50');
-      params.set('count', 'true');
-
-      const filterParts: string[] = [];
-      if (searchQuery) {
-        filterParts.push(`(Material eq '${searchQuery}' or Plant eq '${searchQuery}')`);
-      }
-      if (filterParts.length > 0) params.set('filter', filterParts.join(' and '));
-      params.set('select', 'Material,Plant,StorageLocation,Batch,MaterialBaseUnit,MatlWrhsStkQtyInMatlBaseUnit,WarehouseStockCategory');
-
-      const response = await fetch(`/api/sap/API_MATERIAL_STOCK_SRV/A_MatlStkInAcctMod?${params.toString()}`);
-      const data = await response.json();
-      if (!data.success) throw new Error(data.error || 'Failed to fetch');
-      setStocks(data.data || []);
-      setTotalCount(data.count || 0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
+      const params = new URLSearchParams({ top: '50', count: 'true' });
+      if (searchQuery) params.set('filter', `(Material eq '${searchQuery}')`);
+      const res = await fetch(`/api/sap/API_MATERIAL_STOCK_SRV/A_MatlStkInAcctMod?${params}`);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Failed');
+      setData(json.data || []); setTotalCount(json.totalCount || json.count || 0);
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
+    finally { setLoading(false); }
   }, [searchQuery]);
 
-  useEffect(() => { fetchStocks(); }, [fetchStocks]);
-
-  const isLowStock = (item: StockItem): boolean => {
-    const qty = Number(item.MatlWrhsStkQtyInMatlBaseUnit || 0);
-    return qty > 0 && qty < 10;
-  };
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   return (
     <div className="space-y-4">
-      <FioriPageHeader icon={<BarChart3 className="w-5 h-5" />} title="库存查询" count={totalCount} />
+      <div className="lg:hidden"><h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>库存查询</h1></div>
 
-      <FioriFilterBar>
-        <div className="fiori-filterbar-field flex-1 min-w-[160px]">
-          <label>搜索</label>
-          <Input placeholder="物料号 / 工厂" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchStocks()} className="h-8 text-sm" />
+      <div className="fiori-filterbar">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--muted-foreground)' }} />
+            <input type="text" placeholder="物料编号" className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchData()} />
+          </div>
         </div>
-        <Button size="sm" onClick={fetchStocks} disabled={loading} className="h-8"><Search className="w-3.5 h-3.5 mr-1" /> 查询</Button>
-        <Button variant="outline" size="sm" onClick={() => setSearchQuery('')} className="h-8"><RotateCcw className="w-3.5 h-3.5 mr-1" /> 清除</Button>
-      </FioriFilterBar>
+        <div className="hidden lg:flex items-center border rounded overflow-hidden" style={{ borderColor: 'var(--border)' }}>
+          <button className={`h-8 w-8 flex items-center justify-center ${viewMode === 'card' ? 'text-white' : ''}`} style={viewMode === 'card' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }} onClick={() => setViewMode('card')}><LayoutList className="w-4 h-4" /></button>
+          <button className={`h-8 w-8 flex items-center justify-center ${viewMode === 'table' ? 'text-white' : ''}`} style={viewMode === 'table' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }} onClick={() => setViewMode('table')}><Table2 className="w-4 h-4" /></button>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={fetchData} disabled={loading}><Search className="w-3.5 h-3.5 inline mr-1" /> 查询</button>
+          <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={() => setSearchQuery('')}><RotateCcw className="w-3.5 h-3.5 inline mr-1" /> 清除</button>
+        </div>
+      </div>
 
-      {loading ? (
+      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>共 {totalCount} 条记录</div>
+      {loading && <div className="flex items-center justify-center py-12"><div className="h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} /></div>}
+      {error && !loading && <div className="text-center py-12" style={{ color: 'var(--color-fiori-error)' }}><p className="text-sm">{error}</p><button className="mt-2 text-sm underline" onClick={fetchData}>重试</button></div>}
+      {!loading && !error && data.length === 0 && <div className="text-center py-12" style={{ color: 'var(--muted-foreground)' }}><Inbox className="w-10 h-10 mx-auto mb-2" /><p className="text-sm">暂无数据</p></div>}
+
+      {/* Card View - Mobile default */}
+      {!loading && !error && data.length > 0 && viewMode === 'card' && (
         <div className="space-y-2">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="fiori-oli"><div className="fiori-oli-bar fiori-oli-bar--neutral" /><div className="fiori-oli-content" style={{ gap: 6 }}><Skeleton className="h-4 w-[140px]" /><Skeleton className="h-3 w-[200px]" /><Skeleton className="h-3 w-[80px]" /></div></div>
-          ))}
-        </div>
-      ) : error ? (
-        <FioriErrorState message={error} onRetry={fetchStocks} />
-      ) : stocks.length === 0 ? (
-        <FioriEmptyState icon={<Inbox className="w-10 h-10" />} title="暂无数据" description="请调整查询条件后重试" />
-      ) : (
-        <div>
-          {stocks.map((item, idx) => {
-            const catInfo = STOCK_CATEGORY[item.WarehouseStockCategory || ''] || { color: 'neutral' as const, label: item.WarehouseStockCategory || '-' };
-            const lowStock = isLowStock(item);
-            const qty = Number(item.MatlWrhsStkQtyInMatlBaseUnit || 0);
+          {data.map((item, idx) => {
+            const isLowStock = parseFloat(item.MaterialBaseQuantity) < 100;
+            const isNoStock = parseFloat(item.MaterialBaseQuantity) === 0;
+            const barColor = isNoStock ? 'error' : isLowStock ? 'warning' : 'success';
             return (
-              <FioriOli
-                key={`${item.Material}-${item.Plant}-${item.WarehouseStockCategory}-${idx}`}
-                barColor={qty === 0 ? 'error' : lowStock ? 'warning' : catInfo.color}
-                title={`${item.Material} · ${item.Plant}`}
-                subtitle={`${item.StorageLocation || '-'} · 批次 ${item.Batch || '-'} · ${item.MaterialBaseUnit || '-'}`}
-                status={
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <FioriBadge variant={qty === 0 ? 'error' : lowStock ? 'warning' : catInfo.color}>
-                      {qty === 0 ? '缺货' : lowStock ? '低库存' : catInfo.label}
+              <div key={`${item.Material}-${item.Batch}-${idx}`} className="fiori-oli">
+                <div className={`fiori-oli-bar fiori-oli-bar--${barColor}`} />
+                <div className="fiori-oli-content">
+                  <div className="fiori-oli-title">{item.Material} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.MaterialName}</div>
+                  <div className="fiori-oli-subtitle">{item.Plant} / {item.StorageLocation} / {item.Batch}</div>
+                  <div className="flex items-center gap-2">
+                    <FioriBadge variant={isNoStock ? 'error' : isLowStock ? 'warning' : 'success'}>
+                      {isNoStock ? '缺货' : isLowStock ? '低库存' : item.StockTypeText}
                     </FioriBadge>
-                    <span className="text-xs font-mono tabular-nums" style={{ color: qty === 0 ? 'var(--color-fiori-error)' : lowStock ? 'var(--color-fiori-warning)' : 'var(--foreground)' }}>
-                      {qty.toLocaleString()} {item.MaterialBaseUnit || ''}
+                    <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>
+                      {formatNumber(item.MaterialBaseQuantity)} {item.BaseUnit}
                     </span>
-                    {lowStock && <AlertTriangle className="w-3.5 h-3.5" style={{ color: 'var(--color-fiori-warning)' }} />}
                   </div>
-                }
-              />
+                </div>
+              </div>
             );
           })}
         </div>
       )}
 
-      <FioriFab icon={<Search className="w-5 h-5" />} onClick={fetchStocks} ariaLabel="刷新查询" />
+      {/* Table View - PC only, with pop-in on mobile if somehow visible */}
+      {!loading && !error && data.length > 0 && viewMode === 'table' && (
+        <div className="hidden lg:block rounded-lg border overflow-hidden" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ background: 'var(--muted)' }}>
+                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>物料</th>
+                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>描述</th>
+                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>工厂</th>
+                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>库位</th>
+                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>批次</th>
+                <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>数量</th>
+                <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>库存类型</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((item, idx) => {
+                const isLowStock = parseFloat(item.MaterialBaseQuantity) < 100;
+                const isNoStock = parseFloat(item.MaterialBaseQuantity) === 0;
+                return (
+                  <tr key={`${item.Material}-${item.Batch}-${idx}`} className="border-t hover:bg-accent/50 transition-colors" style={{ borderColor: 'var(--border)' }}>
+                    <td className="px-4 py-3 font-medium">{item.Material}</td>
+                    <td className="px-4 py-3">{item.MaterialName}</td>
+                    <td className="px-4 py-3">{item.Plant}</td>
+                    <td className="px-4 py-3">{item.StorageLocation}</td>
+                    <td className="px-4 py-3">{item.Batch}</td>
+                    <td className="px-4 py-3 text-right font-medium tabular-nums" style={{ color: isNoStock ? 'var(--color-fiori-error)' : isLowStock ? 'var(--color-fiori-warning)' : 'var(--foreground)' }}>
+                      {formatNumber(item.MaterialBaseQuantity)} {item.BaseUnit}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <FioriBadge variant={isNoStock ? 'error' : isLowStock ? 'warning' : 'success'}>
+                        {isNoStock ? '缺货' : isLowStock ? '低库存' : item.StockTypeText}
+                      </FioriBadge>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <FioriFab icon={<Search className="w-5 h-5" />} onClick={fetchData} ariaLabel="刷新查询" />
     </div>
   );
 }

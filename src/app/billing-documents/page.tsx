@@ -1,106 +1,123 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { FioriOli, FioriBadge, FioriFilterBar, FioriPageHeader, FioriEmptyState, FioriErrorState, FioriFab, getSapStatusColor } from '@/components/fiori';
-import { Receipt, Search, RotateCcw, Inbox } from 'lucide-react';
+import { FioriBadge, FioriFab, getSapStatusColor } from '@/components/fiori';
+import { Receipt, Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
 
 interface BillingDocument {
   BillingDocument: string;
-  BillingDocumentType?: string;
   SoldToParty?: string;
-  TotalNetAmount?: string | number;
-  TransactionCurrency?: string;
+  SoldToPartyName?: string;
   BillingDocumentDate?: string;
-  CreationDate?: string;
-  OverallBillingStatus?: string;
+  BillingType?: string;
+  TotalNetAmount?: string;
+  TransactionCurrency?: string;
+  BillingDocumentStatus?: string;
+  StatusText?: string;
+}
+
+const BILLING_STATUS: Record<string, { color: 'success' | 'warning' | 'error' | 'info' | 'neutral'; label: string }> = {
+  'A': { color: 'info', label: '待过账' },
+  'B': { color: 'warning', label: '处理中' },
+  'C': { color: 'success', label: '已过账' },
+  'D': { color: 'error', label: '已取消' },
+};
+
+function formatDate(dateStr: string | undefined | null): string {
+  if (!dateStr) return '-';
+  const match = dateStr.match(/\/Date\((\d+)\)\//);
+  if (match) { const d = new Date(parseInt(match[1])); return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }); }
+  return dateStr;
+}
+
+function formatAmount(amount: string | undefined, currency: string | undefined): string {
+  if (!amount) return '-';
+  const num = parseFloat(amount);
+  if (isNaN(num)) return amount;
+  return num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (currency ? ' ' + currency : '');
 }
 
 export default function BillingDocumentsPage() {
-  const [invoices, setInvoices] = useState<BillingDocument[]>([]);
+  const [data, setData] = useState<BillingDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalCount, setTotalCount] = useState(0);
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
-  const fetchInvoices = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const fetchData = useCallback(async () => {
+    setLoading(true); setError(null);
     try {
-      const params = new URLSearchParams();
-      params.set('top', '50');
-      params.set('count', 'true');
-
-      const filterParts: string[] = [];
-      if (searchQuery) {
-        filterParts.push(`(BillingDocument eq '${searchQuery}' or SoldToParty eq '${searchQuery}')`);
-      }
-      if (filterParts.length > 0) params.set('filter', filterParts.join(' and '));
-      params.set('select', 'BillingDocument,BillingDocumentType,SoldToParty,TotalNetAmount,TransactionCurrency,BillingDocumentDate,CreationDate');
-
-      const response = await fetch(`/api/sap/API_BILLING_DOCUMENT_SRV/A_BillingDocument?${params}`);
-      const data = await response.json();
-      if (!data.success) throw new Error(data.error || 'Failed to fetch');
-      setInvoices(data.data || []);
-      setTotalCount(data.count || 0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
+      const params = new URLSearchParams({ top: '50', count: 'true' });
+      if (searchQuery) params.set('filter', `(BillingDocument eq '${searchQuery}' or SoldToParty eq '${searchQuery}')`);
+      const res = await fetch(`/api/sap/API_BILLING_DOCUMENT_SRV/A_BillingDocument?${params}`);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Failed');
+      setData(json.data || []); setTotalCount(json.totalCount || json.count || 0);
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
+    finally { setLoading(false); }
   }, [searchQuery]);
 
-  useEffect(() => { fetchInvoices(); }, [fetchInvoices]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   return (
     <div className="space-y-4">
-      <FioriPageHeader icon={<Receipt className="w-5 h-5" />} title="开票单据" count={totalCount} />
-
-      <FioriFilterBar>
-        <div className="fiori-filterbar-field flex-1 min-w-[160px]">
-          <label>搜索</label>
-          <Input placeholder="开票单号 / 客户编号" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchInvoices()} className="h-8 text-sm" />
+      <div className="lg:hidden"><h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>开票单据</h1></div>
+      <div className="fiori-filterbar">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--muted-foreground)' }} />
+            <input type="text" placeholder="单据号 / 客户" className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchData()} />
+          </div>
         </div>
-        <Button size="sm" onClick={fetchInvoices} disabled={loading} className="h-8"><Search className="w-3.5 h-3.5 mr-1" /> 查询</Button>
-        <Button variant="outline" size="sm" onClick={() => setSearchQuery('')} className="h-8"><RotateCcw className="w-3.5 h-3.5 mr-1" /> 清除</Button>
-      </FioriFilterBar>
+        <div className="hidden lg:flex items-center border rounded overflow-hidden" style={{ borderColor: 'var(--border)' }}>
+          <button className={`h-8 w-8 flex items-center justify-center ${viewMode === 'card' ? 'text-white' : ''}`} style={viewMode === 'card' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }} onClick={() => setViewMode('card')}><LayoutList className="w-4 h-4" /></button>
+          <button className={`h-8 w-8 flex items-center justify-center ${viewMode === 'table' ? 'text-white' : ''}`} style={viewMode === 'table' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }} onClick={() => setViewMode('table')}><Table2 className="w-4 h-4" /></button>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={fetchData} disabled={loading}><Search className="w-3.5 h-3.5 inline mr-1" /> 查询</button>
+          <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={() => setSearchQuery('')}><RotateCcw className="w-3.5 h-3.5 inline mr-1" /> 清除</button>
+        </div>
+      </div>
 
-      {loading ? (
+      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>共 {totalCount} 条记录</div>
+      {loading && <div className="flex items-center justify-center py-12"><div className="h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} /></div>}
+      {error && !loading && <div className="text-center py-12" style={{ color: 'var(--color-fiori-error)' }}><p className="text-sm">{error}</p><button className="mt-2 text-sm underline" onClick={fetchData}>重试</button></div>}
+      {!loading && !error && data.length === 0 && <div className="text-center py-12" style={{ color: 'var(--muted-foreground)' }}><Inbox className="w-10 h-10 mx-auto mb-2" /><p className="text-sm">暂无数据</p></div>}
+
+      {!loading && !error && data.length > 0 && viewMode === 'card' && (
         <div className="space-y-2">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="fiori-oli"><div className="fiori-oli-bar fiori-oli-bar--neutral" /><div className="fiori-oli-content" style={{ gap: 6 }}><Skeleton className="h-4 w-[120px]" /><Skeleton className="h-3 w-[180px]" /><Skeleton className="h-3 w-[80px]" /></div></div>
-          ))}
-        </div>
-      ) : error ? (
-        <FioriErrorState message={error} onRetry={fetchInvoices} />
-      ) : invoices.length === 0 ? (
-        <FioriEmptyState icon={<Inbox className="w-10 h-10" />} title="暂无数据" description="请调整查询条件后重试" />
-      ) : (
-        <div>
-          {invoices.map((inv) => (
-            <FioriOli
-              key={inv.BillingDocument}
-              barColor={getSapStatusColor(inv.OverallBillingStatus)}
-              title={`${inv.BillingDocument} · ${inv.BillingDocumentType || '-'}`}
-              subtitle={`客户 ${inv.SoldToParty || '-'} · ${inv.BillingDocumentDate || '-'}`}
-              status={
-                <div className="flex items-center gap-2 mt-0.5">
-                  <FioriBadge variant={getSapStatusColor(inv.OverallBillingStatus)}>{inv.OverallBillingStatus || '-'}</FioriBadge>
-                  {inv.TotalNetAmount && (
-                    <span className="text-xs font-mono tabular-nums" style={{ color: 'var(--foreground)' }}>
-                      {Number(inv.TotalNetAmount).toLocaleString()} {inv.TransactionCurrency || 'CNY'}
-                    </span>
-                  )}
+          {data.map((item) => {
+            const statusInfo = BILLING_STATUS[item.BillingDocumentStatus || ''] || { color: getSapStatusColor(item.BillingDocumentStatus), label: item.StatusText || item.BillingDocumentStatus || '-' };
+            return (
+              <div key={item.BillingDocument} className="fiori-oli">
+                <div className={`fiori-oli-bar fiori-oli-bar--${statusInfo.color}`} />
+                <div className="fiori-oli-content">
+                  <div className="fiori-oli-title">{item.BillingDocument} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.SoldToPartyName || item.SoldToParty || '-'}</div>
+                  <div className="fiori-oli-subtitle">{formatDate(item.BillingDocumentDate)} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.BillingType || '-'}</div>
+                  <div className="flex items-center gap-2">
+                    <FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge>
+                    {item.TotalNetAmount && <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>{formatAmount(item.TotalNetAmount, item.TransactionCurrency)}</span>}
+                  </div>
                 </div>
-              }
-            />
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
 
-      <FioriFab icon={<Search className="w-5 h-5" />} onClick={fetchInvoices} ariaLabel="刷新查询" />
+      {!loading && !error && data.length > 0 && viewMode === 'table' && (
+        <div className="hidden lg:block rounded-lg border overflow-hidden" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+          <table className="w-full text-sm">
+            <thead><tr style={{ background: 'var(--muted)' }}><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>单据号</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>客户</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>开票日期</th><th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>金额</th><th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>状态</th></tr></thead>
+            <tbody>{data.map((item) => {
+              const statusInfo = BILLING_STATUS[item.BillingDocumentStatus || ''] || { color: getSapStatusColor(item.BillingDocumentStatus), label: item.StatusText || '-' };
+              return (<tr key={item.BillingDocument} className="border-t hover:bg-accent/50 transition-colors" style={{ borderColor: 'var(--border)' }}><td className="px-4 py-3 font-medium">{item.BillingDocument}</td><td className="px-4 py-3">{item.SoldToPartyName || item.SoldToParty || '-'}</td><td className="px-4 py-3 tabular-nums">{formatDate(item.BillingDocumentDate)}</td><td className="px-4 py-3 text-right font-medium tabular-nums">{formatAmount(item.TotalNetAmount, item.TransactionCurrency)}</td><td className="px-4 py-3 text-center"><FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge></td></tr>);
+            })}</tbody>
+          </table>
+        </div>
+      )}
+      <FioriFab icon={<Search className="w-5 h-5" />} onClick={fetchData} ariaLabel="刷新查询" />
     </div>
   );
 }
