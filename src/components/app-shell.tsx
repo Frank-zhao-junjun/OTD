@@ -15,6 +15,8 @@ import {
   ChevronLeft,
   ChevronRight,
   LayoutDashboard,
+  Menu,
+  X,
 } from 'lucide-react';
 
 const BUSINESS_ITEMS = [
@@ -31,14 +33,26 @@ const MASTER_ITEMS = [
   { id: 'customers', label: '客户管理', icon: Users, path: '/customers' },
 ];
 
+const ALL_ITEMS = [
+  { id: 'home', label: '工作台', icon: LayoutDashboard, path: '/' },
+  ...BUSINESS_ITEMS,
+  ...MASTER_ITEMS,
+];
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   if (!mounted) {
     return (
@@ -52,14 +66,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   const currentLabel = pathname === '/'
-    ? '首页'
-    : [...BUSINESS_ITEMS, ...MASTER_ITEMS].find(item => pathname.startsWith(item.path))?.label || '首页';
+    ? '工作台'
+    : ALL_ITEMS.find(item => item.path !== '/' && pathname.startsWith(item.path))?.label || '工作台';
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      {/* Sidebar */}
+      {/* Desktop Sidebar - hidden on mobile */}
       <aside
-        className={`fixed top-0 left-0 bottom-0 z-50 flex flex-col bg-slate-900 text-slate-300 shadow-xl transition-all duration-200 ${
+        className={`hidden md:flex fixed top-0 left-0 bottom-0 z-50 flex-col bg-slate-900 text-slate-300 shadow-xl transition-all duration-200 ${
           collapsed ? 'w-[60px]' : 'w-[240px]'
         }`}
       >
@@ -78,7 +92,6 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* Navigation */}
         <nav className="flex-1 py-2 overflow-y-auto">
-          {/* Home */}
           <Link
             href="/"
             className={`flex items-center gap-3 mx-2 my-0.5 rounded-md cursor-pointer transition-all duration-150 text-sm h-9 ${
@@ -91,7 +104,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             {!collapsed && <span>工作台</span>}
           </Link>
 
-          {/* Business Transactions */}
           {!collapsed && (
             <div className="px-4 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600 font-semibold">
               业务交易
@@ -117,7 +129,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
 
-          {/* Master Data */}
           {!collapsed && (
             <div className="px-4 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600 font-semibold">
               主数据
@@ -144,7 +155,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        {/* Collapse Toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="flex items-center justify-center h-10 border-t border-slate-700/50 text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors duration-150 cursor-pointer"
@@ -153,31 +163,180 @@ export function AppShell({ children }: { children: ReactNode }) {
         </button>
       </aside>
 
+      {/* Mobile Overlay Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-[60]">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <div className="absolute top-0 left-0 bottom-0 w-[260px] bg-slate-900 text-slate-300 shadow-2xl flex flex-col">
+            {/* Mobile menu header */}
+            <div className="flex items-center justify-between px-4 h-14 border-b border-slate-700/50">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                  ES
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-slate-100">ES+OTD助手</div>
+                  <div className="text-[10px] text-slate-500">SAP S/4HANA Cloud</div>
+                </div>
+              </div>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-slate-400 hover:text-slate-200 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Mobile navigation */}
+            <nav className="flex-1 py-2 overflow-y-auto">
+              <Link
+                href="/"
+                className={`flex items-center gap-3 mx-2 my-0.5 rounded-md cursor-pointer transition-all duration-150 text-sm h-10 px-3 ${
+                  pathname === '/'
+                    ? 'bg-blue-600/20 text-blue-400 font-medium'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                }`}
+              >
+                <LayoutDashboard className="w-5 h-5 shrink-0" />
+                <span>工作台</span>
+              </Link>
+
+              <div className="px-4 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600 font-semibold">
+                业务交易
+              </div>
+              {BUSINESS_ITEMS.map((item) => {
+                const isActive = pathname === item.path || pathname.startsWith(item.path + '/');
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.path}
+                    className={`flex items-center gap-3 mx-2 my-0.5 rounded-md cursor-pointer transition-all duration-150 text-sm h-10 px-3 ${
+                      isActive
+                        ? 'bg-blue-600/20 text-blue-400 font-medium'
+                        : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5 shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+
+              <div className="px-4 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600 font-semibold">
+                主数据
+              </div>
+              {MASTER_ITEMS.map((item) => {
+                const isActive = pathname === item.path || pathname.startsWith(item.path + '/');
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.path}
+                    className={`flex items-center gap-3 mx-2 my-0.5 rounded-md cursor-pointer transition-all duration-150 text-sm h-10 px-3 ${
+                      isActive
+                        ? 'bg-blue-600/20 text-blue-400 font-medium'
+                        : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5 shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <main
         className={`flex-1 min-h-screen transition-all duration-200 ${
-          collapsed ? 'ml-[60px]' : 'ml-[240px]'
+          collapsed ? 'md:ml-[60px]' : 'md:ml-[240px]'
         }`}
       >
-        {/* Top Bar */}
-        <header className="bg-white border-b border-slate-200 h-12 flex items-center justify-between px-6 sticky top-0 z-40">
-          <div className="flex items-center gap-2 text-sm text-slate-500">
-            {pathname !== '/' && (
-              <Link href="/" className="hover:text-slate-700 transition-colors cursor-pointer">首页</Link>
-            )}
-            {pathname !== '/' && <span className="text-slate-300">/</span>}
-            <span className="font-medium text-slate-800">{currentLabel}</span>
+        {/* Top Bar - Mobile aware */}
+        <header className="bg-white border-b border-slate-200 h-12 flex items-center justify-between px-4 md:px-6 sticky top-0 z-40">
+          <div className="flex items-center gap-3">
+            {/* Hamburger for mobile */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="md:hidden text-slate-500 hover:text-slate-700 cursor-pointer"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              {pathname !== '/' && (
+                <Link href="/" className="hover:text-slate-700 transition-colors cursor-pointer hidden sm:inline">首页</Link>
+              )}
+              {pathname !== '/' && <span className="text-slate-300 hidden sm:inline">/</span>}
+              <span className="font-medium text-slate-800">{currentLabel}</span>
+            </div>
           </div>
-          <div className="text-xs text-slate-400">
+          <div className="text-xs text-slate-400 hidden sm:block">
             ES+OTD &middot; SAP ERP 数据查询
           </div>
         </header>
 
         {/* Page Content */}
-        <div className="p-6">
+        <div className="p-4 md:p-6 pb-20 md:pb-6">
           {children}
         </div>
       </main>
+
+      {/* Mobile Bottom Tab Bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 safe-area-pb">
+        <div className="grid grid-cols-5 h-14">
+          {[
+            { icon: LayoutDashboard, label: '工作台', path: '/' },
+            { icon: FileText, label: '销售', path: '/sales-orders' },
+            { icon: Factory, label: '生产', path: '/production-orders' },
+            { icon: BarChart3, label: '库存', path: '/material-stock' },
+            { icon: Truck, label: '交货', path: '/outbound-delivery' },
+          ].map((tab) => {
+            const isActive = pathname === tab.path || (tab.path !== '/' && pathname.startsWith(tab.path));
+            const Icon = tab.icon;
+            return (
+              <Link
+                key={tab.path}
+                href={tab.path}
+                className={`flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-colors duration-150 ${
+                  isActive ? 'text-blue-600' : 'text-slate-400'
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="text-[10px] leading-tight">{tab.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+        {/* More row */}
+        <div className="grid grid-cols-3 h-10 border-t border-slate-100">
+          {[
+            { icon: Receipt, label: '开票', path: '/billing-documents' },
+            { icon: FileSpreadsheet, label: '物料凭证', path: '/material-documents' },
+            { icon: Package, label: '更多', path: '/products' },
+          ].map((tab) => {
+            const isActive = pathname === tab.path || pathname.startsWith(tab.path);
+            const Icon = tab.icon;
+            return (
+              <Link
+                key={tab.path}
+                href={tab.path}
+                className={`flex items-center justify-center gap-1.5 cursor-pointer transition-colors duration-150 ${
+                  isActive ? 'text-blue-600' : 'text-slate-400'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span className="text-[10px]">{tab.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }

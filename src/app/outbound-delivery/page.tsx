@@ -162,7 +162,7 @@ export default function OutboundDeliveryPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">交货单</h1>
+        <h1 className="text-lg md:text-2xl font-bold text-slate-800">交货单</h1>
         <p className="text-slate-600 mt-1">查询 SAP 外向交货单数据 (BD9 - Outbound Delivery)</p>
       </div>
 
@@ -173,7 +173,7 @@ export default function OutboundDeliveryPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]">
+            <div className="flex-1 min-w-0 md:min-w-[200px]">
               <Input
                 placeholder="输入交货单号或参考销售订单号"
                 value={searchQuery}
@@ -181,7 +181,7 @@ export default function OutboundDeliveryPage() {
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
             </div>
-            <div className="w-[160px]">
+            <div className="w-full md:w-[160px]">
               <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger>
                   <SelectValue placeholder="过账状态" />

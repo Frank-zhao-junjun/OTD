@@ -147,7 +147,7 @@ export default function MaterialStockPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">库存查询</h1>
+        <h1 className="text-lg md:text-2xl font-bold text-slate-800">库存查询</h1>
         <p className="text-slate-600 mt-1">查询 SAP 物料库存数据 (SAP_COM_0164 | A_MatlStkInAcctMod)</p>
       </div>
 
@@ -158,7 +158,7 @@ export default function MaterialStockPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]">
+            <div className="flex-1 min-w-0 md:min-w-[200px]">
               <Input
                 placeholder="输入物料号 (如 FG10, FG41, TG11)"
                 value={searchQuery}
@@ -166,7 +166,7 @@ export default function MaterialStockPage() {
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
             </div>
-            <div className="w-[160px]">
+            <div className="w-full md:w-[160px]">
               <Select value={plant} onValueChange={setPlant}>
                 <SelectTrigger>
                   <SelectValue placeholder="选择工厂" />
@@ -178,7 +178,7 @@ export default function MaterialStockPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="w-[160px]">
+            <div className="w-full md:w-[160px]">
               <Select value={storageLocation} onValueChange={setStorageLocation}>
                 <SelectTrigger>
                   <SelectValue placeholder="存储位置" />

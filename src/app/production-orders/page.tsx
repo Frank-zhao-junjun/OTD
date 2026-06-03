@@ -148,7 +148,7 @@ export default function ProductionOrdersPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">生产订单</h1>
+        <h1 className="text-lg md:text-2xl font-bold text-slate-800">生产订单</h1>
         <p className="text-slate-600 mt-1">查询 SAP 生产订单数据</p>
       </div>
 
@@ -159,7 +159,7 @@ export default function ProductionOrdersPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]">
+            <div className="flex-1 min-w-0 md:min-w-[200px]">
               <Input
                 placeholder="输入生产订单号或物料号"
                 value={searchQuery}

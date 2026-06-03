@@ -88,14 +88,11 @@ export default function HomePage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">工作台</h1>
-          <p className="text-slate-500 mt-1 text-sm">
-            快速查询 SAP S/4HANA Cloud 中的产品、订单、库存等业务数据
-          </p>
-        </div>
-
+      <div>
+        <h1 className="text-xl md:text-2xl font-bold text-slate-800">工作台</h1>
+        <p className="text-slate-500 mt-1 text-xs md:text-sm">
+          快速查询 SAP S/4HANA Cloud 中的产品、订单、库存等业务数据
+        </p>
       </div>
 
       {/* Business Transactions */}
@@ -104,25 +101,25 @@ export default function HomePage() {
           <h2 className="text-base font-semibold text-slate-700">业务交易</h2>
           <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">6 个模块</span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
           {BUSINESS_MODULES.map((module) => {
             const Icon = module.icon;
             return (
               <Link key={module.path} href={module.path}>
                 <Card className="group hover:shadow-md hover:border-slate-300 transition-all duration-200 cursor-pointer h-full border-slate-200">
-                  <CardContent className="p-4">
+                  <CardContent className="p-3 md:p-4">
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg ${module.bgLight} flex items-center justify-center shrink-0`}>
-                          <Icon className={`w-5 h-5 ${module.textColor}`} />
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <div className={`w-9 h-9 md:w-10 md:h-10 rounded-lg ${module.bgLight} flex items-center justify-center shrink-0`}>
+                          <Icon className={`w-4 h-4 md:w-5 md:h-5 ${module.textColor}`} />
                         </div>
-                        <div>
-                          <div className="font-semibold text-slate-800 text-sm">{module.title}</div>
+                        <div className="min-w-0">
+                          <div className="font-semibold text-slate-800 text-xs md:text-sm truncate">{module.title}</div>
                         </div>
                       </div>
-                      <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all duration-200" />
+                      <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all duration-200 hidden md:block" />
                     </div>
-                    <p className="text-xs text-slate-500 mt-3">{module.description}</p>
+                    <p className="text-[11px] md:text-xs text-slate-500 mt-2 md:mt-3 line-clamp-2">{module.description}</p>
                   </CardContent>
                 </Card>
               </Link>
@@ -137,25 +134,25 @@ export default function HomePage() {
           <h2 className="text-base font-semibold text-slate-700">主数据</h2>
           <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">2 个模块</span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
           {MASTER_MODULES.map((module) => {
             const Icon = module.icon;
             return (
               <Link key={module.path} href={module.path}>
                 <Card className="group hover:shadow-md hover:border-slate-300 transition-all duration-200 cursor-pointer h-full border-slate-200">
-                  <CardContent className="p-4">
+                  <CardContent className="p-3 md:p-4">
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg ${module.bgLight} flex items-center justify-center shrink-0`}>
-                          <Icon className={`w-5 h-5 ${module.textColor}`} />
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <div className={`w-9 h-9 md:w-10 md:h-10 rounded-lg ${module.bgLight} flex items-center justify-center shrink-0`}>
+                          <Icon className={`w-4 h-4 md:w-5 md:h-5 ${module.textColor}`} />
                         </div>
-                        <div>
-                          <div className="font-semibold text-slate-800 text-sm">{module.title}</div>
+                        <div className="min-w-0">
+                          <div className="font-semibold text-slate-800 text-xs md:text-sm truncate">{module.title}</div>
                         </div>
                       </div>
-                      <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all duration-200" />
+                      <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all duration-200 hidden md:block" />
                     </div>
-                    <p className="text-xs text-slate-500 mt-3">{module.description}</p>
+                    <p className="text-[11px] md:text-xs text-slate-500 mt-2 md:mt-3 line-clamp-2">{module.description}</p>
                   </CardContent>
                 </Card>
               </Link>

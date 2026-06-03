@@ -109,8 +109,8 @@ export default function CustomersPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">客户管理</h1>
-        <p className="text-slate-600 mt-1">查询 SAP 客户主数据 (API_BUSINESS_PARTNER)</p>
+        <h1 className="text-lg md:text-2xl font-bold text-slate-800">客户管理</h1>
+        <p className="text-xs md:text-sm text-slate-500 mt-1">查询 SAP 客户主数据</p>
       </div>
 
       {/* Search Card */}
@@ -131,7 +131,7 @@ export default function CustomersPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex-1 min-w-[200px]">
+            <div className="flex-1 min-w-0 md:min-w-[200px]">
               <Input
                 placeholder={searchField === 'customer' ? '输入客户编号' : '输入客户名称'}
                 value={searchQuery}

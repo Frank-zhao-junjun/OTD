@@ -81,7 +81,7 @@ export default function ProductsPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">产品管理</h1>
+        <h1 className="text-lg md:text-2xl font-bold text-slate-800">产品管理</h1>
         <p className="text-slate-600 mt-1">查询 SAP 产品主数据</p>
       </div>
 
@@ -92,7 +92,7 @@ export default function ProductsPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]">
+            <div className="flex-1 min-w-0 md:min-w-[200px]">
               <Input
                 placeholder="输入产品编号或描述"
                 value={searchQuery}
@@ -155,7 +155,7 @@ export default function ProductsPage() {
               <p>暂无数据，请调整查询条件</p>
             </div>
           ) : (
-            // Data table
+            <div className="overflow-x-auto -mx-4 md:mx-0">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -180,6 +180,7 @@ export default function ProductsPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
