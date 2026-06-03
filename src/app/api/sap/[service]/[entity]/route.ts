@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { SAP_DEFAULT_SELECTS } from '@/lib/sap-service';
 
 // SAP configuration from environment variables
 const SAP_BASE_URL = process.env.SAP_BASE_URL || 'https://my200967-api.s4hana.sapcloud.cn';
@@ -45,6 +46,9 @@ function loadMockData(filename: string): unknown[] {
     return [];
   }
 }
+
+// Default $select fields per service:entity
+const DEFAULT_SELECT_MAP = SAP_DEFAULT_SELECTS;
 
 // Build authorization header (Basic Auth)
 function getAuthHeader(): string {
@@ -102,6 +106,20 @@ function handleMockRequest(
   const filter = searchParams.get('filter');
   if (filter && Array.isArray(data) && data.length > 0) {
     data = applyODataFilter(data as Record<string, unknown>[], filter);
+  }
+
+  // Apply $select (field projection)
+  const select = searchParams.get('select');
+  const effectiveSelect = select || DEFAULT_SELECT_MAP[mockKey];
+  if (effectiveSelect && Array.isArray(data) && data.length > 0) {
+    const fields = effectiveSelect.split(',').map(f => f.trim());
+    data = (data as Record<string, unknown>[]).map(item => {
+      const projected: Record<string, unknown> = {};
+      for (const f of fields) {
+        if (f in item) projected[f] = item[f];
+      }
+      return projected;
+    });
   }
 
   // Apply pagination
@@ -202,8 +220,12 @@ export async function GET(
   const filter = searchParams.get('filter');
   if (filter) queryParams.push(`$filter=${encodeURIComponent(filter)}`);
 
+  // Auto-inject default $select if not provided by client
   const select = searchParams.get('select');
-  if (select) queryParams.push(`$select=${encodeURIComponent(select)}`);
+  const defaultSelectKey = `${service}:${entity}`;
+  const defaultSelect = DEFAULT_SELECT_MAP[defaultSelectKey];
+  const effectiveSelect = select || defaultSelect;
+  if (effectiveSelect) queryParams.push(`$select=${encodeURIComponent(effectiveSelect)}`);
 
   const orderby = searchParams.get('orderby');
   if (orderby) queryParams.push(`$orderby=${encodeURIComponent(orderby)}`);

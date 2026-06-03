@@ -215,6 +215,34 @@ export const SAP_FIELD_LABELS = {
   ManufacturingOrder: '生产订单',
 } as const;
 
+// Default $select fields per service:entity (reduces response payload)
+export const SAP_DEFAULT_SELECTS: Record<string, string> = {
+  // Production Order (V4) — user-specified field set + UI-needed fields
+  'CE_PRODUCTIONORDER_0001:ProductionOrder':
+    'ProductionOrder,IsMarkedForDeletion,IsCompletelyDelivered,CreationDate,CreatedByUser,Product,ProductionPlant,SalesOrder,SalesOrderItem,OrderScheduledStartDate,OrderScheduledEndDate,OrderActualStartDate,OrderActualEndDate,OrderActualReleaseDate,TechnicalCompletionDate,OrderPlannedTotalQty,ActualDeliveredQuantity,ProductionOrderStatus,ManufacturingOrderType',
+  // Sales Order (V4)
+  'CE_SALESORDER_0001:SalesOrder':
+    'SalesOrder,SalesOrderType,SalesOrganization,DistributionChannel,OrganizationDivision,SoldToParty,PurchaseOrderByCustomer,SalesOrderDate,TotalNetAmount,TransactionCurrency,OverallSDProcessStatus,OverallDeliveryStatus,OverallBillingStatus',
+  // Products (V2)
+  'API_PRODUCT_SRV:A_Product':
+    'Product,ProductName,ProductType,ProductGroup,BaseUnit,Weight,WeightUnit,Plant,MRPType',
+  // Customers (V2)
+  'API_BUSINESS_PARTNER:A_Customer':
+    'Customer,CustomerName,Country,CityName,PostalCode,SalesOrganization,DistributionChannel,Division,CustomerGroup,Currency',
+  // Material Stock (V2)
+  'API_MATERIAL_STOCK_SRV:A_MatlStkInAcctMod':
+    'Material,MaterialName,Plant,StorageLocation,Batch,MaterialBaseQuantity,BaseUnit,StockType,SupplyArea',
+  // Outbound Delivery (V2)
+  'API_OUTBOUND_DELIVERY_SRV:A_OutbDeliveryHeader':
+    'DeliveryDocument,SoldToParty,DeliveryDate,DeliveryType,OverallGoodsMovementStatus,TotalNetAmount,TransactionCurrency',
+  // Billing Document (V2)
+  'API_BILLING_DOCUMENT_SRV:A_BillingDocument':
+    'BillingDocument,SoldToParty,BillingDocumentDate,BillingType,TotalNetAmount,TransactionCurrency,BillingDocumentStatus',
+  // Material Document (V2)
+  'API_MATERIAL_DOCUMENT_SRV:A_MaterialDocumentItem':
+    'MaterialDocument,MaterialDocumentYear,PostingDate,Material,Plant,MovementType,Quantity,BaseUnit,GoodsRecipient,ReferenceDocument',
+};
+
 // Status display helpers
 export const SALES_ORDER_STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   'A': { label: '已完成', variant: 'default' },
