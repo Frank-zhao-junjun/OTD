@@ -11,25 +11,17 @@ import { Factory, Search, RotateCcw, Filter, Inbox, LayoutList, Table2 } from 'l
 
 interface ProductionOrder {
   ProductionOrder: string;
+  OrderIsReleased?: boolean;
+  IsMarkedForDeletion?: boolean;
   Product?: string;
   ProductionPlant?: string;
-  ManufacturingOrderType?: string;
-  OrderScheduledStartDate?: string;
-  OrderScheduledEndDate?: string;
-  OrderActualStartDate?: string | null;
-  OrderActualEndDate?: string | null;
-  OrderActualReleaseDate?: string | null;
-  TechnicalCompletionDate?: string | null;
-  OrderPlannedTotalQty?: string;
-  ActualDeliveredQuantity?: string;
-  IsMarkedForDeletion?: boolean;
-  IsCompletelyDelivered?: boolean;
   SalesOrder?: string;
   SalesOrderItem?: string;
+  PlannedTotalQty?: string;
+  GoodsReceiptQty?: string;
+  ManufacturingOrderType?: string;
   ProductionOrderStatus?: string;
   StatusText?: string;
-  CreatedByUser?: string;
-  CreationDate?: string;
 }
 
 const getStatusInfo = (status: string | undefined): { color: 'success' | 'warning' | 'error' | 'info' | 'neutral'; label: string } => {
@@ -47,16 +39,6 @@ const getStatusInfo = (status: string | undefined): { color: 'success' | 'warnin
   };
   return statusMap[primaryStatus] || { color: getSapStatusColor(primaryStatus), label: getSapStatusLabel(primaryStatus) };
 };
-
-function formatDate(dateStr: string | undefined | null): string {
-  if (!dateStr) return '-';
-  const match = dateStr.match(/\/Date\((\d+)\)\//);
-  if (match) {
-    const d = new Date(parseInt(match[1]));
-    return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
-  }
-  return dateStr;
-}
 
 export default function ProductionOrdersPage() {
   const [orders, setOrders] = useState<ProductionOrder[]>([]);
@@ -219,9 +201,11 @@ export default function ProductionOrdersPage() {
                     {order.Product || '-'}
                   </div>
                   <div className="fiori-oli-subtitle">
-                    {order.ProductionPlant || '-'}
+                    工厂: {order.ProductionPlant || '-'}
                     <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
-                    {formatDate(order.OrderScheduledStartDate)} ~ {formatDate(order.OrderScheduledEndDate)}
+                    计划: {order.PlannedTotalQty || '0'}
+                    <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
+                    收货: {order.GoodsReceiptQty || '0'}
                   </div>
                   <div className="flex items-center gap-2">
                     <FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge>
@@ -242,8 +226,8 @@ export default function ProductionOrdersPage() {
                 <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>订单号</th>
                 <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>物料</th>
                 <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>工厂</th>
-                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>计划开始</th>
-                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>计划结束</th>
+                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>计划数量</th>
+                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>收货数量</th>
                 <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>状态</th>
               </tr>
             </thead>
@@ -255,8 +239,8 @@ export default function ProductionOrdersPage() {
                     <td className="px-4 py-3 font-medium">{order.ProductionOrder}</td>
                     <td className="px-4 py-3">{order.Product || '-'}</td>
                     <td className="px-4 py-3">{order.ProductionPlant || '-'}</td>
-                    <td className="px-4 py-3 tabular-nums">{formatDate(order.OrderScheduledStartDate)}</td>
-                    <td className="px-4 py-3 tabular-nums">{formatDate(order.OrderScheduledEndDate)}</td>
+                    <td className="px-4 py-3 tabular-nums">{order.PlannedTotalQty || '0'}</td>
+                    <td className="px-4 py-3 tabular-nums">{order.GoodsReceiptQty || '0'}</td>
                     <td className="px-4 py-3 text-center">
                       <FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge>
                     </td>
