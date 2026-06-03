@@ -5,22 +5,6 @@ import Link from 'next/link';
 
 const QUICK_ACCESS_MODULES = [
   {
-    title: '产品管理',
-    description: '查询产品主数据、物料组信息',
-    icon: '📦',
-    path: '/products',
-    api: 'API_PRODUCT_SRV',
-    color: 'blue',
-  },
-  {
-    title: '客户管理',
-    description: '查询客户主数据、销售范围',
-    icon: '👥',
-    path: '/customers',
-    api: 'API_BUSINESS_PARTNER',
-    color: 'cyan',
-  },
-  {
     title: '销售订单',
     description: '查询销售订单、行项目明细',
     icon: '📝',
@@ -67,6 +51,22 @@ const QUICK_ACCESS_MODULES = [
     path: '/material-documents',
     api: 'API_MATERIAL_DOCUMENT_SRV',
     color: 'rose',
+  },
+  {
+    title: '产品管理',
+    description: '查询产品主数据、物料组信息',
+    icon: '📦',
+    path: '/products',
+    api: 'API_PRODUCT_SRV',
+    color: 'blue',
+  },
+  {
+    title: '客户管理',
+    description: '查询客户主数据、销售范围',
+    icon: '👥',
+    path: '/customers',
+    api: 'API_BUSINESS_PARTNER',
+    color: 'cyan',
   },
 ];
 
