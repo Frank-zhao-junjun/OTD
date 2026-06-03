@@ -27,15 +27,13 @@ export default function ProductsPage() {
   const [productGroup, setProductGroup] = useState('');
   const [totalCount, setTotalCount] = useState(0);
 
-  // Fetch products from SAP API
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // Build query parameters
       const params = new URLSearchParams();
       params.set('top', '50');
-      
+
       if (searchQuery) {
         params.set('filter', `substringof('${searchQuery}',Product) or substringof('${searchQuery}',ProductDescription)`);
       }
@@ -65,12 +63,10 @@ export default function ProductsPage() {
     fetchProducts();
   }, [fetchProducts]);
 
-  // Handle search
   const handleSearch = () => {
     fetchProducts();
   };
 
-  // Clear filters
   const handleClear = () => {
     setSearchQuery('');
     setProductGroup('');
@@ -79,16 +75,20 @@ export default function ProductsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div>
-        <h1 className="text-lg md:text-2xl font-bold text-slate-800">产品管理</h1>
+        <h1 className="text-lg md:text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <Package className="h-5 w-5 text-blue-600" />
+          产品管理
+        </h1>
         <p className="text-slate-600 mt-1">查询 SAP 产品主数据</p>
       </div>
 
-      {/* Search Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">查询条件</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Search className="h-4 w-4" />
+            查询条件
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">
@@ -100,13 +100,12 @@ export default function ProductsPage() {
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
             </div>
-            <div className="w-[200px]">
+            <div className="w-full md:w-[200px]">
               <Select value={productGroup} onValueChange={setProductGroup}>
                 <SelectTrigger>
                   <SelectValue placeholder="选择物料组" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">全部</SelectItem>
                   <SelectItem value="001">001 - 原材料</SelectItem>
                   <SelectItem value="002">002 - 半成品</SelectItem>
                   <SelectItem value="003">003 - 成品</SelectItem>
@@ -114,13 +113,18 @@ export default function ProductsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={handleSearch}>查询</Button>
-            <Button variant="outline" onClick={handleClear}>清除</Button>
+            <Button onClick={handleSearch} className="cursor-pointer">
+              <Search className="h-4 w-4 mr-1" />
+              查询
+            </Button>
+            <Button variant="outline" onClick={handleClear} className="cursor-pointer">
+              <RotateCcw className="h-4 w-4 mr-1" />
+              重置
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Results Card */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg">查询结果</CardTitle>
@@ -130,7 +134,6 @@ export default function ProductsPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            // Loading skeleton
             <div className="space-y-4">
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="flex gap-4">
@@ -142,44 +145,44 @@ export default function ProductsPage() {
               ))}
             </div>
           ) : error ? (
-            // Error message
-            <div className="text-center py-8 text-red-600">
-              <p>查询失败: {error}</p>
+            <div className="text-center py-8">
+              <AlertCircle className="h-10 w-10 text-red-400 mx-auto mb-2" />
+              <p className="text-red-600">查询失败: {error}</p>
               <Button variant="outline" className="mt-4" onClick={handleSearch}>
                 重试
               </Button>
             </div>
           ) : products.length === 0 ? (
-            // Empty state
             <div className="text-center py-8 text-slate-500">
+              <Inbox className="h-10 w-10 text-slate-300 mx-auto mb-2" />
               <p>暂无数据，请调整查询条件</p>
             </div>
           ) : (
             <div className="overflow-x-auto -mx-4 md:mx-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[150px]">产品编号</TableHead>
-                  <TableHead>产品描述</TableHead>
-                  <TableHead className="w-[100px]">产品类型</TableHead>
-                  <TableHead className="w-[100px]">物料组</TableHead>
-                  <TableHead className="w-[80px]">单位</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {products.map((product) => (
-                  <TableRow key={product.Product}>
-                    <TableCell className="font-medium text-blue-600">
-                      {product.Product}
-                    </TableCell>
-                    <TableCell>{product.ProductDescription || '-'}</TableCell>
-                    <TableCell>{product.ProductType || '-'}</TableCell>
-                    <TableCell>{product.ProductGroup || '-'}</TableCell>
-                    <TableCell>{product.BaseUnit || '-'}</TableCell>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[150px]">产品编号</TableHead>
+                    <TableHead>产品描述</TableHead>
+                    <TableHead className="w-[100px]">产品类型</TableHead>
+                    <TableHead className="w-[100px]">物料组</TableHead>
+                    <TableHead className="w-[80px]">单位</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {products.map((product) => (
+                    <TableRow key={product.Product}>
+                      <TableCell className="font-medium text-blue-600">
+                        {product.Product}
+                      </TableCell>
+                      <TableCell>{product.ProductDescription || '-'}</TableCell>
+                      <TableCell>{product.ProductType || '-'}</TableCell>
+                      <TableCell>{product.ProductGroup || '-'}</TableCell>
+                      <TableCell>{product.BaseUnit || '-'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
