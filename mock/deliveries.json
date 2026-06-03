@@ -1,0 +1,8 @@
+[
+  { "DeliveryDocument": "800000001", "SoldToParty": "100001", "SoldToPartyName": "深圳华星光电技术", "DeliveryDate": "/Date(1717200000000)/", "DeliveryType": "LF", "OverallGoodsMovementStatus": "C", "StatusText": "已完成", "TotalNetAmount": "128500.00", "TransactionCurrency": "CNY" },
+  { "DeliveryDocument": "800000002", "SoldToParty": "100002", "SoldToPartyName": "广州白云电器设备", "DeliveryDate": "/Date(1717286400000)/", "DeliveryType": "LF", "OverallGoodsMovementStatus": "C", "StatusText": "已完成", "TotalNetAmount": "56200.00", "TransactionCurrency": "CNY" },
+  { "DeliveryDocument": "800000003", "SoldToParty": "100005", "SoldToPartyName": "珠海格力电器", "DeliveryDate": "/Date(1717372800000)/", "DeliveryType": "LF", "OverallGoodsMovementStatus": "A", "StatusText": "未处理", "TotalNetAmount": "215600.00", "TransactionCurrency": "CNY" },
+  { "DeliveryDocument": "800000004", "SoldToParty": "100003", "SoldToPartyName": "东莞生益科技", "DeliveryDate": "/Date(1717459200000)/", "DeliveryType": "LF", "OverallGoodsMovementStatus": "C", "StatusText": "已完成", "TotalNetAmount": "89300.00", "TransactionCurrency": "CNY" },
+  { "DeliveryDocument": "800000005", "SoldToParty": "100007", "SoldToPartyName": "中山明阳智能", "DeliveryDate": "/Date(1717545600000)/", "DeliveryType": "LF", "OverallGoodsMovementStatus": "B", "StatusText": "部分处理", "TotalNetAmount": "78000.00", "TransactionCurrency": "CNY" },
+  { "DeliveryDocument": "800000006", "SoldToParty": "100009", "SoldToPartyName": "肇庆风华高科", "DeliveryDate": "/Date(1717632000000)/", "DeliveryType": "LF", "OverallGoodsMovementStatus": "C", "StatusText": "已完成", "TotalNetAmount": "178900.00", "TransactionCurrency": "CNY" }
+]

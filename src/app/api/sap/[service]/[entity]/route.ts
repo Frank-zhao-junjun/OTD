@@ -1,10 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 // SAP configuration from environment variables
 const SAP_BASE_URL = process.env.SAP_BASE_URL || 'https://my200967-api.s4hana.sapcloud.cn';
 const SAP_USERNAME = process.env.SAP_USERNAME || '';
 const SAP_PASSWORD = process.env.SAP_PASSWORD || '';
 const SAP_CLIENT = process.env.SAP_CLIENT || '100';
+const USE_MOCK = process.env.USE_MOCK === 'true';
+
+// Mock data file mapping: service:entity → mock file
+const MOCK_FILE_MAP: Record<string, string> = {
+  // Sales Orders
+  'CE_SALESORDER_0001:SalesOrder': 'sales_orders.json',
+  'API_SALES_ORDER_SRV:A_SalesOrder': 'sales_orders.json',
+  // Production Orders
+  'CE_PRODUCTIONORDER_0001:ProductionOrder': 'production_orders.json',
+  'API_PRODUCTION_ORDER_2_SRV:A_ProductionOrder': 'production_orders.json',
+  // Deliveries
+  'API_OUTBOUND_DELIVERY_SRV:A_OutbDeliveryHeader': 'deliveries.json',
+  'API_OUTBOUND_DELIVERY_SRV:A_OutbDeliveryItem': 'deliveries.json',
+  'API_OUTBOUND_DELIVERY_SRV:A_OutboundDelivery': 'deliveries.json',
+  // Billing
+  'API_BILLING_DOCUMENT_SRV:A_BillingDocument': 'invoices.json',
+  'API_BILLING_DOCUMENT_SRV:A_BillingDocumentItem': 'invoices.json',
+  // Inventory
+  'API_MATERIAL_STOCK_SRV:A_MatlStkInAcctMod': 'inventory.json',
+  // Goods Receipts / Material Documents
+  'API_MATERIAL_DOCUMENT_SRV:A_MaterialDocument': 'goods_receipts.json',
+  'API_MATERIAL_DOCUMENT_SRV:A_MaterialDocumentItem': 'goods_receipts.json',
+  // Products
+  'API_PRODUCT_SRV:A_Product': 'products.json',
+  // Customers
+  'API_BUSINESS_PARTNER:A_Customer': 'customers.json',
+};
+
+function loadMockData(filename: string): unknown[] {
+  try {
+    const filePath = join(process.cwd(), 'mock', filename);
+    const raw = readFileSync(filePath, 'utf-8');
+    return JSON.parse(raw);
+  } catch {
+    console.error(`Mock file not found: ${filename}`);
+    return [];
+  }
+}
 
 // Build authorization header (Basic Auth)
 function getAuthHeader(): string {
@@ -15,9 +55,6 @@ function getAuthHeader(): string {
 /**
  * Service name → SAP path prefix mapping
  * Supports both V2 and V4 OData endpoints.
- *
- * V2 services use path: /sap/opu/odata/sap/{SERVICE_NAME}/
- * V4 services use path: /sap/opu/odata4/sap/{SERVICE_PATH}/
  */
 const SERVICE_PATH_MAP: Record<string, string> = {
   // V2 OData services
@@ -30,27 +67,98 @@ const SERVICE_PATH_MAP: Record<string, string> = {
   'API_BILLING_DOCUMENT_SRV': '/sap/opu/odata/sap/API_BILLING_DOCUMENT_SRV/',
   'API_MATERIAL_DOCUMENT_SRV': '/sap/opu/odata/sap/API_MATERIAL_DOCUMENT_SRV/',
   'API_PROD_ORDER_CONFIRMATION_2_SRV': '/sap/opu/odata/sap/API_PROD_ORDER_CONFIRMATION_2_SRV/',
-
-  // V4 OData services (preferred for Sales & Production Order)
+  // V4 OData services
   'CE_SALESORDER_0001': '/sap/opu/odata4/sap/api_salesorder/srvd_a2x/sap/salesorder/0001/',
   'CE_PRODUCTIONORDER_0001': '/sap/opu/odata4/sap/api_productionorder/srvd_a2x/sap/productionorder/0001/',
 };
 
-// Detect OData version from service path
 function getODataVersion(servicePath: string): 'v2' | 'v4' {
   if (servicePath.includes('/odata4/')) return 'v4';
   return 'v2';
 }
 
 /**
+ * Handle Mock mode: load local JSON, apply filter/pagination
+ */
+function handleMockRequest(
+  service: string,
+  entity: string,
+  searchParams: URLSearchParams
+): NextResponse {
+  const mockKey = `${service}:${entity}`;
+  const mockFile = MOCK_FILE_MAP[mockKey];
+
+  if (!mockFile) {
+    return NextResponse.json(
+      { success: false, error: `No mock data for ${mockKey}` },
+      { status: 404 }
+    );
+  }
+
+  let data = loadMockData(mockFile);
+  const totalCount = data.length;
+
+  // Apply simple filter (parse OData filter expressions)
+  const filter = searchParams.get('filter');
+  if (filter && Array.isArray(data) && data.length > 0) {
+    data = applyODataFilter(data as Record<string, unknown>[], filter);
+  }
+
+  // Apply pagination
+  const top = parseInt(searchParams.get('top') || '0', 10);
+  const skip = parseInt(searchParams.get('skip') || '0', 10);
+  if (skip > 0) data = data.slice(skip);
+  if (top > 0) data = data.slice(0, top);
+
+  const sp = SERVICE_PATH_MAP[service];
+  const odataVer = sp ? getODataVersion(sp) : 'v2';
+  return NextResponse.json({
+    success: true,
+    data,
+    count: data.length,
+    totalCount,
+    odataVersion: odataVer,
+    _mock: true,
+  });
+}
+
+/**
+ * Simple OData $filter parser
+ * Supports: eq, ne, gt, lt, ge, le, and, or
+ */
+function applyODataFilter(
+  data: Record<string, unknown>[],
+  filter: string
+): Record<string, unknown>[] {
+  // Split by ' and ' for AND conditions
+  const andParts = filter.split(/\s+and\s+/i);
+
+  return data.filter(item => {
+    return andParts.every(part => {
+      const trimmed = part.trim().replace(/^\(/, '').replace(/\)$/, '');
+
+      // Match: Property op 'Value' or Property op Value
+      const match = trimmed.match(/^(\w+)\s+(eq|ne|gt|lt|ge|le)\s+'?([^']*)'?$/);
+      if (!match) return true;
+
+      const [, prop, op, val] = match;
+      const itemVal = String(item[prop] ?? '');
+
+      switch (op) {
+        case 'eq': return itemVal === val;
+        case 'ne': return itemVal !== val;
+        case 'gt': return itemVal > val;
+        case 'lt': return itemVal < val;
+        case 'ge': return itemVal >= val;
+        case 'le': return itemVal <= val;
+        default: return true;
+      }
+    });
+  });
+}
+
+/**
  * Generic SAP OData proxy endpoint
- * Handles GET requests for any SAP OData entity
- *
- * URL pattern: /api/sap/[service]/[entity]
- *   service: SAP service name (e.g., CE_SALESORDER_0001, API_PRODUCT_SRV)
- *   entity:  Entity set name (e.g., SalesOrder, A_Product)
- *
- * Query params: top, skip, filter, select, orderby, expand, format, id, count
  */
 export async function GET(
   request: NextRequest,
@@ -58,7 +166,12 @@ export async function GET(
 ): Promise<NextResponse> {
   const { service, entity } = await params;
 
-  // Check credentials
+  // === MOCK MODE ===
+  if (USE_MOCK) {
+    return handleMockRequest(service, entity, request.nextUrl.searchParams);
+  }
+
+  // === LIVE SAP MODE ===
   if (!SAP_USERNAME || !SAP_PASSWORD) {
     return NextResponse.json(
       { success: false, error: 'SAP credentials not configured. Please set SAP_USERNAME and SAP_PASSWORD in .env.local' },
@@ -66,7 +179,6 @@ export async function GET(
     );
   }
 
-  // Resolve service path
   const servicePath = SERVICE_PATH_MAP[service];
   if (!servicePath) {
     return NextResponse.json(
@@ -76,126 +188,84 @@ export async function GET(
   }
 
   const odataVersion = getODataVersion(servicePath);
-
-  // Build query options
   const searchParams = request.nextUrl.searchParams;
   const queryParams: string[] = [];
 
-  // Add sap-client
   queryParams.push(`sap-client=${SAP_CLIENT}`);
+  if (odataVersion === 'v2') queryParams.push(`$format=json`);
 
-  // Add format (default json) — V2 uses $format, V4 uses Accept header
-  if (odataVersion === 'v2') {
-    queryParams.push(`$format=json`);
-  }
-
-  // Add pagination
   const top = searchParams.get('top');
   const skip = searchParams.get('skip');
   if (top) queryParams.push(`$top=${top}`);
   if (skip) queryParams.push(`$skip=${skip}`);
 
-  // Add filter
   const filter = searchParams.get('filter');
   if (filter) queryParams.push(`$filter=${encodeURIComponent(filter)}`);
 
-  // Add select
   const select = searchParams.get('select');
   if (select) queryParams.push(`$select=${encodeURIComponent(select)}`);
 
-  // Add orderby
   const orderby = searchParams.get('orderby');
   if (orderby) queryParams.push(`$orderby=${encodeURIComponent(orderby)}`);
 
-  // Add expand
   const expand = searchParams.get('expand');
   if (expand) queryParams.push(`$expand=${encodeURIComponent(expand)}`);
 
-  // Add inline count (V4)
   const count = searchParams.get('count');
-  if (odataVersion === 'v4' && count === 'true') {
-    queryParams.push('$count=true');
-  }
-  // V2 inline count
-  if (odataVersion === 'v2') {
-    queryParams.push('$inlinecount=allpages');
-  }
+  if (odataVersion === 'v4' && count === 'true') queryParams.push('$count=true');
+  if (odataVersion === 'v2') queryParams.push('$inlinecount=allpages');
 
-  // Handle single entity query (by key)
   const id = searchParams.get('id');
   let entityPath = entity;
-  if (id) {
-    entityPath = `${entity}('${id}')`;
-  }
+  if (id) entityPath = `${entity}('${id}')`;
 
-  // Construct full SAP URL
   const sapUrl = `${SAP_BASE_URL}${servicePath}${entityPath}?${queryParams.join('&')}`;
 
   try {
-    // Make request to SAP
     const requestHeaders: Record<string, string> = {
       'Authorization': getAuthHeader(),
       'Accept': 'application/json',
     };
 
-    const response = await fetch(sapUrl, {
-      method: 'GET',
-      headers: requestHeaders,
-    });
+    const response = await fetch(sapUrl, { method: 'GET', headers: requestHeaders });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`SAP API error: ${response.status} - ${errorText.substring(0, 500)}`);
       return NextResponse.json(
-        {
-          success: false,
-          error: `SAP API returned ${response.status}`,
-          details: errorText.substring(0, 500)
-        },
+        { success: false, error: `SAP API returned ${response.status}`, details: errorText.substring(0, 500) },
         { status: response.status }
       );
     }
 
     const data = await response.json();
-
-    // Parse OData response format
-    // V2 format: { d: { results: [...], __count: N } }
-    // V4 format: { value: [...], @odata.count: N }
     let results: unknown[] = [];
-    let count: number | undefined = undefined;
+    let resultCount: number | undefined;
 
     if (data.d && Array.isArray(data.d.results)) {
-      // OData V2 collection format
       results = data.d.results;
-      count = parseInt(data.d.__count, 10) || results.length;
+      resultCount = parseInt(data.d.__count, 10) || results.length;
     } else if (data.value && Array.isArray(data.value)) {
-      // OData V4 collection format
       results = data.value;
-      count = data['@odata.count'] || results.length;
+      resultCount = data['@odata.count'] || results.length;
     } else if (data.d && !data.d.results) {
-      // OData V2 single entity
       results = [data.d];
-      count = 1;
+      resultCount = 1;
     } else {
-      // Unknown format, return raw data
       results = [data];
-      count = 1;
+      resultCount = 1;
     }
 
     return NextResponse.json({
       success: true,
       data: results,
-      count: count,
-      totalCount: count,
-      odataVersion: odataVersion,
+      count: resultCount,
+      totalCount: resultCount,
+      odataVersion,
     });
-
   } catch (error) {
     console.error('SAP API request failed:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json(
-      { success: false, error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }
