@@ -261,8 +261,6 @@ body {
 }
 
 .fiori-tile-icon {
-  width: 28px;
-  height: 28px;
   color: var(--primary);
 }
 
@@ -540,6 +538,9 @@ body {
   overflow-y: auto;
   flex-shrink: 0;
   padding: 8px 0;
+  position: sticky;
+  top: var(--fiori-shell-height);
+  align-self: flex-start;
 }
 
 .fiori-sidebar-group-label {
@@ -580,17 +581,24 @@ body {
 }
 
 /* ===== Responsive ===== */
-@media (max-width: 1024px) {
+@media (max-width: 1023px) {
   .fiori-sidebar {
     position: fixed;
-    left: -240px;
+    left: -260px;
     top: var(--fiori-shell-height);
     z-index: 40;
     transition: left 200ms ease;
     box-shadow: 4px 0 12px rgba(0,0,0,0.1);
+    height: calc(100vh - var(--fiori-shell-height));
   }
   .fiori-sidebar.open {
     left: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .fiori-sidebar {
+    display: block;
   }
 }
 

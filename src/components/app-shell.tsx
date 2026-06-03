@@ -18,6 +18,7 @@ import {
   User,
   LayoutDashboard,
   X,
+  MoreHorizontal,
 } from 'lucide-react';
 
 const BUSINESS_ITEMS = [
@@ -67,36 +68,28 @@ export function AppShell({ children }: { children: ReactNode }) {
     );
   }
 
-  const currentLabel = pathname === '/'
-    ? '工作台'
-    : ALL_ITEMS.find(item => item.path !== '/' && pathname.startsWith(item.path))?.label || '工作台';
-
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--background)' }}>
       {/* ===== Fiori ShellBar ===== */}
       <header className="fiori-shellbar">
-        {/* Hamburger / Menu toggle */}
         <button
-          className="fiori-shellbar-btn"
+          className="fiori-shellbar-btn lg:hidden"
           onClick={() => setSidebarOpen(!sidebarOpen)}
           aria-label="Toggle menu"
         >
           {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
 
-        {/* Logo */}
         <div className="flex items-center gap-2 mr-2">
           <div className="w-7 h-7 rounded flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(255,255,255,0.2)', color: '#FFF' }}>
             ES
           </div>
         </div>
 
-        {/* Title */}
         <div className="fiori-shellbar-title">
           ES+OTD助手
         </div>
 
-        {/* Search - desktop inline, mobile toggle */}
         {searchOpen ? (
           <div className="flex items-center gap-2">
             <input
@@ -118,12 +111,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           </button>
         )}
 
-        {/* Notification */}
         <button className="fiori-shellbar-btn hidden sm:flex" aria-label="Notifications">
           <Bell className="w-5 h-5" />
         </button>
 
-        {/* Avatar */}
         <button className="fiori-shellbar-btn" aria-label="User menu">
           <User className="w-5 h-5" />
         </button>
@@ -140,9 +131,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           />
         )}
 
-        {/* Sidebar */}
+        {/* Sidebar - desktop always visible, mobile overlay */}
         <aside
-          className={`fiori-sidebar ${sidebarOpen ? 'open' : ''} lg:!left-0 lg:!shadow-none lg:z-0`}
+          className={`fiori-sidebar ${sidebarOpen ? 'open' : ''}`}
           style={{ top: 'var(--fiori-shell-height)' }}
         >
           {/* Home */}
@@ -194,25 +185,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* ===== Main Content ===== */}
         <main className="flex-1 min-w-0">
-          {/* Breadcrumb bar */}
-          <div className="flex items-center h-9 px-4 border-b" style={{ borderColor: 'var(--border)', background: 'var(--card)' }}>
-            <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--muted-foreground)' }}>
-              {pathname !== '/' && (
-                <Link href="/" className="hover:underline" style={{ color: 'var(--primary)' }}>首页</Link>
-              )}
-              {pathname !== '/' && <span>/</span>}
-              <span className="font-medium" style={{ color: 'var(--foreground)' }}>{currentLabel}</span>
-            </div>
-          </div>
-
-          {/* Page Content */}
-          <div className="p-4 md:p-6 pb-20 md:pb-6">
+          <div className="p-4 md:p-6 pb-20 lg:pb-6">
             {children}
           </div>
         </main>
       </div>
 
-      {/* ===== Mobile Bottom Tab Bar ===== */}
+      {/* ===== Mobile Bottom Tab Bar (single row, 5 items) ===== */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
         <div className="grid grid-cols-5 h-14">
           {[
@@ -220,40 +199,21 @@ export function AppShell({ children }: { children: ReactNode }) {
             { icon: FileText, label: '销售', path: '/sales-orders' },
             { icon: Factory, label: '生产', path: '/production-orders' },
             { icon: BarChart3, label: '库存', path: '/material-stock' },
-            { icon: Truck, label: '发货', path: '/outbound-delivery' },
+            { icon: MoreHorizontal, label: '更多', path: '/outbound-delivery' },
           ].map((tab) => {
-            const isActive = pathname === tab.path || (tab.path !== '/' && pathname.startsWith(tab.path));
+            const isActive = tab.path === '/' 
+              ? pathname === '/' 
+              : pathname.startsWith(tab.path);
             const Icon = tab.icon;
             return (
               <Link
-                key={tab.path}
+                key={tab.label}
                 href={tab.path}
                 className="flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-colors duration-150"
                 style={{ color: isActive ? 'var(--primary)' : 'var(--muted-foreground)' }}
               >
                 <Icon className="w-5 h-5" />
                 <span className="text-[10px] leading-tight">{tab.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-        <div className="grid grid-cols-3 h-10 border-t" style={{ borderColor: 'var(--border)' }}>
-          {[
-            { icon: Receipt, label: '开票', path: '/billing-documents' },
-            { icon: FileSpreadsheet, label: '入库单', path: '/material-documents' },
-            { icon: Package, label: '产品', path: '/products' },
-          ].map((tab) => {
-            const isActive = pathname === tab.path || pathname.startsWith(tab.path);
-            const Icon = tab.icon;
-            return (
-              <Link
-                key={tab.path}
-                href={tab.path}
-                className="flex items-center justify-center gap-1.5 cursor-pointer transition-colors duration-150"
-                style={{ color: isActive ? 'var(--primary)' : 'var(--muted-foreground)' }}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                <span className="text-[10px]">{tab.label}</span>
               </Link>
             );
           })}
