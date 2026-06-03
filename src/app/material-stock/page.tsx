@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SAP_DEFAULTS } from '@/lib/sap-service';
+import { BarChart3, Search, RotateCcw, AlertCircle, Inbox } from 'lucide-react';
 
 // A_MatlStkInAcctMod — composite key stock line entity
 interface MaterialStock {

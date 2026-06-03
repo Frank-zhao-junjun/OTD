@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SAP_DEFAULTS } from '@/lib/sap-service';
+import { Truck, Search, RotateCcw, AlertCircle, Inbox } from 'lucide-react';
 
 interface OutboundDeliveryHeader {
   DeliveryDocument: string;

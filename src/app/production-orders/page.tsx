@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PRODUCTION_ORDER_STATUS_MAP, SAP_DEFAULTS } from '@/lib/sap-service';
+import { Factory, Search, RotateCcw, AlertCircle, Inbox } from 'lucide-react';
 
 interface ProductionOrder {
   ProductionOrder: string;
