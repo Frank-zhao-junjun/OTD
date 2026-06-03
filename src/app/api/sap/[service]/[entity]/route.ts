@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { SAP_DEFAULT_SELECTS } from '@/lib/sap-service';
+import { SAP_DEFAULT_SELECTS, SAP_DEFAULT_EXPANDS } from '@/lib/sap-service';
 
 // SAP configuration from environment variables
 const SAP_BASE_URL = process.env.SAP_BASE_URL || 'https://my200967-api.s4hana.sapcloud.cn';
@@ -49,6 +49,7 @@ function loadMockData(filename: string): unknown[] {
 
 // Default $select fields per service:entity
 const DEFAULT_SELECT_MAP = SAP_DEFAULT_SELECTS;
+const DEFAULT_EXPAND_MAP = SAP_DEFAULT_EXPANDS;
 
 // Build authorization header (Basic Auth)
 function getAuthHeader(): string {
@@ -108,14 +109,17 @@ function handleMockRequest(
     data = applyODataFilter(data as Record<string, unknown>[], filter);
   }
 
-  // Apply $select (field projection)
+  // Apply $select (field projection) — keep $expand navigation properties
   const select = searchParams.get('select');
   const effectiveSelect = select || DEFAULT_SELECT_MAP[mockKey];
+  const effectiveExpand = searchParams.get('expand') || DEFAULT_EXPAND_MAP[mockKey];
+  const expandFields = effectiveExpand ? effectiveExpand.split(',').map(f => f.trim()) : [];
   if (effectiveSelect && Array.isArray(data) && data.length > 0) {
     const fields = effectiveSelect.split(',').map(f => f.trim());
+    const allFields = [...fields, ...expandFields];
     data = (data as Record<string, unknown>[]).map(item => {
       const projected: Record<string, unknown> = {};
-      for (const f of fields) {
+      for (const f of allFields) {
         if (f in item) projected[f] = item[f];
       }
       return projected;
@@ -231,7 +235,9 @@ export async function GET(
   if (orderby) queryParams.push(`$orderby=${encodeURIComponent(orderby)}`);
 
   const expand = searchParams.get('expand');
-  if (expand) queryParams.push(`$expand=${encodeURIComponent(expand)}`);
+  const defaultExpand = DEFAULT_EXPAND_MAP[defaultSelectKey];
+  const effectiveExpand = expand || defaultExpand;
+  if (effectiveExpand) queryParams.push(`$expand=${encodeURIComponent(effectiveExpand)}`);
 
   const count = searchParams.get('count');
   if (odataVersion === 'v4' && count === 'true') queryParams.push('$count=true');

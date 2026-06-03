@@ -4,25 +4,107 @@ import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab } from '@/components/fiori';
 import { Package, Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
 
-interface Product {
+interface ProductDescription {
   Product: string;
-  ProductName: string;
-  ProductType: string;
-  ProductGroup: string;
-  ProductGroupText: string;
-  BaseUnit: string;
-  Weight: string;
-  WeightUnit: string;
-  Plant: string;
-  MRPType: string;
-  MRPTypeText: string;
+  Language: string;
+  ProductDescription: string;
 }
 
-const PRODUCT_TYPE_COLORS: Record<string, 'success' | 'warning' | 'info' | 'neutral'> = {
-  'FERT': 'success',
-  'HAWA': 'info',
-  'ROH': 'warning',
-  'HALB': 'neutral',
+interface ProductPlant {
+  Product: string;
+  Plant: string;
+  MRPType: string;
+  ProductionInvtryManagedLoc: string;
+  ProcurementType: string;
+  IsBatchManagementRequired: boolean;
+  ProfitCenter: string;
+  AvailabilityCheckType: string;
+  IsMarkedForDeletion: boolean;
+}
+
+interface ProductSalesDelivery {
+  Product: string;
+  ProductSalesOrg: string;
+  ProductDistributionChnl: string;
+  SupplyingPlant: string;
+  AccountDetnProductGroup: string;
+  ItemCategoryGroup: string;
+  IsMarkedForDeletion: boolean;
+}
+
+interface ProductValuation {
+  Product: string;
+  ValuationArea: string;
+  ValuationClass: string;
+  StandardPrice: string;
+  PriceUnitQty: string;
+  MovingAveragePrice: string;
+  Currency: string;
+  IsMarkedForDeletion: boolean;
+}
+
+interface Product {
+  Product: string;
+  ProductType: string;
+  ProductGroup: string;
+  BaseUnit: string;
+  WeightUnit: string;
+  GrossWeight: string;
+  NetWeight: string;
+  IsMarkedForDeletion: boolean;
+  CrossPlantStatus: string;
+  CreatedByUser: string;
+  CreationDate: string;
+  to_Description?: { results: ProductDescription[] };
+  to_Plant?: { results: ProductPlant[] };
+  to_SalesDelivery?: { results: ProductSalesDelivery[] };
+  to_Valuation?: { results: ProductValuation[] };
+}
+
+// Helper: extract ZH description from expand
+function getDescription(product: Product): string {
+  const descs = product.to_Description?.results || [];
+  const zh = descs.find((d) => d.Language === 'ZH');
+  return zh?.ProductDescription || descs[0]?.ProductDescription || product.Product;
+}
+
+// Helper: extract first plant info
+function getPlant(product: Product): ProductPlant | null {
+  const plants = product.to_Plant?.results || [];
+  return plants.length > 0 ? plants[0] : null;
+}
+
+// Helper: extract first valuation
+function getValuation(product: Product): ProductValuation | null {
+  const vals = product.to_Valuation?.results || [];
+  return vals.length > 0 ? vals[0] : null;
+}
+
+// Helper: get price display
+function getPrice(product: Product): string {
+  const val = getValuation(product);
+  if (!val) return '-';
+  const price = val.StandardPrice !== '0.00' ? val.StandardPrice : val.MovingAveragePrice;
+  return `${price} ${val.Currency}/${product.BaseUnit}`;
+}
+
+const PRODUCT_TYPE_MAP: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'neutral' }> = {
+  'FERT': { label: '成品', variant: 'success' },
+  'HAWA': { label: '贸易品', variant: 'info' },
+  'ROH': { label: '原材料', variant: 'warning' },
+  'HALB': { label: '半成品', variant: 'neutral' },
+};
+
+const PRODUCT_GROUP_MAP: Record<string, string> = {
+  'L001': '原材料-电子',
+  'L002': '原材料-包装',
+  'L003': '半成品',
+  'L004': '成品',
+};
+
+const PROCUREMENT_TYPE_MAP: Record<string, string> = {
+  'E': '自制',
+  'F': '外购',
 };
 
 export default function ProductsPage() {
@@ -74,19 +156,28 @@ export default function ProductsPage() {
       {error && !loading && <div className="text-center py-12" style={{ color: 'var(--color-fiori-error)' }}><p className="text-sm">{error}</p><button className="mt-2 text-sm underline" onClick={fetchData}>重试</button></div>}
       {!loading && !error && data.length === 0 && <div className="text-center py-12" style={{ color: 'var(--muted-foreground)' }}><Inbox className="w-10 h-10 mx-auto mb-2" /><p className="text-sm">暂无数据</p></div>}
 
+      {/* Card View (Mobile default + Desktop toggle) */}
       {!loading && !error && data.length > 0 && viewMode === 'card' && (
         <div className="space-y-2">
           {data.map((item) => {
-            const typeColor = PRODUCT_TYPE_COLORS[item.ProductType] || 'neutral';
+            const typeInfo = PRODUCT_TYPE_MAP[item.ProductType] || { label: item.ProductType, variant: 'neutral' as const };
+            const plant = getPlant(item);
+            const desc = getDescription(item);
+            const price = getPrice(item);
             return (
               <div key={item.Product} className="fiori-oli">
-                <div className={`fiori-oli-bar fiori-oli-bar--${typeColor}`} />
+                <div className={`fiori-oli-bar fiori-oli-bar--${typeInfo.variant}`} />
                 <div className="fiori-oli-content">
-                  <div className="fiori-oli-title">{item.Product} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.ProductName}</div>
-                  <div className="fiori-oli-subtitle">{item.ProductGroupText || item.ProductGroup} · {item.BaseUnit} · {item.Weight}{item.WeightUnit}</div>
+                  <div className="fiori-oli-title">{item.Product} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {desc}</div>
+                  <div className="fiori-oli-subtitle">
+                    {PRODUCT_GROUP_MAP[item.ProductGroup] || item.ProductGroup}
+                    {plant ? ` · ${plant.Plant}` : ''}
+                    {plant ? ` · ${PROCUREMENT_TYPE_MAP[plant.ProcurementType] || plant.ProcurementType}` : ''}
+                  </div>
                   <div className="flex items-center gap-2">
-                    <FioriBadge variant={typeColor}>{item.ProductType}</FioriBadge>
-                    {item.MRPTypeText && <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>MRP: {item.MRPTypeText}</span>}
+                    <FioriBadge variant={typeInfo.variant}>{typeInfo.label}</FioriBadge>
+                    <span className="text-xs tabular-nums" style={{ color: 'var(--muted-foreground)' }}>{price}</span>
+                    {plant?.MRPType && <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>MRP: {plant.MRPType}</span>}
                   </div>
                 </div>
               </div>
@@ -95,13 +186,35 @@ export default function ProductsPage() {
         </div>
       )}
 
+      {/* Table View (Desktop only) */}
       {!loading && !error && data.length > 0 && viewMode === 'table' && (
         <div className="hidden lg:block rounded-lg border overflow-hidden" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
           <table className="w-full text-sm">
-            <thead><tr style={{ background: 'var(--muted)' }}><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>产品编号</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>名称</th><th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>类型</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>产品组</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>单位</th><th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>重量</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>MRP</th></tr></thead>
+            <thead><tr style={{ background: 'var(--muted)' }}>
+              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>产品编号</th>
+              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>描述</th>
+              <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>类型</th>
+              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>产品组</th>
+              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>工厂</th>
+              <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>采购类型</th>
+              <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>价格</th>
+              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>MRP</th>
+            </tr></thead>
             <tbody>{data.map((item) => {
-              const typeColor = PRODUCT_TYPE_COLORS[item.ProductType] || 'neutral';
-              return (<tr key={item.Product} className="border-t hover:bg-accent/50 transition-colors" style={{ borderColor: 'var(--border)' }}><td className="px-4 py-3 font-medium">{item.Product}</td><td className="px-4 py-3">{item.ProductName}</td><td className="px-4 py-3 text-center"><FioriBadge variant={typeColor}>{item.ProductType}</FioriBadge></td><td className="px-4 py-3">{item.ProductGroupText || item.ProductGroup}</td><td className="px-4 py-3">{item.BaseUnit}</td><td className="px-4 py-3 text-right tabular-nums">{item.Weight} {item.WeightUnit}</td><td className="px-4 py-3">{item.MRPTypeText || '-'}</td></tr>);
+              const typeInfo = PRODUCT_TYPE_MAP[item.ProductType] || { label: item.ProductType, variant: 'neutral' as const };
+              const plant = getPlant(item);
+              const desc = getDescription(item);
+              const val = getValuation(item);
+              return (<tr key={item.Product} className="border-t hover:bg-accent/50 transition-colors" style={{ borderColor: 'var(--border)' }}>
+                <td className="px-4 py-3 font-medium">{item.Product}</td>
+                <td className="px-4 py-3">{desc}</td>
+                <td className="px-4 py-3 text-center"><FioriBadge variant={typeInfo.variant}>{typeInfo.label}</FioriBadge></td>
+                <td className="px-4 py-3">{PRODUCT_GROUP_MAP[item.ProductGroup] || item.ProductGroup}</td>
+                <td className="px-4 py-3">{plant?.Plant || '-'}</td>
+                <td className="px-4 py-3 text-center">{plant ? (PROCUREMENT_TYPE_MAP[plant.ProcurementType] || plant.ProcurementType) : '-'}</td>
+                <td className="px-4 py-3 text-right tabular-nums">{val ? `${val.StandardPrice !== '0.00' ? val.StandardPrice : val.MovingAveragePrice} ${val.Currency}` : '-'}</td>
+                <td className="px-4 py-3">{plant?.MRPType || '-'}</td>
+              </tr>);
             })}</tbody>
           </table>
         </div>
