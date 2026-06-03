@@ -103,6 +103,18 @@ function handleMockRequest(
   let data = loadMockData(mockFile);
   const totalCount = data.length;
 
+  // Single entity lookup by key (e.g. id=100000001 → SalesOrder('100000001'))
+  const id = searchParams.get('id');
+  if (id && Array.isArray(data)) {
+    data = (data as Record<string, unknown>[]).filter(item => {
+      // Try common key field names
+      const keyField = Object.keys(item).find(k =>
+        k === entity || k === entity.replace(/^A_/, '') || k === 'SalesOrder' || k === 'ProductionOrder' || k === 'DeliveryDocument' || k === 'BillingDocument' || k === 'MaterialDocument' || k === 'Product' || k === 'Customer'
+      );
+      return keyField ? String(item[keyField]) === id : false;
+    });
+  }
+
   // Apply simple filter (parse OData filter expressions)
   const filter = searchParams.get('filter');
   if (filter && Array.isArray(data) && data.length > 0) {
