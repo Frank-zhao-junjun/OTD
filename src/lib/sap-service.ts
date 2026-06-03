@@ -62,6 +62,8 @@ export const SAP_ENTITY_SETS = {
   MATERIAL_STOCK: ['A_MatlStkInAcctMod'],
   OUTBOUND_DELIVERY: ['A_OutbDeliveryHeader', 'A_OutbDeliveryItem'],
   BILLING_DOCUMENT: ['A_BillingDocument', 'A_BillingDocumentItem'],
+  MATERIAL_DOCUMENT: ['A_MaterialDocumentItem'],
+  PRODUCTION_CONFIRMATION: ['A_ProdOrderConf'],
 
   // V4 entity sets (no A_ prefix)
   SALES_ORDER: ['SalesOrder', 'SalesOrderItem', 'SalesOrderScheduleLine', 'SalesOrderPartner'],
@@ -192,6 +194,25 @@ export const SAP_FIELD_LABELS = {
   OutboundDelivery: '交货单号',
   DeliveryDate: '交货日期',
   DeliveryStatus: '交货状态',
+
+  // Billing Document fields
+  BillingDocument: '开票单号',
+  BillingDocumentType: '开票类型',
+  BillingDocumentDate: '开票日期',
+  BillingDocumentItem: '行号',
+  BillingQuantity: '开票数量',
+  NetAmount: '净金额',
+  TaxAmount: '税额',
+
+  // Material Document fields
+  MaterialDocument: '物料凭证号',
+  MaterialDocumentYear: '年度',
+  MaterialDocumentItem: '行号',
+  QuantityInEntryUnit: '数量',
+  EntryUnit: '单位',
+  GoodsMovementType: '移动类型',
+  PostingDate: '过账日期',
+  ManufacturingOrder: '生产订单',
 } as const;
 
 // Status display helpers

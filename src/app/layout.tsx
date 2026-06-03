@@ -12,6 +12,8 @@ const NAV_ITEMS = [
   { id: 'material-stock', label: '库存查询', icon: '📊', path: '/material-stock' },
   { id: 'customers', label: '客户管理', icon: '👥', path: '/customers' },
   { id: 'outbound-delivery', label: '交货单', icon: '🚚', path: '/outbound-delivery' },
+  { id: 'billing-documents', label: '开票单据', icon: '🧾', path: '/billing-documents' },
+  { id: 'material-documents', label: '物料凭证', icon: '📄', path: '/material-documents' },
 ];
 
 export default function MainLayout({ children }: { children: ReactNode }) {
