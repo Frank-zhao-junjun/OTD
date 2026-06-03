@@ -142,8 +142,8 @@ export default function SalesOrdersPage() {
             <FileText className="w-5 h-5 text-blue-600" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">销售订单</h1>
-            <p className="text-sm text-slate-500">BD9 Sell from Stock &middot; CE_SALESORDER_0001 (V4)</p>
+            <h1 className="text-lg md:text-xl font-bold text-slate-800">销售订单</h1>
+            <p className="text-xs md:text-sm text-slate-500">BD9 Sell from Stock</p>
           </div>
         </div>
       </div>
@@ -152,7 +152,7 @@ export default function SalesOrdersPage() {
       <Card className="border-slate-200">
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-3 items-end">
-            <div className="flex-1 min-w-[200px]">
+            <div className="flex-1 min-w-0 md:min-w-[200px]">
               <label className="text-xs font-medium text-slate-500 mb-1.5 block">搜索</label>
               <Input
                 placeholder="订单号 / 客户编号 / 客户采购单号"
@@ -161,7 +161,7 @@ export default function SalesOrdersPage() {
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
             </div>
-            <div className="w-[160px]">
+            <div className="w-full md:w-[160px]">
               <label className="text-xs font-medium text-slate-500 mb-1.5 block">订单类型</label>
               <Select value={orderType} onValueChange={setOrderType}>
                 <SelectTrigger><SelectValue placeholder="订单类型" /></SelectTrigger>

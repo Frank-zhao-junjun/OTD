@@ -183,7 +183,7 @@ export default function BillingDocumentPage() {
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-slate-800">开票单据</h1>
-        <p className="text-sm text-slate-500 mt-1">API_BILLING_DOCUMENT_SRV (V2) | 查询SAP开票凭证</p>
+        <p className="text-xs md:text-sm text-slate-500 mt-1">查询SAP开票凭证</p>
       </div>
 
       {/* Search Area */}

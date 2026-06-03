@@ -135,3 +135,19 @@
 body {
   @apply font-sans;
 }
+
+/* Mobile: table horizontal scroll */
+@media (max-width: 768px) {
+  .card-content {
+    margin-left: -1rem;
+    margin-right: -1rem;
+  }
+  table {
+    font-size: 0.8rem;
+  }
+  table th,
+  table td {
+    padding: 0.375rem 0.5rem;
+    white-space: nowrap;
+  }
+}

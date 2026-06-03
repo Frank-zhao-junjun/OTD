@@ -162,7 +162,7 @@ export default function MaterialDocumentPage() {
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-slate-800">物料凭证</h1>
-        <p className="text-sm text-slate-500 mt-1">API_MATERIAL_DOCUMENT_SRV (V2) | 查询SAP物料移动记录</p>
+        <p className="text-xs md:text-sm text-slate-500 mt-1">查询SAP物料移动记录</p>
       </div>
 
       {/* Search Area */}
