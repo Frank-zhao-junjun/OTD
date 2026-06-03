@@ -1,2 +1,3 @@
-# OTD
-Order to Delivery
+# Order to Delivery (OTD)
+
+Order to Delivery.
