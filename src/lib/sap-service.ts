@@ -219,7 +219,7 @@ export const SAP_FIELD_LABELS = {
 export const SAP_DEFAULT_SELECTS: Record<string, string> = {
   // Production Order (V4) — user-specified field set + UI-needed fields
   'CE_PRODUCTIONORDER_0001:ProductionOrder':
-    'ProductionOrder,IsMarkedForDeletion,IsCompletelyDelivered,CreationDate,CreatedByUser,Product,ProductionPlant,SalesOrder,SalesOrderItem,OrderScheduledStartDate,OrderScheduledEndDate,OrderActualStartDate,OrderActualEndDate,OrderActualReleaseDate,TechnicalCompletionDate,OrderPlannedTotalQty,ActualDeliveredQuantity,ProductionOrderStatus,ManufacturingOrderType',
+    'ProductionOrder,OrderIsReleased,IsMarkedForDeletion,Product,ProductionPlant,SalesOrder,SalesOrderItem,PlannedTotalQty,GoodsReceiptQty,ProductionOrderStatus,ManufacturingOrderType',
   // Sales Order (V4)
   'CE_SALESORDER_0001:SalesOrder':
     'SalesOrder,SalesOrderType,SalesOrganization,DistributionChannel,OrganizationDivision,SoldToParty,PurchaseOrderByCustomer,SalesOrderDate,TotalNetAmount,TransactionCurrency,OverallSDProcessStatus,OverallDeliveryStatus,OverallBillingStatus',
