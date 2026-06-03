@@ -9,23 +9,31 @@ const QUICK_ACCESS_MODULES = [
     description: '查询产品主数据、物料组信息',
     icon: '📦',
     path: '/products',
-    stats: '实时数据',
+    api: 'API_PRODUCT_SRV',
     color: 'blue',
   },
   {
+    title: '客户管理',
+    description: '查询客户主数据、销售范围',
+    icon: '👥',
+    path: '/customers',
+    api: 'API_BUSINESS_PARTNER',
+    color: 'cyan',
+  },
+  {
     title: '销售订单',
-    description: '查询销售订单、订单明细',
+    description: '查询销售订单、行项目明细',
     icon: '📝',
     path: '/sales-orders',
-    stats: '实时数据',
+    api: 'CE_SALESORDER_0001',
     color: 'green',
   },
   {
     title: '生产订单',
-    description: '查询生产订单、确认状态',
+    description: '查询生产订单、工序、组件',
     icon: '🏭',
     path: '/production-orders',
-    stats: '实时数据',
+    api: 'CE_PRODUCTIONORDER_0001',
     color: 'orange',
   },
   {
@@ -33,8 +41,32 @@ const QUICK_ACCESS_MODULES = [
     description: '查询物料库存、批次信息',
     icon: '📊',
     path: '/material-stock',
-    stats: '实时数据',
+    api: 'API_MATERIAL_STOCK_SRV',
     color: 'purple',
+  },
+  {
+    title: '交货单',
+    description: '查询外向交货、行项目明细',
+    icon: '🚚',
+    path: '/outbound-delivery',
+    api: 'API_OUTBOUND_DELIVERY_SRV',
+    color: 'teal',
+  },
+  {
+    title: '开票单据',
+    description: '查询开票凭证、行项目金额',
+    icon: '🧾',
+    path: '/billing-documents',
+    api: 'API_BILLING_DOCUMENT_SRV',
+    color: 'amber',
+  },
+  {
+    title: '物料凭证',
+    description: '查询物料移动记录、收发存',
+    icon: '📄',
+    path: '/material-documents',
+    api: 'API_MATERIAL_DOCUMENT_SRV',
+    color: 'rose',
   },
 ];
 
@@ -56,24 +88,19 @@ export default function HomePage() {
             <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
-                  <span className={`w-10 h-10 rounded-lg flex items-center justify-center text-2xl ${
-                    module.color === 'blue' ? 'bg-blue-100' :
-                    module.color === 'green' ? 'bg-green-100' :
-                    module.color === 'orange' ? 'bg-orange-100' :
-                    'bg-purple-100'
-                  }`}>
+                  <span className="w-10 h-10 rounded-lg flex items-center justify-center text-2xl bg-slate-100">
                     {module.icon}
                   </span>
-                  <CardTitle className="text-lg">{module.title}</CardTitle>
+                  <div>
+                    <CardTitle className="text-base">{module.title}</CardTitle>
+                    <span className="text-xs text-slate-400 font-mono">{module.api}</span>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-sm text-slate-600">
                   {module.description}
                 </CardDescription>
-                <div className="mt-3 text-xs text-slate-500">
-                  {module.stats}
-                </div>
               </CardContent>
             </Card>
           </Link>
@@ -88,13 +115,16 @@ export default function HomePage() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
-              <h4 className="font-semibold text-slate-700 mb-2">支持的数据模块</h4>
+              <h4 className="font-semibold text-slate-700 mb-2">8大接口模块</h4>
               <ul className="text-slate-600 space-y-1">
-                <li>• 产品主数据 (API_PRODUCT_SRV)</li>
-                <li>• 销售订单 (CE_SALESORDER_0001)</li>
-                <li>• 生产订单 (API_PRODUCTION_ORDER_2_SRV)</li>
-                <li>• 物料库存 (API_MATERIAL_STOCK_SRV)</li>
-                <li>• 客户主数据 (API_BUSINESS_PARTNER)</li>
+                <li>1. 产品主数据 — API_PRODUCT_SRV (V2)</li>
+                <li>2. 客户主数据 — API_BUSINESS_PARTNER (V2)</li>
+                <li>3. 销售订单 — CE_SALESORDER_0001 (V4)</li>
+                <li>4. 生产订单 — CE_PRODUCTIONORDER_0001 (V4)</li>
+                <li>5. 成品库存 — API_MATERIAL_STOCK_SRV (V2)</li>
+                <li>6. 外向交货 — API_OUTBOUND_DELIVERY_SRV;v=0002 (V2)</li>
+                <li>7. 开票单据 — API_BILLING_DOCUMENT_SRV (V2)</li>
+                <li>8. 物料凭证 — API_MATERIAL_DOCUMENT_SRV (V2)</li>
               </ul>
             </div>
             <div>
