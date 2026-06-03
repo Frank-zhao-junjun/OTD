@@ -10,16 +10,26 @@ import { SAP_DEFAULTS } from '@/lib/sap-service';
 import { Factory, Search, RotateCcw, Filter, Inbox, LayoutList, Table2 } from 'lucide-react';
 
 interface ProductionOrder {
-  ManufacturingOrder: string;
-  Material?: string;
-  MaterialName?: string;
-  Plant?: string;
+  ProductionOrder: string;
+  Product?: string;
+  ProductionPlant?: string;
   ManufacturingOrderType?: string;
-  MfgOrderPlannedStartDate?: string;
-  MfgOrderPlannedEndDate?: string;
+  OrderScheduledStartDate?: string;
+  OrderScheduledEndDate?: string;
+  OrderActualStartDate?: string | null;
+  OrderActualEndDate?: string | null;
+  OrderActualReleaseDate?: string | null;
+  TechnicalCompletionDate?: string | null;
+  OrderPlannedTotalQty?: string;
+  ActualDeliveredQuantity?: string;
+  IsMarkedForDeletion?: boolean;
+  IsCompletelyDelivered?: boolean;
+  SalesOrder?: string;
+  SalesOrderItem?: string;
   ProductionOrderStatus?: string;
   StatusText?: string;
-  MfgOrderActualEndDate?: string | null;
+  CreatedByUser?: string;
+  CreationDate?: string;
 }
 
 const getStatusInfo = (status: string | undefined): { color: 'success' | 'warning' | 'error' | 'info' | 'neutral'; label: string } => {
@@ -69,7 +79,7 @@ export default function ProductionOrdersPage() {
       const filterParts: string[] = [];
       if (plant && plant !== 'all') filterParts.push(`ProductionPlant eq '${plant}'`);
       if (searchQuery) {
-        filterParts.push(`(ManufacturingOrder eq '${searchQuery}' or Material eq '${searchQuery}')`);
+        filterParts.push(`(ProductionOrder eq '${searchQuery}' or Product eq '${searchQuery}')`);
       }
       if (filterParts.length > 0) params.set('filter', filterParts.join(' and '));
 
@@ -200,18 +210,18 @@ export default function ProductionOrdersPage() {
           {orders.map((order) => {
             const statusInfo = getStatusInfo(order.ProductionOrderStatus);
             return (
-              <div key={order.ManufacturingOrder} className="fiori-oli">
+              <div key={order.ProductionOrder} className="fiori-oli">
                 <div className={`fiori-oli-bar fiori-oli-bar--${statusInfo.color}`} />
                 <div className="fiori-oli-content">
                   <div className="fiori-oli-title">
-                    {order.ManufacturingOrder}
+                    {order.ProductionOrder}
                     <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
-                    {order.MaterialName || order.Material || '-'}
+                    {order.Product || '-'}
                   </div>
                   <div className="fiori-oli-subtitle">
-                    {order.Plant || '-'}
+                    {order.ProductionPlant || '-'}
                     <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
-                    {formatDate(order.MfgOrderPlannedStartDate)} ~ {formatDate(order.MfgOrderPlannedEndDate)}
+                    {formatDate(order.OrderScheduledStartDate)} ~ {formatDate(order.OrderScheduledEndDate)}
                   </div>
                   <div className="flex items-center gap-2">
                     <FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge>
@@ -241,12 +251,12 @@ export default function ProductionOrdersPage() {
               {orders.map((order) => {
                 const statusInfo = getStatusInfo(order.ProductionOrderStatus);
                 return (
-                  <tr key={order.ManufacturingOrder} className="border-t hover:bg-accent/50 transition-colors" style={{ borderColor: 'var(--border)' }}>
-                    <td className="px-4 py-3 font-medium">{order.ManufacturingOrder}</td>
-                    <td className="px-4 py-3">{order.MaterialName || order.Material || '-'}</td>
-                    <td className="px-4 py-3">{order.Plant || '-'}</td>
-                    <td className="px-4 py-3 tabular-nums">{formatDate(order.MfgOrderPlannedStartDate)}</td>
-                    <td className="px-4 py-3 tabular-nums">{formatDate(order.MfgOrderPlannedEndDate)}</td>
+                  <tr key={order.ProductionOrder} className="border-t hover:bg-accent/50 transition-colors" style={{ borderColor: 'var(--border)' }}>
+                    <td className="px-4 py-3 font-medium">{order.ProductionOrder}</td>
+                    <td className="px-4 py-3">{order.Product || '-'}</td>
+                    <td className="px-4 py-3">{order.ProductionPlant || '-'}</td>
+                    <td className="px-4 py-3 tabular-nums">{formatDate(order.OrderScheduledStartDate)}</td>
+                    <td className="px-4 py-3 tabular-nums">{formatDate(order.OrderScheduledEndDate)}</td>
                     <td className="px-4 py-3 text-center">
                       <FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge>
                     </td>
