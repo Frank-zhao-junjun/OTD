@@ -46,50 +46,87 @@ const request = (options) => {
 };
 
 /**
+ * SAP OData V2 响应解析
+ */
+const parseV2Response = (data) => {
+  if (data && data.d) {
+    return {
+      results: data.d.results || [],
+      count: parseInt(data.d.__count || '0')
+    };
+  }
+  return { results: [], count: 0 };
+};
+
+/**
+ * SAP OData V4 响应解析
+ */
+const parseV4Response = (data) => {
+  if (data) {
+    return {
+      results: data.value || [],
+      count: data['@odata.count'] || 0
+    };
+  }
+  return { results: [], count: 0 };
+};
+
+/**
  * API方法集合
  */
 const api = {
-  // 产品查询
+  // 1. 产品查询 (V2)
   getProducts: (params = {}) => request({
     url: `/API_PRODUCT_SRV/A_Product`,
     data: params
   }),
-  
-  // 单个产品详情
-  getProductDetail: (productId) => request({
-    url: `/API_PRODUCT_SRV/A_Product`,
-    data: { id: productId }
-  }),
-  
-  // 销售订单查询
-  getSalesOrders: (params = {}) => request({
-    url: `/API_SALES_ORDER_SRV/A_SalesOrder`,
-    data: params
-  }),
-  
-  // 生产订单查询
-  getProductionOrders: (params = {}) => request({
-    url: `/API_PRODUCTION_ORDER_2_SRV/A_ProductionOrder`,
-    data: params
-  }),
-  
-  // 库存查询
-  getMaterialStock: (params = {}) => request({
-    url: `/API_MATERIAL_STOCK_SRV/A_MatlStkInAcctMod`,
-    data: params
-  }),
-  
-  // 客户查询
+
+  // 2. 客户查询 (V2)
   getCustomers: (params = {}) => request({
     url: `/API_BUSINESS_PARTNER/A_Customer`,
     data: params
   }),
-  
-  // 外向交货单查询
+
+  // 3. 销售订单查询 (V4)
+  getSalesOrders: (params = {}) => request({
+    url: `/CE_SALESORDER_0001/SalesOrder`,
+    data: params
+  }),
+
+  // 销售订单行项目 (V4)
+  getSalesOrderItems: (orderNumber) => request({
+    url: `/CE_SALESORDER_0001/SalesOrder('${orderNumber}')/to_Item`,
+  }),
+
+  // 4. 生产订单查询 (V4)
+  getProductionOrders: (params = {}) => request({
+    url: `/CE_PRODUCTIONORDER_0001/ProductionOrder`,
+    data: params
+  }),
+
+  // 5. 成品库存查询 (V2)
+  getMaterialStock: (params = {}) => request({
+    url: `/API_MATERIAL_STOCK_SRV/A_MatlStkInAcctMod`,
+    data: params
+  }),
+
+  // 6. 交货单查询 (V2)
   getOutboundDeliveries: (params = {}) => request({
     url: `/API_OUTBOUND_DELIVERY_SRV/A_OutbDeliveryHeader`,
+    data: params
+  }),
+
+  // 7. 开票单据查询 (V2)
+  getBillingDocuments: (params = {}) => request({
+    url: `/API_BILLING_DOCUMENT_SRV/A_BillingDocument`,
+    data: params
+  }),
+
+  // 8. 物料凭证查询 (V2)
+  getMaterialDocuments: (params = {}) => request({
+    url: `/API_MATERIAL_DOCUMENT_SRV/A_MaterialDocumentHeader`,
     data: params
   })
 };
 
-module.exports = { api, request };
+module.exports = { api, request, parseV2Response, parseV4Response };

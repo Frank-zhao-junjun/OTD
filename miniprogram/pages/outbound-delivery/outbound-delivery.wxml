@@ -1,0 +1,52 @@
+<!--pages/outbound-delivery/outbound-delivery.wxml -->
+<view class="container">
+  <view class="search-bar">
+    <view class="search-input-wrap">
+      <input class="search-input" placeholder="交货单号/客户编号" value="{{searchQuery}}" bindinput="onSearchInput" bindconfirm="onSearch"/>
+    </view>
+    <button class="search-btn primary-bg" bindtap="onSearch">查询</button>
+    <button class="search-btn default" bindtap="onClear">重置</button>
+  </view>
+
+  <view class="filter-hint">
+    <text class="hint-text">默认: 已完成发货 (GoodsMovementStatus=C)</text>
+  </view>
+
+  <view class="result-header" wx:if="{{totalCount > 0}}">
+    <text class="result-count">共 {{totalCount}} 条记录</text>
+  </view>
+
+  <view wx:if="{{!loading && deliveries.length > 0}}">
+    <block wx:for="{{deliveries}}" wx:key="DeliveryDocument">
+      <view class="list-card">
+        <view class="card-header">
+          <text class="card-title">{{item.DeliveryDocument}}</text>
+          <text class="card-badge" style="background-color: #DCFCE7; color: #166534;">{{item.StatusText}}</text>
+        </view>
+        <view class="card-body">
+          <view class="card-row">
+            <text class="card-label">客户</text>
+            <text class="card-value">{{item.SoldToParty || '-'}}</text>
+          </view>
+          <view class="card-row">
+            <text class="card-label">发货日期</text>
+            <text class="card-value">{{item.DeliveryDate}}</text>
+          </view>
+          <view class="card-row">
+            <text class="card-label">销售组织</text>
+            <text class="card-value">{{item.SalesOrganization || '-'}}</text>
+          </view>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <view class="loading-container" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <view class="empty-container" wx:if="{{!loading && deliveries.length === 0}}">
+    <text class="empty-text">暂无交货单数据</text>
+  </view>
+</view>
