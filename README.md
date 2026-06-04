@@ -1,6 +1,6 @@
 # OTD - Order to Delivery
 
-OTD助手 - SAP ERP数据查询系统，提供Web端和微信小程序端的数据查询能力。
+OTD助手 - SAP ERP数据查询系统，提供Web端和企业微信、微信小程序端的数据查询能力。
 
 ## 功能模块
 
