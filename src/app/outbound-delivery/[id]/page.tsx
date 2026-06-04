@@ -2,68 +2,67 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { ArrowLeft, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FioriBadge, FioriErrorState } from '@/components/fiori';
-import { ArrowLeft, Truck } from 'lucide-react';
-
-interface DeliveryItem {
-  DeliveryDocument: string;
-  DeliveryDocumentType: string;
-  DeliveryDate: string;
-  SoldToParty: string;
-  SalesOrganization: string;
-  ShippingPoint: string;
-  OverallGoodsMovementStatus: string;
-  OverallSDProcessStatus: string;
-}
-
+import { FioriBadge, FioriErrorState, getSapStatusColor } from '@/components/fiori';
 import { formatSapDate } from '@/lib/utils';
 
-const DELIVERY_STATUS_MAP: Record<string, { label: string; variant: 'error' | 'success' | 'warning' | 'info' | 'neutral' }> = {
-  'A': { label: '未处理', variant: 'neutral' },
-  'B': { label: '部分处理', variant: 'warning' },
-  'C': { label: '已完成', variant: 'success' },
+const DELIVERY_STATUS_MAP: Record<string, { label: string; color: 'success' | 'warning' | 'error' | 'info' | 'neutral' }> = {
+  A: { label: '未处理', color: 'neutral' },
+  B: { label: '部分处理', color: 'warning' },
+  C: { label: '已完成', color: 'success' },
 };
 
-const MOVEMENT_STATUS_MAP: Record<string, { label: string; variant: 'error' | 'success' | 'warning' | 'info' | 'neutral' }> = {
-  'A': { label: '未过账', variant: 'neutral' },
-  'B': { label: '部分过账', variant: 'warning' },
-  'C': { label: '已过账', variant: 'success' },
+const MOVEMENT_STATUS_MAP: Record<string, { label: string; color: 'success' | 'warning' | 'error' | 'info' | 'neutral' }> = {
+  A: { label: '未过账', color: 'neutral' },
+  B: { label: '部分过账', color: 'warning' },
+  C: { label: '已过账', color: 'success' },
 };
 
-const DELIVERY_TYPE_MAP: Record<string, string> = {
-  'LF': '外向交货单',
-  'NL': '补货交货',
-  'LR': '退货交货',
-};
+interface OutboundDelivery {
+  DeliveryDocument: string;
+  DeliveryDocumentType?: string;
+  DeliveryDate?: string;
+  ActualGoodsMovementDate?: string;
+  SoldToParty?: string;
+  ShipToParty?: string;
+  SalesOrganization?: string;
+  TransactionCurrency?: string;
+  OverallGoodsMovementStatus?: string;
+  OverallSDProcessStatus?: string;
+  ShippingPoint?: string;
+  SalesOffice?: string;
+  IncotermsClassification?: string;
+  OverallPickingStatus?: string;
+}
 
 export default function OutboundDeliveryDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const id = decodeURIComponent(params.id as string);
+  const id = params.id as string;
 
-  const [item, setItem] = useState<DeliveryItem | null>(null);
+  const [order, setOrder] = useState<OutboundDelivery | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchItem = async () => {
-      setLoading(true);
-      setError(null);
+    async function fetchData() {
       try {
-        const response = await fetch(`/api/sap/API_OUTBOUND_DELIVERY_SRV/A_OutbDeliveryHeader?id=${encodeURIComponent(id)}`);
-        const data = await response.json();
-        if (!data.success) throw new Error(data.error || 'Failed to fetch');
-        const results = data.data || [];
-        setItem(results[0] || null);
+        const res = await fetch(`/api/sap/API_OUTBOUND_DELIVERY_SRV/A_OutbDeliveryHeader?id=${encodeURIComponent(id)}`);
+        const data = await res.json();
+        if (data.success && data.data && data.data.length > 0) {
+          setOrder(data.data[0]);
+        } else {
+          setError(data.error || '未找到发货单');
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        setError(err instanceof Error ? err.message : '请求失败');
       } finally {
         setLoading(false);
       }
-    };
-    if (id) fetchItem();
+    }
+    if (id) fetchData();
   }, [id]);
 
   if (loading) {
@@ -72,33 +71,37 @@ export default function OutboundDeliveryDetailPage() {
         <Skeleton className="h-8 w-24" />
         <div className="fiori-objheader">
           <div className="flex items-center gap-3 mb-4"><Skeleton className="w-10 h-10 rounded-lg" /><div><Skeleton className="h-6 w-40 mb-1" /><Skeleton className="h-4 w-60" /></div></div>
-          <div className="fiori-objheader-fields">{Array.from({ length: 6 }).map((_, i) => (<div key={i} className="fiori-objheader-field"><Skeleton className="h-3 w-[60px] mb-1" /><Skeleton className="h-4 w-[100px]" /></div>))}</div>
+          <div className="fiori-objheader-fields">{Array.from({ length: 8 }).map((_, i) => (<div key={i} className="fiori-objheader-field"><Skeleton className="h-3 w-[60px] mb-1" /><Skeleton className="h-4 w-[100px]" /></div>))}</div>
         </div>
       </div>
     );
   }
 
-  if (error || !item) {
+  if (error || !order) {
     return (
       <div className="space-y-4">
         <Button variant="ghost" size="sm" onClick={() => router.back()} className="mb-2">
           <ArrowLeft className="w-4 h-4 mr-1" /> 返回
         </Button>
-        <FioriErrorState message={error || '未找到交货单数据'} onRetry={() => window.location.reload()} />
+        <FioriErrorState message={error || '未找到发货单'} onRetry={() => window.location.reload()} />
       </div>
     );
   }
 
-  const processStatus = DELIVERY_STATUS_MAP[item.OverallSDProcessStatus] || { label: item.OverallSDProcessStatus, variant: 'outline' as const };
-  const movementStatus = MOVEMENT_STATUS_MAP[item.OverallGoodsMovementStatus] || { label: item.OverallGoodsMovementStatus, variant: 'outline' as const };
+  const sdStatus = DELIVERY_STATUS_MAP[order.OverallSDProcessStatus || ''] || { label: order.OverallSDProcessStatus || '-', color: 'neutral' as const };
+  const movementStatus = MOVEMENT_STATUS_MAP[order.OverallGoodsMovementStatus || ''] || { label: order.OverallGoodsMovementStatus || '-', color: 'neutral' as const };
 
   const fields = [
-    { label: '交货单号', value: item.DeliveryDocument },
-    { label: '交货类型', value: DELIVERY_TYPE_MAP[item.DeliveryDocumentType] || item.DeliveryDocumentType },
-    { label: '交货日期', value: formatSapDate(item.DeliveryDate) },
-    { label: '售达方', value: item.SoldToParty },
-    { label: '销售组织', value: item.SalesOrganization },
-    { label: '装运点', value: item.ShippingPoint },
+    { label: '交货单类型', value: order.DeliveryDocumentType || '-' },
+    { label: '客户编号', value: order.SoldToParty || '-' },
+    { label: '收货方', value: order.ShipToParty || '-' },
+    { label: '销售组织', value: order.SalesOrganization || '-' },
+    { label: '交货日期', value: formatSapDate(order.DeliveryDate) },
+    { label: '实际发货日期', value: formatSapDate(order.ActualGoodsMovementDate) },
+    { label: '装运点', value: order.ShippingPoint || '-' },
+    { label: '销售办公室', value: order.SalesOffice || '-' },
+    { label: '国际贸易条件', value: order.IncotermsClassification || '-' },
+    { label: '币种', value: order.TransactionCurrency || '-' },
   ];
 
   return (
@@ -112,15 +115,16 @@ export default function OutboundDeliveryDetailPage() {
             <Truck className="w-5 h-5" />
           </div>
           <div>
-            <div className="fiori-objheader-title">{item.DeliveryDocument}</div>
+            <div className="fiori-objheader-title">{order.DeliveryDocument}</div>
             <div className="fiori-objheader-subtitle">
-              {DELIVERY_TYPE_MAP[item.DeliveryDocumentType] || item.DeliveryDocumentType} · {formatSapDate(item.DeliveryDate)}
+              {order.SoldToParty || '-'} · {formatSapDate(order.DeliveryDate)}
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2 mb-4">
-          <FioriBadge variant={processStatus.variant}>{processStatus.label}</FioriBadge>
-          <FioriBadge variant={movementStatus.variant}>物料{movementStatus.label}</FioriBadge>
+          <FioriBadge variant={sdStatus.color}>处理: {sdStatus.label}</FioriBadge>
+          <FioriBadge variant={movementStatus.color}>发货: {movementStatus.label}</FioriBadge>
+          {order.OverallPickingStatus && <FioriBadge variant={getSapStatusColor(order.OverallPickingStatus)}>拣配: {order.OverallPickingStatus}</FioriBadge>}
         </div>
         <div className="fiori-objheader-fields">
           {fields.map((field) => (

@@ -2,81 +2,68 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { ArrowLeft, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FioriBadge, FioriErrorState } from '@/components/fiori';
-import { ArrowLeft, FileText } from 'lucide-react';
-
-interface BillingItem {
-  BillingDocument: string;
-  BillingDocumentType: string;
-  BillingDocumentDate: string;
-  TotalNetAmount: string;
-  TransactionCurrency: string;
-  SoldToParty: string;
-  SalesOrganization: string;
-  OverallBillingStatus: string;
-  AccountingPostingStatus: string;
-}
-
 import { formatSapDate } from '@/lib/utils';
 
-function formatAmount(amount: string | undefined, currency: string | undefined): string {
-  if (!amount) return '-';
-  const n = parseFloat(amount);
-  if (isNaN(n)) return amount;
-  return `${n.toLocaleString('zh-CN', { minimumFractionDigits: 2 })} ${currency || ''}`;
+const BILLING_STATUS_MAP: Record<string, { label: string; color: 'success' | 'warning' | 'error' | 'info' | 'neutral' }> = {
+  A: { label: '未处理', color: 'neutral' },
+  B: { label: '部分处理', color: 'warning' },
+  C: { label: '已完成', color: 'success' },
+};
+
+const ACCOUNTING_STATUS_MAP: Record<string, { label: string; color: 'success' | 'warning' | 'error' | 'info' | 'neutral' }> = {
+  A: { label: '未过账', color: 'neutral' },
+  B: { label: '部分过账', color: 'warning' },
+  C: { label: '已过账', color: 'success' },
+  D: { label: '错误', color: 'error' },
+};
+
+interface BillingDocument {
+  BillingDocument: string;
+  BillingDocumentType?: string;
+  SalesOrganization?: string;
+  BillingDocumentDate?: string;
+  TotalNetAmount?: string;
+  TransactionCurrency?: string;
+  SoldToParty?: string;
+  OverallBillingStatus?: string;
+  AccountingPostingStatus?: string;
+  CompanyCode?: string;
+  Division?: string;
+  DistributionChannel?: string;
+  CreationTime?: string;
+  LastChangeDate?: string;
 }
-
-const BILLING_STATUS_MAP: Record<string, { label: string; variant: 'error' | 'success' | 'warning' | 'info' | 'neutral' }> = {
-  'A': { label: '未处理', variant: 'neutral' },
-  'B': { label: '处理中', variant: 'warning' },
-  'C': { label: '已完成', variant: 'success' },
-};
-
-const POSTING_STATUS_MAP: Record<string, { label: string; variant: 'error' | 'success' | 'warning' | 'info' | 'neutral' }> = {
-  'A': { label: '未过账', variant: 'neutral' },
-  'B': { label: '过账中', variant: 'warning' },
-  'C': { label: '已过账', variant: 'success' },
-  'D': { label: '错误', variant: 'error' },
-};
-
-const BILLING_TYPE_MAP: Record<string, string> = {
-  'F2': '发票',
-  'F1': '订单相关发票',
-  'F8': '贷项凭证',
-  'G2': '贷记备忘录',
-  'RE': '退货发票',
-  'S1': '取消发票',
-  'S2': '取消贷项凭证',
-};
 
 export default function BillingDocumentDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const id = decodeURIComponent(params.id as string);
+  const id = params.id as string;
 
-  const [item, setItem] = useState<BillingItem | null>(null);
+  const [doc, setDoc] = useState<BillingDocument | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchItem = async () => {
-      setLoading(true);
-      setError(null);
+    async function fetchData() {
       try {
-        const response = await fetch(`/api/sap/API_BILLING_DOCUMENT_SRV/A_BillingDocument?id=${encodeURIComponent(id)}`);
-        const data = await response.json();
-        if (!data.success) throw new Error(data.error || 'Failed to fetch');
-        const results = data.data || [];
-        setItem(results[0] || null);
+        const res = await fetch(`/api/sap/API_BILLING_DOCUMENT_SRV/A_BillingDocument?id=${encodeURIComponent(id)}`);
+        const data = await res.json();
+        if (data.success && data.data && data.data.length > 0) {
+          setDoc(data.data[0]);
+        } else {
+          setError(data.error || '未找到开票单据');
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        setError(err instanceof Error ? err.message : '请求失败');
       } finally {
         setLoading(false);
       }
-    };
-    if (id) fetchItem();
+    }
+    if (id) fetchData();
   }, [id]);
 
   if (loading) {
@@ -85,33 +72,37 @@ export default function BillingDocumentDetailPage() {
         <Skeleton className="h-8 w-24" />
         <div className="fiori-objheader">
           <div className="flex items-center gap-3 mb-4"><Skeleton className="w-10 h-10 rounded-lg" /><div><Skeleton className="h-6 w-40 mb-1" /><Skeleton className="h-4 w-60" /></div></div>
-          <div className="fiori-objheader-fields">{Array.from({ length: 6 }).map((_, i) => (<div key={i} className="fiori-objheader-field"><Skeleton className="h-3 w-[60px] mb-1" /><Skeleton className="h-4 w-[100px]" /></div>))}</div>
+          <div className="fiori-objheader-fields">{Array.from({ length: 8 }).map((_, i) => (<div key={i} className="fiori-objheader-field"><Skeleton className="h-3 w-[60px] mb-1" /><Skeleton className="h-4 w-[100px]" /></div>))}</div>
         </div>
       </div>
     );
   }
 
-  if (error || !item) {
+  if (error || !doc) {
     return (
       <div className="space-y-4">
         <Button variant="ghost" size="sm" onClick={() => router.back()} className="mb-2">
           <ArrowLeft className="w-4 h-4 mr-1" /> 返回
         </Button>
-        <FioriErrorState message={error || '未找到开票单据数据'} onRetry={() => window.location.reload()} />
+        <FioriErrorState message={error || '未找到开票单据'} onRetry={() => window.location.reload()} />
       </div>
     );
   }
 
-  const billingStatus = BILLING_STATUS_MAP[item.OverallBillingStatus] || { label: item.OverallBillingStatus, variant: 'outline' as const };
-  const postingStatus = POSTING_STATUS_MAP[item.AccountingPostingStatus] || { label: item.AccountingPostingStatus, variant: 'outline' as const };
+  const billingStatus = BILLING_STATUS_MAP[doc.OverallBillingStatus || ''] || { label: doc.OverallBillingStatus || '-', color: 'neutral' as const };
+  const accountingStatus = ACCOUNTING_STATUS_MAP[doc.AccountingPostingStatus || ''] || { label: doc.AccountingPostingStatus || '-', color: 'neutral' as const };
 
   const fields = [
-    { label: '开票单号', value: item.BillingDocument },
-    { label: '开票类型', value: BILLING_TYPE_MAP[item.BillingDocumentType] || item.BillingDocumentType },
-    { label: '开票日期', value: formatSapDate(item.BillingDocumentDate) },
-    { label: '金额', value: formatAmount(item.TotalNetAmount, item.TransactionCurrency) },
-    { label: '售达方', value: item.SoldToParty },
-    { label: '销售组织', value: item.SalesOrganization },
+    { label: '开票类型', value: doc.BillingDocumentType || '-' },
+    { label: '客户编号', value: doc.SoldToParty || '-' },
+    { label: '销售组织', value: doc.SalesOrganization || '-' },
+    { label: '分销渠道', value: doc.DistributionChannel || '-' },
+    { label: '部门', value: doc.Division || '-' },
+    { label: '公司代码', value: doc.CompanyCode || '-' },
+    { label: '开票日期', value: formatSapDate(doc.BillingDocumentDate) },
+    { label: '净金额', value: doc.TotalNetAmount ? `${doc.TotalNetAmount} ${doc.TransactionCurrency || ''}` : '-' },
+    { label: '创建时间', value: formatSapDate(doc.CreationTime) || '-' },
+    { label: '最后更改日期', value: formatSapDate(doc.LastChangeDate) || '-' },
   ];
 
   return (
@@ -125,15 +116,15 @@ export default function BillingDocumentDetailPage() {
             <FileText className="w-5 h-5" />
           </div>
           <div>
-            <div className="fiori-objheader-title">{item.BillingDocument}</div>
+            <div className="fiori-objheader-title">{doc.BillingDocument}</div>
             <div className="fiori-objheader-subtitle">
-              {BILLING_TYPE_MAP[item.BillingDocumentType] || item.BillingDocumentType} · {formatAmount(item.TotalNetAmount, item.TransactionCurrency)}
+              {doc.TotalNetAmount ? `${doc.TotalNetAmount} ${doc.TransactionCurrency || ''}` : '-'} · {formatSapDate(doc.BillingDocumentDate)}
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2 mb-4">
-          <FioriBadge variant={billingStatus.variant}>{billingStatus.label}</FioriBadge>
-          <FioriBadge variant={postingStatus.variant}>会计{postingStatus.label}</FioriBadge>
+          <FioriBadge variant={billingStatus.color}>开票: {billingStatus.label}</FioriBadge>
+          <FioriBadge variant={accountingStatus.color}>记账: {accountingStatus.label}</FioriBadge>
         </div>
         <div className="fiori-objheader-fields">
           {fields.map((field) => (

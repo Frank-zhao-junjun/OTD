@@ -284,12 +284,20 @@ export async function GET(
   const select = searchParams.get('select');
   const defaultSelectKey = `${service}:${entity}`;
   const defaultSelect = DEFAULT_SELECT_MAP[defaultSelectKey];
-  const effectiveSelect = select || defaultSelect;
-  if (effectiveSelect) queryParams.push(`$select=${encodeURIComponent(effectiveSelect)}`);
-
   const expand = searchParams.get('expand');
   const defaultExpand = DEFAULT_EXPAND_MAP[defaultSelectKey];
   const effectiveExpand = expand || defaultExpand;
+  // When $expand is used with $select, the expanded nav property names must be included in $select
+  let effectiveSelect = select || defaultSelect;
+  if (effectiveSelect && effectiveExpand) {
+    const expandNames = effectiveExpand.split(',').map(f => f.trim().split('(')[0]); // strip expand options like ($select=...)
+    const selectNames = effectiveSelect.split(',').map(f => f.trim());
+    const missing = expandNames.filter(e => !selectNames.includes(e));
+    if (missing.length > 0) {
+      effectiveSelect = effectiveSelect + ',' + missing.join(',');
+    }
+  }
+  if (effectiveSelect) queryParams.push(`$select=${encodeURIComponent(effectiveSelect)}`);
   if (effectiveExpand) queryParams.push(`$expand=${encodeURIComponent(effectiveExpand)}`);
 
   let entityPath = entity;
@@ -340,12 +348,37 @@ export async function GET(
     }
 
     // Strip __metadata from results to avoid exposing internal SAP hostnames/URLs
+    // Also handles nested expand results (to_Description, to_Plant, etc.)
     const sanitizeResults = (items: unknown[]): unknown[] => {
       if (!Array.isArray(items)) return items;
       return items.map(item => {
         if (item && typeof item === 'object') {
-          const { __metadata, ...rest } = item as Record<string, unknown>;
-          return rest;
+          const cleaned: Record<string, unknown> = {};
+          for (const [key, value] of Object.entries(item as Record<string, unknown>)) {
+            if (key === '__metadata') continue;
+            if (key === '@odata.etag') continue;
+            // Handle expanded navigation properties
+            if (value && typeof value === 'object') {
+              if (Array.isArray(value)) {
+                cleaned[key] = sanitizeResults(value as unknown[]);
+              } else if ((value as Record<string, unknown>).d && Array.isArray(((value as Record<string, unknown>).d as Record<string, unknown>)?.results)) {
+                // V2 expand: { d: { results: [...] } }
+                cleaned[key] = sanitizeResults(((value as Record<string, unknown>).d as Record<string, unknown>).results as unknown[]);
+              } else if ((value as Record<string, unknown>).results && Array.isArray((value as Record<string, unknown>).results)) {
+                // V2 expand: { results: [...] }
+                cleaned[key] = sanitizeResults((value as Record<string, unknown>).results as unknown[]);
+              } else if (!key.startsWith('@')) {
+                // Single expanded entity (e.g. to_Description with one result)
+                const { __metadata: _, ...rest } = value as Record<string, unknown>;
+                cleaned[key] = Object.keys(rest).length > 0 ? rest : value;
+              } else {
+                cleaned[key] = value;
+              }
+            } else {
+              cleaned[key] = value;
+            }
+          }
+          return cleaned;
         }
         return item;
       });

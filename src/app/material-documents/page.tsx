@@ -2,7 +2,7 @@
 import { useRouter } from 'next/navigation';
 
 import { useState, useEffect, useCallback } from 'react';
-import { FioriBadge, FioriFab, getSapStatusColor } from '@/components/fiori';
+import { FioriBadge, FioriFab } from '@/components/fiori';
 import { FileSpreadsheet, Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
 
 interface MaterialDocument {
@@ -17,18 +17,20 @@ interface MaterialDocument {
   MaterialBaseUnit: string;
   GoodsRecipientName: string;
   ManufacturingOrder: string;
+  Batch: string;
+  PurchaseOrder: string;
+  PurchaseOrderItem: string;
+  CostCenter: string;
+  ProfitCenter: string;
 }
 
 const MOVEMENT_COLORS: Record<string, 'success' | 'warning' | 'error' | 'info' | 'neutral'> = {
-  '101': 'success',
-  '261': 'warning',
-  '311': 'info',
-  '102': 'error',
-  '262': 'error',
-  '501': 'success',
-  '502': 'error',
-  '201': 'warning',
-  '202': 'error',
+  '101': 'success', '102': 'error',
+  '261': 'warning', '262': 'error',
+  '311': 'info', '312': 'error',
+  '501': 'success', '502': 'error',
+  '201': 'warning', '202': 'error',
+  '561': 'success',
 };
 
 function getMovementLabel(type: string): string {
@@ -38,6 +40,7 @@ function getMovementLabel(type: string): string {
     '311': '库存转储', '312': '转储取消',
     '501': '无PO收货', '502': '收货取消',
     '201': '成本中心发料', '202': '发料取消',
+    '561': '初始入库',
   };
   return labels[type] || type;
 }
@@ -98,11 +101,11 @@ export default function MaterialDocumentsPage() {
             const barColor = MOVEMENT_COLORS[item.GoodsMovementType] || 'neutral';
             const movementLabel = getMovementLabel(item.GoodsMovementType);
             return (
-              <div key={`${item.MaterialDocument}-${idx}`} className="fiori-oli cursor-pointer" onClick={() => router.push(`/material-documents/${item.MaterialDocument}`)}>
+              <div key={`${item.MaterialDocument}-${item.MaterialDocumentItem}-${idx}`} className="fiori-oli cursor-pointer" onClick={() => router.push(`/material-documents/${item.MaterialDocument}`)}>
                 <div className={`fiori-oli-bar fiori-oli-bar--${barColor}`} />
                 <div className="fiori-oli-content">
                   <div className="fiori-oli-title">{item.MaterialDocument} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.Material}</div>
-                  <div className="fiori-oli-subtitle">{item.Plant} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {movementLabel} ({item.GoodsMovementType})</div>
+                  <div className="fiori-oli-subtitle">{item.Plant} / {item.StorageLocation} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {movementLabel} ({item.GoodsMovementType})</div>
                   <div className="flex items-center gap-2">
                     <FioriBadge variant={barColor}>{movementLabel}</FioriBadge>
                     <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>{parseFloat(item.QuantityInBaseUnit || '0').toLocaleString()} {item.MaterialBaseUnit}</span>
@@ -117,11 +120,27 @@ export default function MaterialDocumentsPage() {
       {!loading && !error && data.length > 0 && viewMode === 'table' && (
         <div className="hidden lg:block rounded-lg border overflow-hidden" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
           <table className="w-full text-sm">
-            <thead><tr style={{ background: 'var(--muted)' }}><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>凭证号</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>物料</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>工厂</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>移动类型</th><th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>数量</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>库位</th></tr></thead>
+            <thead><tr style={{ background: 'var(--muted)' }}>
+              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>凭证号</th>
+              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>行项目</th>
+              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>物料</th>
+              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>工厂/库位</th>
+              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>移动类型</th>
+              <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>数量</th>
+              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>生产订单</th>
+            </tr></thead>
             <tbody>{data.map((item, idx) => {
               const barColor = MOVEMENT_COLORS[item.GoodsMovementType] || 'neutral';
               const movementLabel = getMovementLabel(item.GoodsMovementType);
-              return (<tr key={`${item.MaterialDocument}-${idx}`} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/material-documents/${item.MaterialDocument}`)}><td className="px-4 py-3 font-medium text-[#0070F2]">{item.MaterialDocument}</td><td className="px-4 py-3">{item.Material}</td><td className="px-4 py-3">{item.Plant}</td><td className="px-4 py-3"><FioriBadge variant={barColor}>{movementLabel}</FioriBadge></td><td className="px-4 py-3 text-right font-medium tabular-nums">{parseFloat(item.QuantityInBaseUnit || '0').toLocaleString()} {item.MaterialBaseUnit}</td><td className="px-4 py-3 tabular-nums">{item.StorageLocation}</td></tr>);
+              return (<tr key={`${item.MaterialDocument}-${item.MaterialDocumentItem}-${idx}`} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/material-documents/${item.MaterialDocument}`)}>
+                <td className="px-4 py-3 font-medium text-[#0070F2]">{item.MaterialDocument}</td>
+                <td className="px-4 py-3">{item.MaterialDocumentItem}</td>
+                <td className="px-4 py-3">{item.Material}</td>
+                <td className="px-4 py-3 tabular-nums">{item.Plant} / {item.StorageLocation}</td>
+                <td className="px-4 py-3"><FioriBadge variant={barColor}>{movementLabel}</FioriBadge></td>
+                <td className="px-4 py-3 text-right font-medium tabular-nums">{parseFloat(item.QuantityInBaseUnit || '0').toLocaleString()} {item.MaterialBaseUnit}</td>
+                <td className="px-4 py-3">{item.ManufacturingOrder || '-'}</td>
+              </tr>);
             })}</tbody>
           </table>
         </div>

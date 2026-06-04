@@ -6,27 +6,23 @@ import { ArrowLeft, Factory } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FioriBadge, FioriErrorState } from '@/components/fiori';
-import { getSapStatusColor, getSapStatusLabel } from '@/components/fiori';
 import { formatSapDate } from '@/lib/utils';
-
-const API_BASE = '/api/sap';
 
 interface ProductionOrder {
   ProductionOrder: string;
-  IsMarkedForDeletion: boolean;
-  IsCompletelyDelivered: boolean;
-  ProductionOrderType: string;
-  Product: string;
-  ProductionPlant: string;
-  SalesOrder: string;
-  SalesOrderItem: string;
-  OrderScheduledStartDate: string;
-  OrderScheduledEndDate: string;
-  OrderActualStartDate: string;
-  OrderActualEndDate: string;
-  OrderPlannedTotalQty: number | string;
-  ActualDeliveredQuantity: number | string;
-  ProductionOrderStatus?: string;
+  IsMarkedForDeletion?: boolean;
+  IsCompletelyDelivered?: boolean;
+  ProductionOrderType?: string;
+  Product?: string;
+  ProductionPlant?: string;
+  SalesOrder?: string;
+  SalesOrderItem?: string;
+  OrderScheduledStartDate?: string;
+  OrderScheduledEndDate?: string;
+  OrderActualStartDate?: string;
+  OrderActualEndDate?: string;
+  OrderPlannedTotalQty?: number | string;
+  ActualDeliveredQuantity?: number | string;
 }
 
 export default function ProductionOrderDetailPage() {
@@ -41,7 +37,7 @@ export default function ProductionOrderDetailPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await fetch(`${API_BASE}/CE_PRODUCTIONORDER_0001/ProductionOrder?id=${encodeURIComponent(id)}`);
+        const res = await fetch(`/api/sap/CE_PRODUCTIONORDER_0001/ProductionOrder?id=${encodeURIComponent(id)}`);
         const data = await res.json();
         if (data.success && data.data && data.data.length > 0) {
           setOrder(data.data[0]);
@@ -95,8 +91,6 @@ export default function ProductionOrderDetailPage() {
     { label: '完全交货', value: order.IsCompletelyDelivered ? '是' : '否' },
   ];
 
-  const statusCode = order.ProductionOrderStatus || '';
-
   return (
     <div className="space-y-4">
       <Button variant="ghost" size="sm" onClick={() => router.push('/production-orders')} className="mb-0">
@@ -115,10 +109,9 @@ export default function ProductionOrderDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 mb-4">
-          <FioriBadge variant={getSapStatusColor(statusCode)}>
-            {getSapStatusLabel(statusCode) || statusCode || '-'}
-          </FioriBadge>
+          {order.IsCompletelyDelivered && <FioriBadge variant="success">已完全交货</FioriBadge>}
           {order.IsMarkedForDeletion && <FioriBadge variant="error">已标记删除</FioriBadge>}
+          {!order.IsCompletelyDelivered && !order.IsMarkedForDeletion && <FioriBadge variant="info">进行中</FioriBadge>}
         </div>
         <div className="fiori-objheader-fields">
           {fields.map((field) => (
