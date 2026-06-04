@@ -1,0 +1,8 @@
+[
+  { "BillingDocument": "900000001", "SoldToParty": "100001", "SoldToPartyName": "深圳华星光电技术", "BillingDocumentDate": "/Date(1717200000000)/", "BillingType": "F2", "TotalNetAmount": "128500.00", "TransactionCurrency": "CNY", "BillingDocumentStatus": "C", "StatusText": "已过账" },
+  { "BillingDocument": "900000002", "SoldToParty": "100002", "SoldToPartyName": "广州白云电器设备", "BillingDocumentDate": "/Date(1717286400000)/", "BillingType": "F2", "TotalNetAmount": "56200.00", "TransactionCurrency": "CNY", "BillingDocumentStatus": "C", "StatusText": "已过账" },
+  { "BillingDocument": "900000003", "SoldToParty": "100004", "SoldToPartyName": "佛山顺达电子科技", "BillingDocumentDate": "/Date(1717372800000)/", "BillingType": "F2", "TotalNetAmount": "215600.00", "TransactionCurrency": "CNY", "BillingDocumentStatus": "A", "StatusText": "待过账" },
+  { "BillingDocument": "900000004", "SoldToParty": "100005", "SoldToPartyName": "珠海格力电器", "BillingDocumentDate": "/Date(1717459200000)/", "BillingType": "F2", "TotalNetAmount": "432000.00", "TransactionCurrency": "CNY", "BillingDocumentStatus": "C", "StatusText": "已过账" },
+  { "BillingDocument": "900000005", "SoldToParty": "100007", "SoldToPartyName": "中山明阳智能", "BillingDocumentDate": "/Date(1717545600000)/", "BillingType": "F2", "TotalNetAmount": "156000.00", "TransactionCurrency": "CNY", "BillingDocumentStatus": "C", "StatusText": "已过账" },
+  { "BillingDocument": "900000006", "SoldToParty": "100010", "SoldToPartyName": "汕头奥飞娱乐", "BillingDocumentDate": "/Date(1717632000000)/", "BillingType": "F2", "TotalNetAmount": "34500.00", "TransactionCurrency": "CNY", "BillingDocumentStatus": "A", "StatusText": "待过账" }
+]

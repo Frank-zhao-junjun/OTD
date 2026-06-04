@@ -1,9 +1,11 @@
+@import "https://fonts.googleapis.cn/css2?family=Inter:wght@400;500;600;700&display=swap";
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Fiori 3 Design Tokens */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -42,85 +44,112 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+
+  /* Fiori font stack - "72" is SAP's proprietary font, fallback to Inter */
   --font-sans:
-    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', ui-sans-serif,
-    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, sans-serif;
+    '72', '72full', 'Inter', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-mono:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
     'Courier New', monospace;
   --font-serif:
     'Noto Serif SC', 'Songti SC', 'SimSun', ui-serif, Georgia, Cambria,
     'Times New Roman', Times, serif;
+
+  /* Fiori status colors */
+  --color-fiori-success: #107E3E;
+  --color-fiori-warning: #E9730C;
+  --color-fiori-error: #BB0000;
+  --color-fiori-info: #0A6ED1;
+  --color-fiori-neutral: #6A6D70;
+
+  /* Fiori primary */
+  --color-fiori-primary: #0070F2;
+  --color-fiori-primary-hover: #0060D0;
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0.375rem; /* 6px - Fiori micro rounded */
+  /* Fiori 3 Light Theme */
+  --background: #FAFAFA;
+  --foreground: #1A2228;
+  --card: #FFFFFF;
+  --card-foreground: #1A2228;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A2228;
+  --primary: #0070F2;
+  --primary-foreground: #FFFFFF;
+  --secondary: #EBF5FF;
+  --secondary-foreground: #0070F2;
+  --muted: #F5F5F5;
+  --muted-foreground: #6A6D70;
+  --accent: #EBF5FF;
+  --accent-foreground: #0070F2;
+  --destructive: #BB0000;
+  --border: #E4E4E4;
+  --input: #E4E4E4;
+  --ring: #0070F2;
+  --chart-1: #0070F2;
+  --chart-2: #107E3E;
+  --chart-3: #E9730C;
+  --chart-4: #BB0000;
+  --chart-5: #6A6D70;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #1A2228;
+  --sidebar-primary: #0070F2;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #EBF5FF;
+  --sidebar-accent-foreground: #0070F2;
+  --sidebar-border: #E4E4E4;
+  --sidebar-ring: #0070F2;
+
+  /* Fiori specific tokens */
+  --fiori-shell-bg: #0070F2;
+  --fiori-shell-height: 44px;
+  --fiori-tile-height: 120px;
+  --fiori-oli-height: 72px;
+  --fiori-status-bar: 4px;
+  --fiori-grid-base: 8px;
+  --fiori-shadow-tile: 0 0 0 1px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.08);
+  --fiori-shadow-card: 0 0 0 1px rgba(0,0,0,0.03), 0 1px 4px rgba(0,0,0,0.06);
+  --fiori-shadow-hover: 0 0 0 1px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.12);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #1A2228;
+  --foreground: #FAFAFA;
+  --card: #233040;
+  --card-foreground: #FAFAFA;
+  --popover: #233040;
+  --popover-foreground: #FAFAFA;
+  --primary: #4DB1FF;
+  --primary-foreground: #1A2228;
+  --secondary: #1A3550;
+  --secondary-foreground: #4DB1FF;
+  --muted: #1E2D3D;
+  --muted-foreground: #9BA5AB;
+  --accent: #1A3550;
+  --accent-foreground: #4DB1FF;
+  --destructive: #FF5C5C;
+  --border: #2D3D4F;
+  --input: #2D3D4F;
+  --ring: #4DB1FF;
+  --chart-1: #4DB1FF;
+  --chart-2: #3CC66A;
+  --chart-3: #FFB040;
+  --chart-4: #FF5C5C;
+  --chart-5: #9BA5AB;
+  --sidebar: #1A2228;
+  --sidebar-foreground: #FAFAFA;
+  --sidebar-primary: #4DB1FF;
+  --sidebar-primary-foreground: #1A2228;
+  --sidebar-accent: #1A3550;
+  --sidebar-accent-foreground: #4DB1FF;
+  --sidebar-border: #2D3D4F;
+  --sidebar-ring: #4DB1FF;
+
+  --fiori-shell-bg: #1A2228;
 }
 
 @layer base {
@@ -129,25 +158,497 @@
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
 body {
   @apply font-sans;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
-/* Mobile: table horizontal scroll */
+/* ===== Fiori ShellBar ===== */
+.fiori-shellbar {
+  height: var(--fiori-shell-height);
+  background: var(--fiori-shell-bg);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  gap: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
+.fiori-shellbar-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: background 150ms;
+}
+.fiori-shellbar-btn:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+.fiori-shellbar-title {
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.fiori-shellbar-search {
+  display: none;
+  height: 32px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 4px;
+  color: #FFFFFF;
+  padding: 0 12px;
+  font-size: 13px;
+  outline: none;
+  width: 200px;
+}
+.fiori-shellbar-search::placeholder {
+  color: rgba(255,255,255,0.65);
+}
+.fiori-shellbar-search:focus {
+  background: rgba(255,255,255,0.25);
+  border-color: rgba(255,255,255,0.5);
+}
+
+@media (min-width: 768px) {
+  .fiori-shellbar-search {
+    display: block;
+  }
+}
+
+/* ===== Fiori Tile ===== */
+.fiori-tile {
+  height: var(--fiori-tile-height);
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: var(--fiori-shadow-tile);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+  border: 1px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+.fiori-tile:hover {
+  box-shadow: var(--fiori-shadow-hover);
+  border-color: var(--primary);
+}
+.fiori-tile:active {
+  transform: scale(0.98);
+}
+
+.fiori-tile-icon {
+  color: var(--primary);
+}
+
+.fiori-tile-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground);
+  line-height: 1.3;
+}
+
+.fiori-tile-kpi {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.fiori-tile-subtitle {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+/* ===== Fiori ObjectListItem ===== */
+.fiori-oli {
+  display: flex;
+  align-items: stretch;
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: var(--fiori-shadow-card);
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 150ms ease, border-color 150ms ease;
+  border: 1px solid transparent;
+  margin-bottom: 8px;
+  text-decoration: none;
+}
+.fiori-oli:hover {
+  box-shadow: var(--fiori-shadow-hover);
+  border-color: var(--primary);
+  text-decoration: none;
+}
+
+/* Mobile: compact OLI */
+@media (max-width: 1023px) {
+  .fiori-oli {
+    min-height: 64px;
+  }
+}
+
+/* PC: taller OLI */
+@media (min-width: 1024px) {
+  .fiori-oli {
+    min-height: var(--fiori-oli-height);
+  }
+}
+
+.fiori-oli-bar {
+  width: var(--fiori-status-bar);
+  flex-shrink: 0;
+}
+
+.fiori-oli-bar--success { background: var(--color-fiori-success); }
+.fiori-oli-bar--warning { background: var(--color-fiori-warning); }
+.fiori-oli-bar--error { background: var(--color-fiori-error); }
+.fiori-oli-bar--info { background: var(--color-fiori-info); }
+.fiori-oli-bar--neutral { background: var(--color-fiori-neutral); }
+
+.fiori-oli-content {
+  flex: 1;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  gap: 2px;
+}
+
+.fiori-oli-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fiori-oli-subtitle {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fiori-oli-status {
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fiori-oli-status--success { color: var(--color-fiori-success); }
+.fiori-oli-status--warning { color: var(--color-fiori-warning); }
+.fiori-oli-status--error { color: var(--color-fiori-error); }
+.fiori-oli-status--info { color: var(--color-fiori-info); }
+.fiori-oli-status--neutral { color: var(--color-fiori-neutral); }
+
+/* ===== Fiori ObjectHeader (Detail Page) ===== */
+.fiori-objheader {
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: var(--fiori-shadow-card);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.fiori-objheader-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: 4px;
+}
+
+.fiori-objheader-subtitle {
+  font-size: 14px;
+  color: var(--muted-foreground);
+  margin-bottom: 12px;
+}
+
+.fiori-objheader-fields {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 24px;
+}
+
+@media (min-width: 768px) {
+  .fiori-objheader-fields {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.fiori-objheader-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fiori-objheader-field-label {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fiori-objheader-field-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== Fiori Badge ===== */
+.fiori-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.fiori-badge--success {
+  background: rgba(16,126,62,0.12);
+  color: #107E3E;
+}
+.fiori-badge--warning {
+  background: rgba(233,115,12,0.12);
+  color: #E9730C;
+}
+.fiori-badge--error {
+  background: rgba(187,0,0,0.12);
+  color: #BB0000;
+}
+.fiori-badge--info {
+  background: rgba(10,110,209,0.12);
+  color: #0A6ED1;
+}
+.fiori-badge--neutral {
+  background: rgba(106,109,112,0.12);
+  color: #6A6D70;
+}
+
+/* ===== Fiori FilterBar ===== */
+.fiori-filterbar {
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: var(--fiori-shadow-card);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fiori-filterbar-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fiori-filterbar-field label {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ===== Fiori FAB ===== */
+.fiori-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,112,242,0.35);
+  border: none;
+  cursor: pointer;
+  z-index: 100;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+/* Mobile: raise FAB above bottom tab bar */
+@media (max-width: 1023px) {
+  .fiori-fab {
+    bottom: 72px;
+  }
+}
+.fiori-fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 20px rgba(0,112,242,0.45);
+}
+.fiori-fab:active {
+  transform: scale(0.95);
+}
+
+/* ===== Fiori Pop-in (responsive table → card) ===== */
+@media (max-width: 640px) {
+  .fiori-popin-table thead {
+    display: none;
+  }
+  .fiori-popin-table tbody tr {
+    display: block;
+    background: var(--card);
+    border-radius: 8px;
+    box-shadow: var(--fiori-shadow-card);
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+  .fiori-popin-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border: none !important;
+  }
+  .fiori-popin-table tbody td::before {
+    content: attr(data-label);
+    font-size: 11px;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+    margin-right: 12px;
+  }
+  .fiori-popin-table tbody td > * {
+    text-align: right;
+  }
+}
+
+/* ===== Sidebar ===== */
+.fiori-sidebar {
+  width: 240px;
+  background: var(--sidebar);
+  border-right: 1px solid var(--sidebar-border);
+  height: calc(100vh - var(--fiori-shell-height));
+  overflow-y: auto;
+  flex-shrink: 0;
+  padding: 8px 0;
+  position: sticky;
+  top: var(--fiori-shell-height);
+  align-self: flex-start;
+}
+
+.fiori-sidebar-group-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 12px 16px 6px;
+}
+
+.fiori-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--sidebar-foreground);
+  cursor: pointer;
+  transition: background 150ms, color 150ms;
+  border-radius: 0;
+  text-decoration: none;
+}
+.fiori-sidebar-item:hover {
+  background: var(--sidebar-accent);
+  color: var(--sidebar-accent-foreground);
+}
+.fiori-sidebar-item.active {
+  background: var(--sidebar-accent);
+  color: var(--sidebar-primary);
+  font-weight: 600;
+}
+
+.fiori-sidebar-item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1023px) {
+  .fiori-sidebar {
+    position: fixed;
+    left: -260px;
+    top: var(--fiori-shell-height);
+    z-index: 40;
+    transition: left 200ms ease;
+    box-shadow: 4px 0 12px rgba(0,0,0,0.1);
+    height: calc(100vh - var(--fiori-shell-height));
+  }
+  .fiori-sidebar.open {
+    left: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .fiori-sidebar {
+    display: block;
+  }
+}
+
 @media (max-width: 768px) {
-  .card-content {
-    margin-left: -1rem;
-    margin-right: -1rem;
+  .fiori-tile {
+    height: 100px;
   }
-  table {
-    font-size: 0.8rem;
+  .fiori-tile-kpi {
+    font-size: 20px;
   }
-  table th,
-  table td {
-    padding: 0.375rem 0.5rem;
-    white-space: nowrap;
-  }
+}
+
+/* ===== Utility Classes ===== */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #C0C0C0;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #A0A0A0;
 }

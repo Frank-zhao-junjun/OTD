@@ -1,369 +1,121 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileSpreadsheet, Search, RotateCcw, AlertCircle, Inbox } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { FioriBadge, FioriFab, getSapStatusColor } from '@/components/fiori';
+import { FileSpreadsheet, Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
 
-interface MaterialDocItem {
+interface MaterialDocument {
   MaterialDocument: string;
   MaterialDocumentYear: string;
-  MaterialDocumentItem: string;
-  Material: string;
-  MaterialDocumentItemText: string;
-  Plant: string;
-  StorageLocation: string;
-  Batch?: string;
-  QuantityInEntryUnit: string;
-  EntryUnit: string;
-  GoodsMovementType: string;
-  MovementTypeText?: string;
-  Delivery?: string;
-  DeliveryItem?: string;
-  ManufacturingOrder?: string;
   PostingDate: string;
-  AccountType?: string;
+  Material: string;
+  MaterialName: string;
+  Plant: string;
+  MovementType: string;
+  MovementTypeText: string;
+  Quantity: string;
+  BaseUnit: string;
+  GoodsRecipient: string;
+  ReferenceDocument: string;
 }
 
-// SAP /Date(xxx)/ timestamp parser
-function parseSapDate(dateStr: string): string {
-  if (!dateStr) return '';
+const MOVEMENT_COLORS: Record<string, 'success' | 'warning' | 'error' | 'info' | 'neutral'> = {
+  '101': 'success',
+  '261': 'warning',
+  '311': 'info',
+  '102': 'error',
+  '262': 'error',
+};
+
+function formatDate(dateStr: string | undefined): string {
+  if (!dateStr) return '-';
   const match = dateStr.match(/\/Date\((\d+)\)\//);
-  if (match) return new Date(parseInt(match[1])).toLocaleDateString('zh-CN');
+  if (match) { const d = new Date(parseInt(match[1])); return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }); }
   return dateStr;
 }
 
-// Goods movement type descriptions
-const MOVEMENT_TYPE_MAP: Record<string, { label: string; color: string }> = {
-  '101': { label: '收货(生产订单)', color: 'text-green-700 bg-green-50' },
-  '102': { label: '取消收货', color: 'text-red-700 bg-red-50' },
-  '261': { label: '发料(生产订单)', color: 'text-orange-700 bg-orange-50' },
-  '262': { label: '取消发料', color: 'text-red-700 bg-red-50' },
-  '601': { label: '发货(销售)', color: 'text-blue-700 bg-blue-50' },
-  '602': { label: '取消发货', color: 'text-red-700 bg-red-50' },
-  '311': { label: '转储', color: 'text-purple-700 bg-purple-50' },
-  '312': { label: '取消转储', color: 'text-red-700 bg-red-50' },
-  '561': { label: '期初导入', color: 'text-slate-700 bg-slate-50' },
-  '701': { label: '盘盈', color: 'text-green-700 bg-green-50' },
-  '702': { label: '盘亏', color: 'text-red-700 bg-red-50' },
-};
-
-function getMovementTypeLabel(code: string): string {
-  const entry = MOVEMENT_TYPE_MAP[code];
-  return entry ? `${code} ${entry.label}` : code;
-}
-
-function getMovementTypeColor(code: string): string {
-  return MOVEMENT_TYPE_MAP[code]?.color || 'text-slate-700 bg-slate-50';
-}
-
-export default function MaterialDocumentPage() {
-  const [materialDocs, setMaterialDocs] = useState<MaterialDocItem[]>([]);
+export default function MaterialDocumentsPage() {
+  const [data, setData] = useState<MaterialDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [totalCount, setTotalCount] = useState(0);
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
-  // Search params
-  const [materialDocNo, setMaterialDocNo] = useState('');
-  const [material, setMaterial] = useState('');
-  const [plant, setPlant] = useState('1010');
-  const [movementType, setMovementType] = useState('all');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [page, setPage] = useState(0);
-  const pageSize = 50;
-
-  const fetchMaterialDocs = useCallback(async (pageNum: number = 0) => {
-    setLoading(true);
-    setError(null);
-
+  const fetchData = useCallback(async () => {
+    setLoading(true); setError(null);
     try {
-      const filters: string[] = [];
-
-      if (materialDocNo) {
-        filters.push(`MaterialDocument eq '${materialDocNo}'`);
-      }
-      if (material) {
-        filters.push(`Material eq '${material}'`);
-      }
-      if (plant) {
-        filters.push(`Plant eq '${plant}'`);
-      }
-      if (movementType && movementType !== 'all') {
-        filters.push(`GoodsMovementType eq '${movementType}'`);
-      }
-      if (dateFrom) {
-        const fromDate = new Date(dateFrom);
-        filters.push(`PostingDate ge datetime'${fromDate.toISOString()}'`);
-      }
-      if (dateTo) {
-        const toDate = new Date(dateTo);
-        toDate.setHours(23, 59, 59);
-        filters.push(`PostingDate le datetime'${toDate.toISOString()}'`);
-      }
-
-      const params = new URLSearchParams({
-        top: pageSize.toString(),
-        skip: (pageNum * pageSize).toString(),
-        select: 'MaterialDocument,MaterialDocumentYear,MaterialDocumentItem,Material,MaterialDocumentItemText,Plant,StorageLocation,Batch,QuantityInEntryUnit,EntryUnit,GoodsMovementType,Delivery,DeliveryItem,ManufacturingOrder,PostingDate',
-        orderby: 'PostingDate desc,MaterialDocument desc',
-      });
-
-      if (filters.length > 0) {
-        params.set('filter', filters.join(' and '));
-      }
-
+      const params = new URLSearchParams({ top: '50', count: 'true' });
+      if (searchQuery) params.set('filter', `(MaterialDocument eq '${searchQuery}' or Material eq '${searchQuery}')`);
       const res = await fetch(`/api/sap/API_MATERIAL_DOCUMENT_SRV/A_MaterialDocumentItem?${params}`);
       const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Failed');
+      setData(json.data || []); setTotalCount(json.totalCount || json.count || 0);
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
+    finally { setLoading(false); }
+  }, [searchQuery]);
 
-      if (!json.success) {
-        throw new Error(json.error || '查询失败');
-      }
-
-      setMaterialDocs(json.data || []);
-      setTotalCount(json.count || json.data?.length || 0);
-      setPage(pageNum);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '查询失败');
-      setMaterialDocs([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [materialDocNo, material, plant, movementType, dateFrom, dateTo]);
-
-  const handleSearch = () => fetchMaterialDocs(0);
-  const handleReset = () => {
-    setMaterialDocNo('');
-    setMaterial('');
-    setPlant('1010');
-    setMovementType('');
-    setDateFrom('');
-    setDateTo('');
-    setMaterialDocs([]);
-    setError(null);
-    setTotalCount(0);
-  };
-
-  const totalPages = Math.ceil(totalCount / pageSize);
-
-  // Group by MaterialDocument for header view
-  const docGroups = materialDocs.reduce<Record<string, MaterialDocItem[]>>((acc, item) => {
-    const key = `${item.MaterialDocument}-${item.MaterialDocumentYear}`;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(item);
-    return acc;
-  }, {});
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-800">入库单</h1>
-        <p className="text-xs md:text-sm text-slate-500 mt-1">查询SAP入库记录</p>
+    <div className="space-y-4">
+      <div className="lg:hidden"><h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>入库单</h1></div>
+
+      <div className="fiori-filterbar">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--muted-foreground)' }} />
+            <input type="text" placeholder="凭证号 / 物料号" className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchData()} />
+          </div>
+        </div>
+        <div className="hidden lg:flex items-center border rounded overflow-hidden" style={{ borderColor: 'var(--border)' }}>
+          <button className={`h-8 w-8 flex items-center justify-center ${viewMode === 'card' ? 'text-white' : ''}`} style={viewMode === 'card' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }} onClick={() => setViewMode('card')}><LayoutList className="w-4 h-4" /></button>
+          <button className={`h-8 w-8 flex items-center justify-center ${viewMode === 'table' ? 'text-white' : ''}`} style={viewMode === 'table' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }} onClick={() => setViewMode('table')}><Table2 className="w-4 h-4" /></button>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={fetchData} disabled={loading}><Search className="w-3.5 h-3.5 inline mr-1" /> 查询</button>
+          <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={() => setSearchQuery('')}><RotateCcw className="w-3.5 h-3.5 inline mr-1" /> 清除</button>
+        </div>
       </div>
 
-      {/* Search Area */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-slate-600">查询条件</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div>
-              <label className="text-xs text-slate-500 mb-1 block">入库单号</label>
-              <Input
-                placeholder="输入凭证号"
-                value={materialDocNo}
-                onChange={e => setMaterialDocNo(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSearch()}
-              />
-            </div>
-            <div>
-              <label className="text-xs text-slate-500 mb-1 block">物料号</label>
-              <Input
-                placeholder="输入物料号"
-                value={material}
-                onChange={e => setMaterial(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSearch()}
-              />
-            </div>
-            <div>
-              <label className="text-xs text-slate-500 mb-1 block">工厂</label>
-              <Select value={plant} onValueChange={setPlant}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1010">1010</SelectItem>
-                  <SelectItem value="all">全部</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs text-slate-500 mb-1 block">移动类型</label>
-              <Select value={movementType} onValueChange={setMovementType}>
-                <SelectTrigger><SelectValue placeholder="全部类型" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部类型</SelectItem>
-                  <SelectItem value="101">101 收货(生产)</SelectItem>
-                  <SelectItem value="261">261 发料(生产)</SelectItem>
-                  <SelectItem value="601">601 发货(销售)</SelectItem>
-                  <SelectItem value="311">311 转储</SelectItem>
-                  <SelectItem value="561">561 期初导入</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs text-slate-500 mb-1 block">过账日期(起)</label>
-              <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-            </div>
-            <div>
-              <label className="text-xs text-slate-500 mb-1 block">过账日期(止)</label>
-              <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
-            </div>
-          </div>
-          <div className="flex gap-2 mt-4">
-            <Button onClick={handleSearch} disabled={loading}>
-              {loading ? '查询中...' : '查询'}
-            </Button>
-            <Button variant="outline" onClick={handleReset}>重置</Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>共 {totalCount} 条记录</div>
+      {loading && <div className="flex items-center justify-center py-12"><div className="h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} /></div>}
+      {error && !loading && <div className="text-center py-12" style={{ color: 'var(--color-fiori-error)' }}><p className="text-sm">{error}</p><button className="mt-2 text-sm underline" onClick={fetchData}>重试</button></div>}
+      {!loading && !error && data.length === 0 && <div className="text-center py-12" style={{ color: 'var(--muted-foreground)' }}><Inbox className="w-10 h-10 mx-auto mb-2" /><p className="text-sm">暂无数据</p></div>}
 
-      {/* Error */}
-      {error && (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="py-3">
-            <p className="text-sm text-red-600">{error}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Results */}
-      {Object.keys(docGroups).length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-slate-600">
-                查询结果 ({totalCount} 条, {Object.keys(docGroups).length} 个凭证)
-              </CardTitle>
-              <div className="text-xs text-slate-400">
-                第 {page + 1} / {Math.max(totalPages, 1)} 页
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {/* Grouped by Material Document */}
-            {Object.entries(docGroups).map(([docKey, docItems]) => (
-              <div key={docKey} className="mb-4 border border-slate-200 rounded-lg overflow-hidden">
-                {/* Document Header */}
-                <div className="bg-slate-100 px-4 py-2 flex items-center gap-4 text-sm">
-                  <span className="font-semibold text-slate-700">
-                    凭证号: {docItems[0].MaterialDocument}
-                  </span>
-                  <span className="text-slate-500">年度: {docItems[0].MaterialDocumentYear}</span>
-                  <span className="text-slate-500">
-                    过账日期: {parseSapDate(docItems[0].PostingDate)}
-                  </span>
-                  <span className="text-slate-500">
-                    行数: {docItems.length}
-                  </span>
+      {!loading && !error && data.length > 0 && viewMode === 'card' && (
+        <div className="space-y-2">
+          {data.map((item, idx) => {
+            const barColor = MOVEMENT_COLORS[item.MovementType] || 'neutral';
+            return (
+              <div key={`${item.MaterialDocument}-${idx}`} className="fiori-oli">
+                <div className={`fiori-oli-bar fiori-oli-bar--${barColor}`} />
+                <div className="fiori-oli-content">
+                  <div className="fiori-oli-title">{item.MaterialDocument} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.MaterialName || item.Material}</div>
+                  <div className="fiori-oli-subtitle">{formatDate(item.PostingDate)} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.MovementTypeText} ({item.MovementType})</div>
+                  <div className="flex items-center gap-2">
+                    <FioriBadge variant={barColor}>{item.MovementTypeText}</FioriBadge>
+                    <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>{parseFloat(item.Quantity).toLocaleString()} {item.BaseUnit}</span>
+                  </div>
                 </div>
-
-                {/* Document Items */}
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>行号</TableHead>
-                      <TableHead>物料</TableHead>
-                      <TableHead>描述</TableHead>
-                      <TableHead>工厂</TableHead>
-                      <TableHead>库位</TableHead>
-                      <TableHead>批次</TableHead>
-                      <TableHead>数量</TableHead>
-                      <TableHead>移动类型</TableHead>
-                      <TableHead>参考单据</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {docItems.map((item, idx) => (
-                      <TableRow key={`${docKey}-${idx}`}>
-                        <TableCell className="font-mono">{item.MaterialDocumentItem}</TableCell>
-                        <TableCell className="font-mono font-medium text-blue-700">{item.Material}</TableCell>
-                        <TableCell>{item.MaterialDocumentItemText}</TableCell>
-                        <TableCell>{item.Plant}</TableCell>
-                        <TableCell>{item.StorageLocation}</TableCell>
-                        <TableCell className="font-mono">{item.Batch || '-'}</TableCell>
-                        <TableCell className="text-right font-mono">
-                          {parseFloat(item.QuantityInEntryUnit).toLocaleString()} {item.EntryUnit}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={`text-xs ${getMovementTypeColor(item.GoodsMovementType)}`}
-                          >
-                            {getMovementTypeLabel(item.GoodsMovementType)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {item.Delivery && (
-                            <span className="text-blue-600 font-mono text-xs">
-                              交货 {item.Delivery}-{item.DeliveryItem}
-                            </span>
-                          )}
-                          {item.ManufacturingOrder && (
-                            <span className="text-purple-600 font-mono text-xs">
-                              生产 {item.ManufacturingOrder}
-                            </span>
-                          )}
-                          {!item.Delivery && !item.ManufacturingOrder && '-'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
               </div>
-            ))}
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page === 0}
-                  onClick={() => fetchMaterialDocs(page - 1)}
-                >
-                  上一页
-                </Button>
-                <span className="text-sm text-slate-500">
-                  {page + 1} / {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => fetchMaterialDocs(page + 1)}
-                >
-                  下一页
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            );
+          })}
+        </div>
       )}
 
-      {/* Empty State */}
-      {!loading && materialDocs.length === 0 && !error && (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <div className="text-4xl mb-3">📄</div>
-            <div className="text-slate-500 text-sm">输入查询条件后点击"查询"获取入库单</div>
-          </CardContent>
-        </Card>
+      {!loading && !error && data.length > 0 && viewMode === 'table' && (
+        <div className="hidden lg:block rounded-lg border overflow-hidden" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+          <table className="w-full text-sm">
+            <thead><tr style={{ background: 'var(--muted)' }}><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>凭证号</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>物料</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>工厂</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>移动类型</th><th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>数量</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>过账日期</th></tr></thead>
+            <tbody>{data.map((item, idx) => {
+              const barColor = MOVEMENT_COLORS[item.MovementType] || 'neutral';
+              return (<tr key={`${item.MaterialDocument}-${idx}`} className="border-t hover:bg-accent/50 transition-colors" style={{ borderColor: 'var(--border)' }}><td className="px-4 py-3 font-medium">{item.MaterialDocument}</td><td className="px-4 py-3">{item.MaterialName || item.Material}</td><td className="px-4 py-3">{item.Plant}</td><td className="px-4 py-3"><FioriBadge variant={barColor}>{item.MovementTypeText}</FioriBadge></td><td className="px-4 py-3 text-right font-medium tabular-nums">{parseFloat(item.Quantity).toLocaleString()} {item.BaseUnit}</td><td className="px-4 py-3 tabular-nums">{formatDate(item.PostingDate)}</td></tr>);
+            })}</tbody>
+          </table>
+        </div>
       )}
+      <FioriFab icon={<Search className="w-5 h-5" />} onClick={fetchData} ariaLabel="刷新查询" />
     </div>
   );
 }

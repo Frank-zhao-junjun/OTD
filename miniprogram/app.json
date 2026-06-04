@@ -13,7 +13,7 @@
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#1E3A5F",
-    "navigationBarTitleText": "ES+OTD助手",
+    "navigationBarTitleText": "OTD助手",
     "navigationBarTextStyle": "white"
   },
   "tabBar": {
