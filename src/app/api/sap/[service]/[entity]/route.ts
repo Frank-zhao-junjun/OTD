@@ -10,7 +10,7 @@ import { SAP_DEFAULT_SELECTS, SAP_DEFAULT_EXPANDS } from '@/lib/sap-service';
  */
 function readEnvLocal(key: string): string | undefined {
   try {
-    const envPath = join(process.cwd(), '.env.local');
+    const envPath = join(process.env.COZE_WORKSPACE_PATH || process.cwd(), '.env.local');
     const content = readFileSync(envPath, 'utf-8');
     const regex = new RegExp(`^${key}=(?:["'](.+?)["']|(.+))$`, 'm');
     const match = content.match(regex);
@@ -66,7 +66,7 @@ const MOCK_FILE_MAP: Record<string, string> = {
 
 function loadMockData(filename: string): unknown[] {
   try {
-    const filePath = join(process.cwd(), 'mock', filename);
+    const filePath = join(process.env.COZE_WORKSPACE_PATH || process.cwd(), 'mock', filename);
     const raw = readFileSync(filePath, 'utf-8');
     return JSON.parse(raw);
   } catch {
