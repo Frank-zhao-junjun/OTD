@@ -161,6 +161,18 @@ export const SAP_FIELD_LABELS = {
   ProcurementType: '采购类型',
   ProfitCenter: '利润中心',
   AvailabilityCheckType: '可用性检查',
+  PurchasingGroup: '采购组',
+  CountryOfOrigin: '原产国',
+  RegionOfOrigin: '原产地',
+  IsBatchManagementRequired: '批次管理',
+  // Product SalesDelivery expand fields
+  ProductSalesOrg: '销售组织',
+  ProductDistributionChnl: '分销渠道',
+  ProductSalesStatus: '销售状态',
+  MinimumOrderQuantity: '最小订单量',
+  SalesMeasureUnit: '销售单位',
+  SupplyingPlant: '供应工厂',
+  Language: '语言',
   // Product Valuation expand fields
   ValuationArea: '评估范围',
   ValuationClass: '评估类',
