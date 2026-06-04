@@ -139,9 +139,9 @@ export interface SapApiResponse<T> {
   error?: string;
 }
 
-// Common SAP field labels (Chinese)
+// Common SAP field labels (Chinese) — ALL fields verified against real SAP S/4HANA Cloud responses
 export const SAP_FIELD_LABELS = {
-  // Product fields
+  // === Product fields (V2: API_PRODUCT_SRV/A_Product) ===
   Product: '产品编号',
   ProductDescription: '产品描述',
   ProductGroup: '物料组',
@@ -169,7 +169,7 @@ export const SAP_FIELD_LABELS = {
   PriceUnitQty: '价格单位',
   Currency: '货币',
 
-  // Sales Order fields
+  // === Sales Order fields (V4: CE_SALESORDER_0001/SalesOrder) ===
   SalesOrder: '销售订单号',
   SalesOrderType: '订单类型',
   SoldToParty: '售达方',
@@ -180,58 +180,80 @@ export const SAP_FIELD_LABELS = {
   SalesOrganization: '销售组织',
   OrganizationDivision: '产品组',
   OverallSDProcessStatus: '处理状态',
-  OverallDeliveryStatus: '交货状态',
-  OverallBillingStatus: '开票状态',
-  RequestedDeliveryDate: '要求交货日期',
   PurchaseOrderByCustomer: '客户采购订单',
 
-  // Production Order fields
+  // === Production Order fields (V4: CE_PRODUCTIONORDER_0001/ProductionOrder) ===
   ProductionOrder: '生产订单号',
-  Material: '物料号',
-  PlannedTotalQty: '计划数量',
-  ManufacturingOrderType: '订单类型',
+  ProductionOrderType: '订单类型',
+  // IsMarkedForDeletion — already defined in Product section
+  IsCompletelyDelivered: '完全交货',
+  // Product — already defined in Product section (物料号/产品编号)
   ProductionPlant: '生产工厂',
-  ProductionOrderStatus: '状态',
-  OrderStartDate: '开始日期',
-  OrderEndDate: '结束日期',
-  MfgOrderPlannedStartDate: '计划开始日期',
-  MfgOrderPlannedEndDate: '计划结束日期',
+  // SalesOrder — already defined in Sales Order section
+  SalesOrderItem: '销售订单行',
+  OrderPlannedTotalQty: '计划数量',
+  ActualDeliveredQuantity: '实际交货数量',
+  OrderScheduledStartDate: '计划开始日期',
+  OrderScheduledEndDate: '计划结束日期',
+  OrderActualStartDate: '实际开始日期',
+  OrderActualEndDate: '实际结束日期',
 
-  // Stock fields
+  // === Material Stock fields (V2: API_MATERIAL_STOCK_SRV/A_MatlStkInAcctMod) ===
+  Material: '物料号',
   StorageLocation: '存储位置',
   Batch: '批次',
+  InventoryStockType: '库存类型',
   MatlWrhsStkQtyInMatlBaseUnit: '库存数量',
   MaterialBaseUnit: '单位',
 
-  // Customer fields
+  // === Customer fields (V2: API_BUSINESS_PARTNER/A_Customer) ===
   Customer: '客户编号',
   CustomerName: '客户名称',
-  Country: '国家',
-  CityName: '城市',
+  CustomerFullName: '客户全名',
+  CustomerAccountGroup: '账户组',
+  CustomerCorporateGroup: '企业集团',
+  Industry: '行业',
+  Supplier: '供应商',
 
-  // Outbound Delivery fields
-  OutboundDelivery: '交货单号',
+  // === Outbound Delivery fields (V2: API_OUTBOUND_DELIVERY_SRV/A_OutbDeliveryHeader) ===
+  DeliveryDocument: '交货单号',
+  DeliveryDocumentType: '交货类型',
   DeliveryDate: '交货日期',
-  DeliveryStatus: '交货状态',
+  // SoldToParty — already defined in Sales Order section
+  ShipToParty: '送达方',
+  ActualGoodsMovementDate: '实际发货日期',
+  OverallGoodsMovementStatus: '货物移动状态',
+  // OverallSDProcessStatus — already defined in Sales Order section
+  ShippingPoint: '装运点',
+  SalesOffice: '销售办公室',
+  // TransactionCurrency — already defined in Sales Order section
+  IncotermsClassification: '国际贸易条款',
 
-  // Billing Document fields
+  // === Billing Document fields (V2: API_BILLING_DOCUMENT_SRV/A_BillingDocument) ===
   BillingDocument: '开票单号',
   BillingDocumentType: '开票类型',
   BillingDocumentDate: '开票日期',
-  BillingDocumentItem: '行号',
-  BillingQuantity: '开票数量',
-  NetAmount: '净金额',
-  TaxAmount: '税额',
+  // TotalNetAmount — already defined in Sales Order section
+  OverallBillingStatus: '开票状态',
+  AccountingPostingStatus: '过账状态',
+  CompanyCode: '公司代码',
+  Division: '产品组',
+  // DistributionChannel — already defined in Sales Order section
+  CreationTime: '创建时间',
+  LastChangeDate: '最后修改日期',
 
-  // Material Document fields
+  // === Material Document fields (V2: API_MATERIAL_DOCUMENT_SRV/A_MaterialDocumentItem) ===
   MaterialDocument: '物料凭证号',
   MaterialDocumentYear: '年度',
   MaterialDocumentItem: '行号',
-  QuantityInEntryUnit: '数量',
-  EntryUnit: '单位',
   GoodsMovementType: '移动类型',
-  PostingDate: '过账日期',
+  QuantityInBaseUnit: '数量',
+  GoodsRecipientName: '收货人',
   ManufacturingOrder: '生产订单',
+  PurchaseOrder: '采购订单',
+  PurchaseOrderItem: '采购订单行',
+  CostCenter: '成本中心',
+  // ProfitCenter — already defined in Product section
 } as const;
 
 // Default $select fields per service:entity (reduces response payload)
@@ -247,19 +269,19 @@ export const SAP_DEFAULT_SELECTS: Record<string, string> = {
     'Product,ProductType,ProductGroup,BaseUnit,WeightUnit,GrossWeight,NetWeight,IsMarkedForDeletion,CrossPlantStatus,CreatedByUser,CreationDate',
   // Customers (V2)
   'API_BUSINESS_PARTNER:A_Customer':
-    'Customer,CustomerName,CustomerFullName,CustomerAccountGroup,CreationDate',
+    'Customer,CustomerName,CustomerFullName,CustomerAccountGroup,CreationDate,CustomerCorporateGroup,Industry,Supplier',
   // Material Stock (V2)
   'API_MATERIAL_STOCK_SRV:A_MatlStkInAcctMod':
     'Material,Plant,StorageLocation,Batch,InventoryStockType,MaterialBaseUnit,MatlWrhsStkQtyInMatlBaseUnit',
   // Outbound Delivery (V2)
   'API_OUTBOUND_DELIVERY_SRV:A_OutbDeliveryHeader':
-    'DeliveryDocument,SoldToParty,DeliveryDate,DeliveryDocumentType,OverallGoodsMovementStatus,OverallSDProcessStatus,SalesOrganization,ShippingPoint',
+    'DeliveryDocument,SoldToParty,ShipToParty,DeliveryDate,DeliveryDocumentType,OverallGoodsMovementStatus,OverallSDProcessStatus,SalesOrganization,ShippingPoint,ActualGoodsMovementDate,SalesOffice,IncotermsClassification',
   // Billing Document (V2)
   'API_BILLING_DOCUMENT_SRV:A_BillingDocument':
-    'BillingDocument,SoldToParty,BillingDocumentDate,BillingDocumentType,TotalNetAmount,TransactionCurrency,OverallBillingStatus,AccountingPostingStatus,SalesOrganization',
+    'BillingDocument,SoldToParty,BillingDocumentDate,BillingDocumentType,TotalNetAmount,TransactionCurrency,OverallBillingStatus,AccountingPostingStatus,SalesOrganization,CompanyCode,Division,DistributionChannel,CreationTime,LastChangeDate',
   // Material Document (V2)
   'API_MATERIAL_DOCUMENT_SRV:A_MaterialDocumentItem':
-    'MaterialDocument,MaterialDocumentYear,MaterialDocumentItem,Material,Plant,StorageLocation,GoodsMovementType,QuantityInBaseUnit,MaterialBaseUnit,GoodsRecipientName,ManufacturingOrder',
+    'MaterialDocument,MaterialDocumentYear,MaterialDocumentItem,Material,Plant,StorageLocation,GoodsMovementType,QuantityInBaseUnit,MaterialBaseUnit,GoodsRecipientName,ManufacturingOrder,Batch,PurchaseOrder,PurchaseOrderItem,CostCenter,ProfitCenter',
 };
 
 // Default $expand per service:entity (SAP navigation properties)

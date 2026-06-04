@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FioriBadge, FioriErrorState } from '@/components/fiori';
-import { getSapStatusColor } from '@/components/fiori';
+import { FioriBadge, FioriErrorState, getSapStatusColor } from '@/components/fiori';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { SALES_ORDER_STATUS_MAP } from '@/lib/sap-service';
 import { formatSapDate } from '@/lib/utils';
@@ -20,15 +19,8 @@ interface SalesOrder {
   TotalNetAmount?: string | number;
   TransactionCurrency?: string;
   SalesOrderDate?: string;
-  RequestedDeliveryDate?: string;
   OverallSDProcessStatus?: string;
-  OverallDeliveryStatus?: string;
-  OverallBillingStatus?: string;
   PurchaseOrderByCustomer?: string;
-  CreationDate?: string;
-  LastChangeDate?: string;
-  SalesGroup?: string;
-  SalesOffice?: string;
 }
 
 export default function SalesOrderDetailPage() {
@@ -47,7 +39,6 @@ export default function SalesOrderDetailPage() {
       try {
         const searchParams = new URLSearchParams();
         searchParams.set('id', id);
-        searchParams.set('select', 'SalesOrder,SalesOrderType,SoldToParty,SalesOrganization,DistributionChannel,OrganizationDivision,TotalNetAmount,TransactionCurrency,SalesOrderDate,RequestedDeliveryDate,OverallSDProcessStatus,OverallDeliveryStatus,OverallBillingStatus,PurchaseOrderByCustomer,CreationDate,LastChangeDate,SalesGroup,SalesOffice');
 
         const response = await fetch(`/api/sap/CE_SALESORDER_0001/SalesOrder?${searchParams.toString()}`);
         const data = await response.json();
@@ -76,7 +67,7 @@ export default function SalesOrderDetailPage() {
           <Skeleton className="h-6 w-[180px] mb-2" />
           <Skeleton className="h-4 w-[240px] mb-4" />
           <div className="fiori-objheader-fields">
-            {[...Array(9)].map((_, i) => (
+            {[...Array(8)].map((_, i) => (
               <div key={i} className="fiori-objheader-field">
                 <Skeleton className="h-3 w-[60px] mb-1" />
                 <Skeleton className="h-4 w-[100px]" />
@@ -100,8 +91,6 @@ export default function SalesOrderDetailPage() {
   }
 
   const processStatus = SALES_ORDER_STATUS_MAP[order.OverallSDProcessStatus || '']?.label || order.OverallSDProcessStatus || '-';
-  const deliveryStatus = SALES_ORDER_STATUS_MAP[order.OverallDeliveryStatus || '']?.label || order.OverallDeliveryStatus || '-';
-  const billingStatus = SALES_ORDER_STATUS_MAP[order.OverallBillingStatus || '']?.label || order.OverallBillingStatus || '-';
 
   const fields = [
     { label: '订单类型', value: order.SalesOrderType || '-' },
@@ -112,10 +101,6 @@ export default function SalesOrderDetailPage() {
     { label: '产品组', value: order.OrganizationDivision || '-' },
     { label: '订单金额', value: order.TotalNetAmount ? `${Number(order.TotalNetAmount).toLocaleString()} ${order.TransactionCurrency || 'CNY'}` : '-' },
     { label: '订单日期', value: formatSapDate(order.SalesOrderDate) },
-    { label: '请求交货日期', value: formatSapDate(order.RequestedDeliveryDate) },
-    { label: '创建日期', value: formatSapDate(order.CreationDate) },
-    { label: '最后更改', value: formatSapDate(order.LastChangeDate) },
-    { label: '销售组', value: order.SalesGroup || '-' },
   ];
 
   return (
@@ -139,16 +124,10 @@ export default function SalesOrderDetailPage() {
           </div>
         </div>
 
-        {/* Status badges */}
+        {/* Status badge */}
         <div className="flex items-center gap-2 mb-4">
           <FioriBadge variant={getSapStatusColor(order.OverallSDProcessStatus)}>
-            处理: {processStatus}
-          </FioriBadge>
-          <FioriBadge variant={getSapStatusColor(order.OverallDeliveryStatus)}>
-            交货: {deliveryStatus}
-          </FioriBadge>
-          <FioriBadge variant={getSapStatusColor(order.OverallBillingStatus)}>
-            开票: {billingStatus}
+            处理状态: {processStatus}
           </FioriBadge>
         </div>
 

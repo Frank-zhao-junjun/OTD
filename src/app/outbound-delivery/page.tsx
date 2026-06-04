@@ -4,17 +4,23 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { FioriBadge, FioriFab, getSapStatusColor } from '@/components/fiori';
 import { Truck, Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
+import { formatSapDate } from '@/lib/utils';
 
 interface Delivery {
   DeliveryDocument: string;
-  DeliveryType?: string;
-  SoldToParty?: string;
-  SoldToPartyName?: string;
-  DeliveryDate?: string;
-  OverallGoodsMovementStatus?: string;
-  StatusText?: string;
-  TotalNetAmount?: string;
-  TransactionCurrency?: string;
+  DeliveryDocumentType: string;
+  SoldToParty: string;
+  ShipToParty: string;
+  DeliveryDate: string;
+  ActualGoodsMovementDate: string;
+  OverallGoodsMovementStatus: string;
+  OverallSDProcessStatus: string;
+  SalesOrganization: string;
+  ShippingPoint: string;
+  TransactionCurrency: string;
+  SalesOffice: string;
+  OverallPickingStatus: string;
+  IncotermsClassification: string;
 }
 
 const MOVEMENT_STATUS: Record<string, { color: 'success' | 'warning' | 'error' | 'info' | 'neutral'; label: string }> = {
@@ -24,22 +30,12 @@ const MOVEMENT_STATUS: Record<string, { color: 'success' | 'warning' | 'error' |
   'D': { color: 'error', label: '已取消' },
 };
 
-function formatDate(dateStr: string | undefined | null): string {
-  if (!dateStr) return '-';
-  const match = dateStr.match(/\/Date\((\d+)\)\//);
-  if (match) {
-    const d = new Date(parseInt(match[1]));
-    return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
-  }
-  return dateStr;
-}
-
-function formatAmount(amount: string | undefined, currency: string | undefined): string {
-  if (!amount) return '-';
-  const num = parseFloat(amount);
-  if (isNaN(num)) return amount;
-  return num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (currency ? ' ' + currency : '');
-}
+const SD_STATUS: Record<string, { color: 'success' | 'warning' | 'error' | 'info' | 'neutral'; label: string }> = {
+  'A': { color: 'info', label: '未处理' },
+  'B': { color: 'warning', label: '处理中' },
+  'C': { color: 'success', label: '已完成' },
+  'D': { color: 'error', label: '已取消' },
+};
 
 export default function OutboundDeliveryPage() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
@@ -112,16 +108,16 @@ export default function OutboundDeliveryPage() {
       {!loading && !error && deliveries.length > 0 && viewMode === 'card' && (
         <div className="space-y-2">
           {deliveries.map((d) => {
-            const statusInfo = MOVEMENT_STATUS[d.OverallGoodsMovementStatus || ''] || { color: getSapStatusColor(d.OverallGoodsMovementStatus), label: d.StatusText || d.OverallGoodsMovementStatus || '-' };
+            const statusInfo = MOVEMENT_STATUS[d.OverallGoodsMovementStatus || ''] || { color: getSapStatusColor(d.OverallGoodsMovementStatus), label: d.OverallGoodsMovementStatus || '-' };
             return (
               <div key={d.DeliveryDocument} className="fiori-oli cursor-pointer" onClick={() => router.push(`/outbound-delivery/${d.DeliveryDocument}`)}>
                 <div className={`fiori-oli-bar fiori-oli-bar--${statusInfo.color}`} />
                 <div className="fiori-oli-content">
-                  <div className="fiori-oli-title">{d.DeliveryDocument} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {d.SoldToPartyName || d.SoldToParty || '-'}</div>
-                  <div className="fiori-oli-subtitle">{formatDate(d.DeliveryDate)} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {d.DeliveryType || '-'}</div>
+                  <div className="fiori-oli-title">{d.DeliveryDocument} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {d.DeliveryDocumentType}</div>
+                  <div className="fiori-oli-subtitle">{formatSapDate(d.DeliveryDate)} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> 客户: {d.SoldToParty} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {d.ShippingPoint}</div>
                   <div className="flex items-center gap-2">
                     <FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge>
-                    {d.TotalNetAmount && <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>{formatAmount(d.TotalNetAmount, d.TransactionCurrency)}</span>}
+                    <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>销售组织: {d.SalesOrganization}</span>
                   </div>
                 </div>
               </div>
@@ -137,22 +133,27 @@ export default function OutboundDeliveryPage() {
             <thead>
               <tr style={{ background: 'var(--muted)' }}>
                 <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>交货单号</th>
+                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>类型</th>
                 <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>客户</th>
                 <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>交货日期</th>
-                <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>金额</th>
-                <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>状态</th>
+                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>装运点</th>
+                <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>库存状态</th>
+                <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>SD状态</th>
               </tr>
             </thead>
             <tbody>
               {deliveries.map((d) => {
-                const statusInfo = MOVEMENT_STATUS[d.OverallGoodsMovementStatus || ''] || { color: getSapStatusColor(d.OverallGoodsMovementStatus), label: d.StatusText || '-' };
+                const movementStatus = MOVEMENT_STATUS[d.OverallGoodsMovementStatus || ''] || { color: getSapStatusColor(d.OverallGoodsMovementStatus), label: d.OverallGoodsMovementStatus || '-' };
+                const sdStatus = SD_STATUS[d.OverallSDProcessStatus || ''] || { color: getSapStatusColor(d.OverallSDProcessStatus), label: d.OverallSDProcessStatus || '-' };
                 return (
                   <tr key={d.DeliveryDocument} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/outbound-delivery/${d.DeliveryDocument}`)}>
                     <td className="px-4 py-3 font-medium text-[#0070F2]">{d.DeliveryDocument}</td>
-                    <td className="px-4 py-3">{d.SoldToPartyName || d.SoldToParty || '-'}</td>
-                    <td className="px-4 py-3 tabular-nums">{formatDate(d.DeliveryDate)}</td>
-                    <td className="px-4 py-3 text-right font-medium tabular-nums">{formatAmount(d.TotalNetAmount, d.TransactionCurrency)}</td>
-                    <td className="px-4 py-3 text-center"><FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge></td>
+                    <td className="px-4 py-3">{d.DeliveryDocumentType}</td>
+                    <td className="px-4 py-3">{d.SoldToParty}</td>
+                    <td className="px-4 py-3 tabular-nums">{formatSapDate(d.DeliveryDate)}</td>
+                    <td className="px-4 py-3">{d.ShippingPoint}</td>
+                    <td className="px-4 py-3 text-center"><FioriBadge variant={movementStatus.color}>{movementStatus.label}</FioriBadge></td>
+                    <td className="px-4 py-3 text-center"><FioriBadge variant={sdStatus.color}>{sdStatus.label}</FioriBadge></td>
                   </tr>
                 );
               })}

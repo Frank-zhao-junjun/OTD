@@ -4,26 +4,23 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab } from '@/components/fiori';
 import { Users, Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
+import { formatSapDate } from '@/lib/utils';
 
 interface Customer {
   Customer: string;
   CustomerName: string;
-  Country: string;
-  CountryText: string;
-  City: string;
-  PostalCode: string;
-  SalesOrganization: string;
-  DistributionChannel: string;
-  Division: string;
-  CustomerGroup: string;
-  CustomerGroupText: string;
-  Currency: string;
+  CustomerFullName: string;
+  CustomerAccountGroup: string;
+  CreationDate: string;
+  CustomerCorporateGroup: string;
+  Industry: string;
+  Supplier: string;
 }
 
 const GROUP_COLORS: Record<string, 'success' | 'warning' | 'info' | 'neutral'> = {
-  '01': 'success',
-  '02': 'info',
-  '03': 'warning',
+  'CUST': 'info',
+  '001': 'success',
+  '002': 'warning',
 };
 
 export default function CustomersPage() {
@@ -79,16 +76,16 @@ export default function CustomersPage() {
       {!loading && !error && data.length > 0 && viewMode === 'card' && (
         <div className="space-y-2">
           {data.map((item) => {
-            const groupColor = GROUP_COLORS[item.CustomerGroup] || 'neutral';
+            const groupColor = GROUP_COLORS[item.CustomerAccountGroup] || 'neutral';
             return (
               <div key={item.Customer} className="fiori-oli cursor-pointer" onClick={() => router.push(`/customers/${item.Customer}`)}>
                 <div className={`fiori-oli-bar fiori-oli-bar--${groupColor}`} />
                 <div className="fiori-oli-content">
                   <div className="fiori-oli-title">{item.Customer} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.CustomerName}</div>
-                  <div className="fiori-oli-subtitle">{item.City}，{item.CountryText} {item.PostalCode}</div>
+                  <div className="fiori-oli-subtitle">{item.CustomerFullName} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> 创建于 {formatSapDate(item.CreationDate)}</div>
                   <div className="flex items-center gap-2">
-                    <FioriBadge variant={groupColor}>{item.CustomerGroupText}</FioriBadge>
-                    <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{item.Currency}</span>
+                    <FioriBadge variant={groupColor}>{item.CustomerAccountGroup}</FioriBadge>
+                    {item.Industry && <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{item.Industry}</span>}
                   </div>
                 </div>
               </div>
@@ -100,10 +97,10 @@ export default function CustomersPage() {
       {!loading && !error && data.length > 0 && viewMode === 'table' && (
         <div className="hidden lg:block rounded-lg border overflow-hidden" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
           <table className="w-full text-sm">
-            <thead><tr style={{ background: 'var(--muted)' }}><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>客户编号</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>名称</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>城市</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>国家</th><th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>客户组</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>币种</th></tr></thead>
+            <thead><tr style={{ background: 'var(--muted)' }}><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>客户编号</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>名称</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>全称</th><th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>账户组</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>行业</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>创建日期</th></tr></thead>
             <tbody>{data.map((item) => {
-              const groupColor = GROUP_COLORS[item.CustomerGroup] || 'neutral';
-              return (<tr key={item.Customer} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/customers/${item.Customer}`)}><td className="px-4 py-3 font-medium text-[#0070F2]">{item.Customer}</td><td className="px-4 py-3">{item.CustomerName}</td><td className="px-4 py-3">{item.City}</td><td className="px-4 py-3">{item.CountryText}</td><td className="px-4 py-3 text-center"><FioriBadge variant={groupColor}>{item.CustomerGroupText}</FioriBadge></td><td className="px-4 py-3">{item.Currency}</td></tr>);
+              const groupColor = GROUP_COLORS[item.CustomerAccountGroup] || 'neutral';
+              return (<tr key={item.Customer} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/customers/${item.Customer}`)}><td className="px-4 py-3 font-medium text-[#0070F2]">{item.Customer}</td><td className="px-4 py-3">{item.CustomerName}</td><td className="px-4 py-3">{item.CustomerFullName}</td><td className="px-4 py-3 text-center"><FioriBadge variant={groupColor}>{item.CustomerAccountGroup}</FioriBadge></td><td className="px-4 py-3">{item.Industry || '-'}</td><td className="px-4 py-3 tabular-nums">{formatSapDate(item.CreationDate)}</td></tr>);
             })}</tbody>
           </table>
         </div>

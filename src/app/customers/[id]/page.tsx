@@ -2,54 +2,49 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { ArrowLeft, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FioriErrorState } from '@/components/fiori';
-import { ArrowLeft, Users } from 'lucide-react';
-
-interface CustomerItem {
-  Customer: string;
-  CustomerName: string;
-  CustomerFullName: string;
-  CustomerAccountGroup: string;
-  CreationDate: string;
-}
-
+import { FioriBadge, FioriErrorState } from '@/components/fiori';
 import { formatSapDate } from '@/lib/utils';
 
-const ACCOUNT_GROUP_MAP: Record<string, string> = {
-  'CUST': '客户',
-  'SOLD': '售达方',
-  'SHIP': '送达方',
-  'PERS': '个人客户',
-};
+interface Customer {
+  Customer: string;
+  CustomerFullName?: string;
+  CustomerName?: string;
+  CustomerAccountGroup?: string;
+  CreationDate?: string;
+  CustomerCorporateGroup?: string;
+  Industry?: string;
+  Supplier?: string;
+}
 
 export default function CustomerDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const id = decodeURIComponent(params.id as string);
+  const id = params.id as string;
 
-  const [item, setItem] = useState<CustomerItem | null>(null);
+  const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchItem = async () => {
-      setLoading(true);
-      setError(null);
+    async function fetchData() {
       try {
-        const response = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_Customer?id=${encodeURIComponent(id)}`);
-        const data = await response.json();
-        if (!data.success) throw new Error(data.error || 'Failed to fetch');
-        const results = data.data || [];
-        setItem(results[0] || null);
+        const res = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_Customer?id=${encodeURIComponent(id)}`);
+        const data = await res.json();
+        if (data.success && data.data && data.data.length > 0) {
+          setCustomer(data.data[0]);
+        } else {
+          setError(data.error || '未找到客户');
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        setError(err instanceof Error ? err.message : '请求失败');
       } finally {
         setLoading(false);
       }
-    };
-    if (id) fetchItem();
+    }
+    if (id) fetchData();
   }, [id]);
 
   if (loading) {
@@ -58,29 +53,32 @@ export default function CustomerDetailPage() {
         <Skeleton className="h-8 w-24" />
         <div className="fiori-objheader">
           <div className="flex items-center gap-3 mb-4"><Skeleton className="w-10 h-10 rounded-lg" /><div><Skeleton className="h-6 w-40 mb-1" /><Skeleton className="h-4 w-60" /></div></div>
-          <div className="fiori-objheader-fields">{Array.from({ length: 4 }).map((_, i) => (<div key={i} className="fiori-objheader-field"><Skeleton className="h-3 w-[60px] mb-1" /><Skeleton className="h-4 w-[100px]" /></div>))}</div>
+          <div className="fiori-objheader-fields">{Array.from({ length: 6 }).map((_, i) => (<div key={i} className="fiori-objheader-field"><Skeleton className="h-3 w-[60px] mb-1" /><Skeleton className="h-4 w-[100px]" /></div>))}</div>
         </div>
       </div>
     );
   }
 
-  if (error || !item) {
+  if (error || !customer) {
     return (
       <div className="space-y-4">
         <Button variant="ghost" size="sm" onClick={() => router.back()} className="mb-2">
           <ArrowLeft className="w-4 h-4 mr-1" /> 返回
         </Button>
-        <FioriErrorState message={error || '未找到客户数据'} onRetry={() => window.location.reload()} />
+        <FioriErrorState message={error || '未找到客户'} onRetry={() => window.location.reload()} />
       </div>
     );
   }
 
   const fields = [
-    { label: '客户编号', value: item.Customer },
-    { label: '客户名称', value: item.CustomerName || '-' },
-    { label: '全称', value: item.CustomerFullName || '-' },
-    { label: '账户组', value: ACCOUNT_GROUP_MAP[item.CustomerAccountGroup] || item.CustomerAccountGroup || '-' },
-    { label: '创建日期', value: formatSapDate(item.CreationDate) },
+    { label: '客户编号', value: customer.Customer || '-' },
+    { label: '客户全名', value: customer.CustomerFullName || '-' },
+    { label: '客户名称', value: customer.CustomerName || '-' },
+    { label: '账户组', value: customer.CustomerAccountGroup || '-' },
+    { label: '创建日期', value: formatSapDate(customer.CreationDate) },
+    { label: '企业集团', value: customer.CustomerCorporateGroup || '-' },
+    { label: '行业', value: customer.Industry || '-' },
+    { label: '供应商', value: customer.Supplier || '-' },
   ];
 
   return (
@@ -94,11 +92,14 @@ export default function CustomerDetailPage() {
             <Users className="w-5 h-5" />
           </div>
           <div>
-            <div className="fiori-objheader-title">{item.CustomerName || item.Customer}</div>
+            <div className="fiori-objheader-title">{customer.Customer}</div>
             <div className="fiori-objheader-subtitle">
-              客户编号 {item.Customer} · {ACCOUNT_GROUP_MAP[item.CustomerAccountGroup] || item.CustomerAccountGroup}
+              {customer.CustomerFullName || customer.CustomerName || '-'}
             </div>
           </div>
+        </div>
+        <div className="flex items-center gap-2 mb-4">
+          {customer.CustomerAccountGroup && <FioriBadge variant="info">{customer.CustomerAccountGroup}</FioriBadge>}
         </div>
         <div className="fiori-objheader-fields">
           {fields.map((field) => (
