@@ -8,6 +8,10 @@ import { FioriBadge, FioriErrorState } from '@/components/fiori';
 import { getSapStatusColor } from '@/components/fiori';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { SALES_ORDER_STATUS_MAP } from '@/lib/sap-service';
+import {
+  SALES_ORDER_HEADER_SELECT_EXTENDED,
+  withBillingStatusNormalized,
+} from '@/lib/sap-sales-order-v4-fields';
 
 interface SalesOrder {
   SalesOrder: string;
@@ -46,14 +50,14 @@ export default function SalesOrderDetailPage() {
       try {
         const searchParams = new URLSearchParams();
         searchParams.set('id', id);
-        searchParams.set('select', 'SalesOrder,SalesOrderType,SoldToParty,SalesOrganization,DistributionChannel,OrganizationDivision,TotalNetAmount,TransactionCurrency,SalesOrderDate,RequestedDeliveryDate,OverallSDProcessStatus,OverallDeliveryStatus,OverallBillingStatus,PurchaseOrderByCustomer,CreationDate,LastChangeDate,SalesGroup,SalesOffice');
+        searchParams.set('select', SALES_ORDER_HEADER_SELECT_EXTENDED);
 
         const response = await fetch(`/api/sap/CE_SALESORDER_0001/SalesOrder?${searchParams.toString()}`);
         const data = await response.json();
 
         if (!data.success) throw new Error(data.error || 'Failed to fetch');
         const results = data.data || [];
-        setOrder(results[0] || null);
+        setOrder(results[0] ? withBillingStatusNormalized(results[0]) : null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {

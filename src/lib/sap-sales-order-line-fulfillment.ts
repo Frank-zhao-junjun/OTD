@@ -10,6 +10,7 @@ export interface LineFulfillmentSourceItem {
   SalesOrderItemText?: string;
   RequestedQuantity?: string | number;
   RequestedQuantityUnit?: string;
+  RequestedQuantitySAPUnit?: string;
 }
 
 export interface LineFulfillmentDeliveryRow {
@@ -98,7 +99,7 @@ export function buildLineFulfillmentProgress(
 
   return items.map((item) => {
     const lineKey = normalizeSalesOrderItemNo(item.SalesOrderItem);
-    const orderUnit = (item.RequestedQuantityUnit ?? '').trim();
+    const orderUnit = (item.RequestedQuantitySAPUnit ?? item.RequestedQuantityUnit ?? '').trim();
     const orderQty = toQty(item.RequestedQuantity);
 
     const lineDeliveries = deliveries.filter(

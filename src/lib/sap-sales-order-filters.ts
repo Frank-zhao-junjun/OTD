@@ -194,11 +194,15 @@ export function buildSalesOrderListFilter(
 ): string {
   const parts: string[] = [];
 
-  const orderType =
-    filters.orderType && filters.orderType !== 'all'
-      ? filters.orderType
-      : SAP_DEFAULTS.salesOrderType;
-  parts.push(`SalesOrderType eq '${odataEscape(orderType)}'`);
+  const exactOrderLookup = Boolean(filters.salesOrderNo?.trim());
+
+  if (!exactOrderLookup) {
+    const orderType =
+      filters.orderType && filters.orderType !== 'all'
+        ? filters.orderType
+        : SAP_DEFAULTS.salesOrderType;
+    parts.push(`SalesOrderType eq '${odataEscape(orderType)}'`);
+  }
 
   const salesOrg =
     filters.salesOrg && filters.salesOrg !== 'all'
@@ -266,7 +270,7 @@ export function buildSalesOrderListFilter(
     const fieldMap = {
       process: 'OverallSDProcessStatus',
       delivery: 'OverallDeliveryStatus',
-      billing: 'OverallBillingStatus',
+      billing: 'OverallOrdReltdBillgStatus',
     } as const;
     const field = filters.statusField ? fieldMap[filters.statusField] : undefined;
     if (field) {
@@ -275,7 +279,7 @@ export function buildSalesOrderListFilter(
   }
 
   if (filters.billingStatusNe) {
-    parts.push(`OverallBillingStatus ne '${odataEscape(filters.billingStatusNe)}'`);
+    parts.push(`OverallOrdReltdBillgStatus ne '${odataEscape(filters.billingStatusNe)}'`);
   }
 
   if (filters.excludeCancelledAndRejected) {

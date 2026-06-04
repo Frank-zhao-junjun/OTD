@@ -266,16 +266,12 @@ export async function GET(
 
   const count = searchParams.get('count');
 
-  if (odataVersion === 'v4' && count === 'true') {
-
-    queryParams.push('$count=true');
-
-  }
-
-  if (odataVersion === 'v2') {
-
-    queryParams.push('$inlinecount=allpages');
-
+  if (count === 'true') {
+    if (odataVersion === 'v4') {
+      queryParams.push('$count=true');
+    } else if (odataVersion === 'v2') {
+      queryParams.push('$inlinecount=allpages');
+    }
   }
 
 

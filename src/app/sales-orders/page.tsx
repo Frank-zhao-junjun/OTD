@@ -46,6 +46,10 @@ import {
   type SalesOrderPresetId,
 } from '@/lib/sap-sales-order-presets';
 import {
+  SALES_ORDER_LIST_SELECT,
+  withBillingStatusNormalizedList,
+} from '@/lib/sap-sales-order-v4-fields';
+import {
   clearRestorePayload,
   loadRestorePayload,
   persistRecentSalesOrderQuery,
@@ -282,10 +286,7 @@ function SalesOrdersPageContent() {
         params.set('count', 'true');
         params.set('filter', buildSalesOrderListFilter(filters, { customerClause, materialClause }));
         params.set('orderby', salesOrderSapOrderBy(activeSortField, activeSortDir));
-        params.set(
-          'select',
-          'SalesOrder,SalesOrderType,SoldToParty,PurchaseOrderByCustomer,SalesOrganization,TotalNetAmount,TransactionCurrency,SalesOrderDate,RequestedDeliveryDate,OverallSDProcessStatus,OverallDeliveryStatus,OverallBillingStatus,OverallSDDocumentRejectionSts'
-        );
+        params.set('select', SALES_ORDER_LIST_SELECT);
         return fetchSapEntity<SalesOrderListRow>('CE_SALESORDER_0001', 'SalesOrder', params);
       };
 
@@ -336,7 +337,7 @@ function SalesOrdersPageContent() {
         auditPayload.materialFilterPath = '_Item/any';
       }
 
-      const rawRows = data.data || [];
+      const rawRows = withBillingStatusNormalizedList(data.data || []);
       const rows = sortSalesOrderListPage(rawRows, activeSortField, activeSortDir);
       const sapCount = data.count;
       const known = sapCount != null && !Number.isNaN(Number(sapCount));

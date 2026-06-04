@@ -18,6 +18,10 @@ import { Loader2 } from 'lucide-react';
 import { SalesOrderRiskBanner } from '@/app/sales-orders/sales-order-risk-badges';
 import { SalesOrderLineProgressTable } from '@/app/sales-orders/sales-order-line-progress';
 import { normalizeSalesOrderItemNo } from '@/lib/sap-sales-order-line-fulfillment';
+import {
+  SALES_ORDER_HEADER_SELECT,
+  withBillingStatusNormalized,
+} from '@/lib/sap-sales-order-v4-fields';
 
 export interface SalesOrderHeader {
   SalesOrder: string;
@@ -43,6 +47,7 @@ export interface SalesOrderItem {
   SalesOrderItemText?: string;
   RequestedQuantity?: string | number;
   RequestedQuantityUnit?: string;
+  RequestedQuantitySAPUnit?: string;
   NetAmount?: string | number;
   TaxAmount?: string | number;
   Plant?: string;
@@ -217,19 +222,16 @@ export function OrderDetailPanel({ salesOrderNo, customerName }: OrderDetailPane
       orderParams.set('id', orderNo);
       orderParams.set(
         'expand',
-        '_Item($select=SalesOrderItem,Product,SalesOrderItemText,RequestedQuantity,RequestedQuantityUnit,NetAmount,TaxAmount,Plant,StorageLocation,SDProcessStatus,DeliveryStatus,SDDocumentRejectionStatus),_Partner'
+        '_Item($select=SalesOrderItem,Product,SalesOrderItemText,RequestedQuantity,RequestedQuantitySAPUnit,NetAmount,TaxAmount,Plant,StorageLocation,SDProcessStatus,DeliveryStatus,SDDocumentRejectionStatus),_Partner'
       );
-      orderParams.set(
-        'select',
-        'SalesOrder,SalesOrderType,SoldToParty,PurchaseOrderByCustomer,TotalNetAmount,TransactionCurrency,SalesOrderDate,RequestedDeliveryDate,OverallSDProcessStatus,OverallDeliveryStatus,OverallBillingStatus,OverallSDDocumentRejectionSts'
-      );
+      orderParams.set('select', SALES_ORDER_HEADER_SELECT);
 
       const orderRes = await fetchSapEntity<SalesOrderHeader>(
         'CE_SALESORDER_0001',
         'SalesOrder',
         orderParams
       );
-      const order = orderRes.data?.[0] ?? null;
+      const order = orderRes.data?.[0] ? withBillingStatusNormalized(orderRes.data[0]) : null;
       setHeader(order);
       const lineCount = unwrapCollection(order?._Item).length;
       await auditDetailSection(orderNo, 'header', lineCount, true);
@@ -380,7 +382,7 @@ export function OrderDetailPanel({ salesOrderNo, customerName }: OrderDetailPane
     const deliveryIds = [...new Set(deliveryRows.map((d) => d.DeliveryDocument).filter(Boolean))];
 
     const matSelect =
-      'MaterialDocument,MaterialDocumentYear,MaterialDocumentItem,Material,QuantityInEntryUnit,EntryUnit,GoodsMovementType,PostingDate,Delivery,SalesOrder,SDDocument';
+      'MaterialDocument,MaterialDocumentYear,MaterialDocumentItem,Material,QuantityInEntryUnit,EntryUnit,GoodsMovementType,Delivery,SalesOrder';
 
     const fetchByDelivery = async (): Promise<{ data: MaterialDocRow[]; error?: string }> => {
       if (deliveryIds.length === 0) return { data: [] };
@@ -389,7 +391,6 @@ export function OrderDetailPanel({ salesOrderNo, customerName }: OrderDetailPane
       matParams.set('top', '100');
       matParams.set('filter', docFilter);
       matParams.set('select', matSelect);
-      matParams.set('orderby', 'PostingDate desc');
       return fetchSapEntityOptional<MaterialDocRow>(
         'API_MATERIAL_DOCUMENT_SRV',
         'A_MaterialDocumentItem',
@@ -400,12 +401,8 @@ export function OrderDetailPanel({ salesOrderNo, customerName }: OrderDetailPane
     const fetchBySalesOrder = async (): Promise<{ data: MaterialDocRow[]; error?: string }> => {
       const matParams = new URLSearchParams();
       matParams.set('top', '100');
-      matParams.set(
-        'filter',
-        `(SalesOrder eq '${so}' or SDDocument eq '${so}')`
-      );
+      matParams.set('filter', `SalesOrder eq '${so}'`);
       matParams.set('select', matSelect);
-      matParams.set('orderby', 'PostingDate desc');
       return fetchSapEntityOptional<MaterialDocRow>(
         'API_MATERIAL_DOCUMENT_SRV',
         'A_MaterialDocumentItem',
@@ -447,6 +444,12 @@ export function OrderDetailPanel({ salesOrderNo, customerName }: OrderDetailPane
             r.MaterialDocumentItem === row.MaterialDocumentItem
         ) === index
     );
+
+    deduped.sort((a, b) => {
+      const ta = Date.parse(parseSapDate(a.PostingDate) || '') || 0;
+      const tb = Date.parse(parseSapDate(b.PostingDate) || '') || 0;
+      return tb - ta;
+    });
 
     setMaterialDocs(deduped);
     const partialError =
@@ -777,7 +780,7 @@ export function OrderDetailPanel({ salesOrderNo, customerName }: OrderDetailPane
                 item.Product ?? '-',
                 item.SalesOrderItemText ?? '-',
                 String(item.RequestedQuantity ?? '-'),
-                item.RequestedQuantityUnit ?? '-',
+                item.RequestedQuantitySAPUnit ?? item.RequestedQuantityUnit ?? '-',
                 unitNetPrice(item),
                 item.TaxAmount != null ? Number(item.TaxAmount).toLocaleString() : '-',
                 item.NetAmount != null ? Number(item.NetAmount).toLocaleString() : '-',

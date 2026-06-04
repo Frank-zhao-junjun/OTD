@@ -1,0 +1,87 @@
+# E2E against SAP sandbox (Playwright).
+# Required repo secrets: SAP_USERNAME, SAP_PASSWORD
+# Optional: E2E_PHONE, E2E_PASSWORD, E2E_SALES_ORDER (default 1)
+
+name: E2E SAP Sandbox
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: e2e-sap-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-smoke:
+    name: E2E smoke (no SAP)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install chromium --with-deps
+
+      - name: Auth redirect smoke
+        run: pnpm exec playwright test e2e/auth-sap.spec.ts --grep "no SAP"
+        env:
+          CI: 'true'
+
+  e2e-sap:
+    name: E2E full (SAP sandbox)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: e2e-smoke
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install chromium --with-deps
+
+      - name: Run E2E (SAP)
+        run: pnpm run e2e
+        env:
+          CI: 'true'
+          SAP_BASE_URL: https://my200967-api.s4hana.sapcloud.cn
+          SAP_CLIENT: '100'
+          SAP_USERNAME: ${{ secrets.SAP_USERNAME }}
+          SAP_PASSWORD: ${{ secrets.SAP_PASSWORD }}
+          E2E_PHONE: ${{ secrets.E2E_PHONE }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          E2E_SALES_ORDER: ${{ secrets.E2E_SALES_ORDER }}
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

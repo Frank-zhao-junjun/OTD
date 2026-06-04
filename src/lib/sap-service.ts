@@ -162,6 +162,7 @@ export const SAP_FIELD_LABELS = {
   OverallSDProcessStatus: '处理状态',
   OverallDeliveryStatus: '交货状态',
   OverallBillingStatus: '开票状态',
+  OverallOrdReltdBillgStatus: '开票状态',
   RequestedDeliveryDate: '要求交货日期',
   PurchaseOrderByCustomer: '客户采购订单',
 
