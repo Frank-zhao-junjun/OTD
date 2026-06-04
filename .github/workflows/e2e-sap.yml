@@ -1,6 +1,8 @@
 # E2E against SAP sandbox (Playwright).
-# Required repo secrets: SAP_USERNAME, SAP_PASSWORD
-# Optional: E2E_PHONE, E2E_PASSWORD, E2E_SALES_ORDER (default 1)
+# Preferred repo secrets (multiline KEY=VALUE, same as .env.e2e.example):
+#   SAP_SECRET  — SAP_USERNAME, SAP_PASSWORD (and optional SAP_* overrides)
+#   E2E_SECRET  — E2E_PHONE, E2E_PASSWORD, E2E_SALES_ORDER (optional)
+# Or individual secrets: SAP_USERNAME, SAP_PASSWORD, E2E_PHONE, E2E_PASSWORD, E2E_SALES_ORDER
 
 name: E2E SAP Sandbox
 
@@ -23,8 +25,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
@@ -52,8 +52,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
@@ -66,17 +64,44 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm exec playwright install chromium --with-deps
 
-      - name: Run E2E (SAP)
-        run: pnpm run e2e
+      - name: Create .env.e2e.local from GitHub secrets
+        shell: bash
         env:
-          CI: 'true'
-          SAP_BASE_URL: https://my200967-api.s4hana.sapcloud.cn
-          SAP_CLIENT: '100'
+          SAP_SECRET: ${{ secrets.SAP_SECRET }}
+          E2E_SECRET: ${{ secrets.E2E_SECRET }}
           SAP_USERNAME: ${{ secrets.SAP_USERNAME }}
           SAP_PASSWORD: ${{ secrets.SAP_PASSWORD }}
           E2E_PHONE: ${{ secrets.E2E_PHONE }}
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
           E2E_SALES_ORDER: ${{ secrets.E2E_SALES_ORDER }}
+        run: |
+          set -euo pipefail
+          {
+            echo 'SAP_BASE_URL=https://my200967-api.s4hana.sapcloud.cn'
+            echo 'SAP_CLIENT=100'
+          } > .env.e2e.local
+          if [ -n "${SAP_SECRET:-}" ]; then
+            printf '%s\n' "$SAP_SECRET" >> .env.e2e.local
+          else
+            [ -n "${SAP_USERNAME:-}" ] && echo "SAP_USERNAME=${SAP_USERNAME}" >> .env.e2e.local
+            [ -n "${SAP_PASSWORD:-}" ] && echo "SAP_PASSWORD=${SAP_PASSWORD}" >> .env.e2e.local
+          fi
+          if [ -n "${E2E_SECRET:-}" ]; then
+            printf '%s\n' "$E2E_SECRET" >> .env.e2e.local
+          else
+            [ -n "${E2E_PHONE:-}" ] && echo "E2E_PHONE=${E2E_PHONE}" >> .env.e2e.local
+            [ -n "${E2E_PASSWORD:-}" ] && echo "E2E_PASSWORD=${E2E_PASSWORD}" >> .env.e2e.local
+            [ -n "${E2E_SALES_ORDER:-}" ] && echo "E2E_SALES_ORDER=${E2E_SALES_ORDER}" >> .env.e2e.local
+          fi
+          if ! grep -q '^SAP_USERNAME=' .env.e2e.local || ! grep -q '^SAP_PASSWORD=' .env.e2e.local; then
+            echo '::error::Missing SAP credentials. Set SAP_SECRET (multiline) or SAP_USERNAME + SAP_PASSWORD secrets.'
+            exit 1
+          fi
+
+      - name: Run E2E (SAP)
+        run: pnpm run e2e
+        env:
+          CI: 'true'
 
       - name: Upload Playwright report
         if: failure()

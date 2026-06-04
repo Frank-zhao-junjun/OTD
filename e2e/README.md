@@ -19,15 +19,29 @@ corepack pnpm run e2e
 | `e2e-smoke` | 未登录跳转 | 否 |
 | `e2e-sap` | 全量 UAT 自动化 | 是 |
 
-在仓库 **Settings → Secrets and variables → Actions** 添加：
+在仓库 **Settings → Secrets and variables → Actions** 添加（推荐 **2 个** 合并机密，内容与 `.env.e2e.example` 相同、多行 `KEY=VALUE`）：
 
 | Secret | 必填 | 说明 |
 |--------|------|------|
-| `SAP_USERNAME` | 是 | OData 通信用户 |
-| `SAP_PASSWORD` | 是 | 沙箱密码 |
-| `E2E_PHONE` | 否 | 门户手机号，默认 `13800000002` |
-| `E2E_PASSWORD` | 否 | 门户密码，默认 `demo123` |
-| `E2E_SALES_ORDER` | 否 | 详情用样本订单，默认 `1`（沙箱已知 1–13） |
+| `SAP_SECRET` | 是* | 多行，至少含 `SAP_USERNAME=`、`SAP_PASSWORD=` |
+| `E2E_SECRET` | 否 | 多行，可含 `E2E_PHONE=`、`E2E_PASSWORD=`、`E2E_SALES_ORDER=` |
+
+\* 也可用分散机密：`SAP_USERNAME` + `SAP_PASSWORD`（及可选 `E2E_PHONE` 等）。
+
+`SAP_SECRET` 示例（粘贴到 secret 值，一行一条）：
+
+```
+SAP_USERNAME=EPC_USER
+SAP_PASSWORD=your-sandbox-password
+```
+
+`E2E_SECRET` 示例（可选，不配则用代码内默认）：
+
+```
+E2E_PHONE=13800000002
+E2E_PASSWORD=demo123
+E2E_SALES_ORDER=1
+```
 
 Fork 来的 PR 不会跑 `e2e-sap`（无 Secrets），仅跑 smoke。
 
