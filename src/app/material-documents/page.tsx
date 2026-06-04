@@ -122,24 +122,20 @@ export default function MaterialDocumentsPage() {
           <table className="w-full text-sm">
             <thead><tr style={{ background: 'var(--muted)' }}>
               <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>凭证号</th>
-              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>行项目</th>
               <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>物料</th>
               <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>工厂/库位</th>
               <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>移动类型</th>
               <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>数量</th>
-              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>生产订单</th>
             </tr></thead>
             <tbody>{data.map((item, idx) => {
               const barColor = MOVEMENT_COLORS[item.GoodsMovementType] || 'neutral';
               const movementLabel = getMovementLabel(item.GoodsMovementType);
               return (<tr key={`${item.MaterialDocument}-${item.MaterialDocumentItem}-${idx}`} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/material-documents/${item.MaterialDocument}`)}>
                 <td className="px-4 py-3 font-medium text-[#0070F2]">{item.MaterialDocument}</td>
-                <td className="px-4 py-3">{item.MaterialDocumentItem}</td>
                 <td className="px-4 py-3">{item.Material}</td>
                 <td className="px-4 py-3 tabular-nums">{item.Plant} / {item.StorageLocation}</td>
                 <td className="px-4 py-3"><FioriBadge variant={barColor}>{movementLabel}</FioriBadge></td>
                 <td className="px-4 py-3 text-right font-medium tabular-nums">{parseFloat(item.QuantityInBaseUnit || '0').toLocaleString()} {item.MaterialBaseUnit}</td>
-                <td className="px-4 py-3">{item.ManufacturingOrder || '-'}</td>
               </tr>);
             })}</tbody>
           </table>

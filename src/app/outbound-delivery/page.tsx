@@ -112,10 +112,10 @@ export default function OutboundDeliveryPage() {
                 <div className={`fiori-oli-bar fiori-oli-bar--${statusInfo.color}`} />
                 <div className="fiori-oli-content">
                   <div className="fiori-oli-title">{d.DeliveryDocument} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {d.DeliveryDocumentType}</div>
-                  <div className="fiori-oli-subtitle">{formatSapDate(d.DeliveryDate)} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> 客户: {d.SoldToParty} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {d.ShippingPoint}</div>
+                  <div className="fiori-oli-subtitle">{formatSapDate(d.DeliveryDate)} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> 客户: {d.SoldToParty}</div>
                   <div className="flex items-center gap-2">
                     <FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge>
-                    <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>销售组织: {d.SalesOrganization}</span>
+
                   </div>
                 </div>
               </div>
@@ -134,7 +134,6 @@ export default function OutboundDeliveryPage() {
                 <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>类型</th>
                 <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>客户</th>
                 <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>交货日期</th>
-                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>装运点</th>
                 <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>库存状态</th>
                 <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>SD状态</th>
               </tr>
@@ -149,7 +148,6 @@ export default function OutboundDeliveryPage() {
                     <td className="px-4 py-3">{d.DeliveryDocumentType}</td>
                     <td className="px-4 py-3">{d.SoldToParty}</td>
                     <td className="px-4 py-3 tabular-nums">{formatSapDate(d.DeliveryDate)}</td>
-                    <td className="px-4 py-3">{d.ShippingPoint}</td>
                     <td className="px-4 py-3 text-center"><FioriBadge variant={movementStatus.color}>{movementStatus.label}</FioriBadge></td>
                     <td className="px-4 py-3 text-center"><FioriBadge variant={sdStatus.color}>{sdStatus.label}</FioriBadge></td>
                   </tr>
