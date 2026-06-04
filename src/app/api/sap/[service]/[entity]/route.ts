@@ -277,6 +277,7 @@ export async function GET(
 
           // Parse OData $filter into simple DB filters (only eq supported, use /api/sap/search for fuzzy)
           const filter: Record<string, string> = {};
+          const inFilter: Record<string, string[]> = {};
           if (filterStr) {
             const parts = filterStr.split(/\s+or\s+/i);
             for (const part of parts) {
@@ -296,7 +297,13 @@ export async function GET(
                 const val = eqMatch[2];
                 const dbProp = prop.replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2')
                   .replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
-                filter[dbProp] = val;
+                // Multiple or-conditions on same field → use .in(), single → use .eq()
+                if (parts.length > 1) {
+                  if (!inFilter[dbProp]) inFilter[dbProp] = [];
+                  inFilter[dbProp].push(val);
+                } else {
+                  filter[dbProp] = val;
+                }
               }
             }
           }
@@ -306,6 +313,7 @@ export async function GET(
             top,
             skip,
             filter: Object.keys(filter).length > 0 ? filter : undefined,
+            inFilter: Object.keys(inFilter).length > 0 ? inFilter : undefined,
           });
 
           if (!result.error) {
