@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FioriBadge, FioriErrorState, getSapStatusColor } from '@/components/fiori';
+import { FioriBadge, FioriErrorState } from '@/components/fiori';
 import { formatSapDate } from '@/lib/utils';
 
 const DELIVERY_STATUS_MAP: Record<string, { label: string; color: 'success' | 'warning' | 'error' | 'info' | 'neutral' }> = {
@@ -28,13 +28,11 @@ interface OutboundDelivery {
   SoldToParty?: string;
   ShipToParty?: string;
   SalesOrganization?: string;
-  TransactionCurrency?: string;
   OverallGoodsMovementStatus?: string;
   OverallSDProcessStatus?: string;
   ShippingPoint?: string;
   SalesOffice?: string;
   IncotermsClassification?: string;
-  OverallPickingStatus?: string;
 }
 
 export default function OutboundDeliveryDetailPage() {
@@ -101,7 +99,6 @@ export default function OutboundDeliveryDetailPage() {
     { label: '装运点', value: order.ShippingPoint || '-' },
     { label: '销售办公室', value: order.SalesOffice || '-' },
     { label: '国际贸易条件', value: order.IncotermsClassification || '-' },
-    { label: '币种', value: order.TransactionCurrency || '-' },
   ];
 
   return (
@@ -124,7 +121,6 @@ export default function OutboundDeliveryDetailPage() {
         <div className="flex items-center gap-2 mb-4">
           <FioriBadge variant={sdStatus.color}>处理: {sdStatus.label}</FioriBadge>
           <FioriBadge variant={movementStatus.color}>发货: {movementStatus.label}</FioriBadge>
-          {order.OverallPickingStatus && <FioriBadge variant={getSapStatusColor(order.OverallPickingStatus)}>拣配: {order.OverallPickingStatus}</FioriBadge>}
         </div>
         <div className="fiori-objheader-fields">
           {fields.map((field) => (

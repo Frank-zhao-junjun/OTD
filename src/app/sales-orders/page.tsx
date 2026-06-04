@@ -13,13 +13,11 @@ interface SalesOrder {
   DistributionChannel: string;
   OrganizationDivision: string;
   SoldToParty: string;
-  SoldToPartyName: string;
   PurchaseOrderByCustomer: string;
   SalesOrderDate: string;
   TotalNetAmount: string;
   TransactionCurrency: string;
   OverallSDProcessStatus: string;
-  StatusText: string;
 }
 
 const PAGE_SIZE = 10;
@@ -198,7 +196,7 @@ export default function SalesOrdersPage() {
         <div className="space-y-2">
           {data.map((order) => {
             const statusColor = getSapStatusColor(order.OverallSDProcessStatus);
-            const statusLabel = order.StatusText || getSapStatusLabel(order.OverallSDProcessStatus);
+            const statusLabel = getSapStatusLabel(order.OverallSDProcessStatus);
             return (
               <Link key={order.SalesOrder} href={`/sales-orders/${order.SalesOrder}`} className="fiori-oli block">
                 <div className={`fiori-oli-bar fiori-oli-bar--${statusColor}`} />
@@ -206,7 +204,7 @@ export default function SalesOrdersPage() {
                   <div className="fiori-oli-title">
                     {order.SalesOrder}
                     <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
-                    {order.SoldToPartyName || order.SoldToParty}
+                    {order.SoldToParty}
                   </div>
                   <div className="fiori-oli-subtitle">
                     {formatDate(order.SalesOrderDate)}
@@ -243,7 +241,7 @@ export default function SalesOrdersPage() {
             <tbody>
               {data.map((order) => {
                 const statusColor = getSapStatusColor(order.OverallSDProcessStatus);
-                const statusLabel = order.StatusText || getSapStatusLabel(order.OverallSDProcessStatus);
+                const statusLabel = getSapStatusLabel(order.OverallSDProcessStatus);
                 return (
                   <tr key={order.SalesOrder} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }}>
                     <td className="px-4 py-3">
@@ -251,7 +249,7 @@ export default function SalesOrdersPage() {
                         {order.SalesOrder}
                       </Link>
                     </td>
-                    <td className="px-4 py-3">{order.SoldToPartyName || order.SoldToParty}</td>
+                    <td className="px-4 py-3">{order.SoldToParty}</td>
                     <td className="px-4 py-3 tabular-nums">{formatDate(order.SalesOrderDate)}</td>
                     <td className="px-4 py-3">{order.PurchaseOrderByCustomer}</td>
                     <td className="px-4 py-3 text-right font-medium tabular-nums">{formatAmount(order.TotalNetAmount, order.TransactionCurrency)}</td>

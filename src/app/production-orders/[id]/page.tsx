@@ -21,6 +21,8 @@ interface ProductionOrder {
   OrderScheduledEndDate?: string;
   OrderActualStartDate?: string;
   OrderActualEndDate?: string;
+  OrderActualReleaseDate?: string;
+  TechnicalCompletionDate?: string;
   OrderPlannedTotalQty?: number | string;
   ActualDeliveredQuantity?: number | string;
 }
@@ -88,6 +90,8 @@ export default function ProductionOrderDetailPage() {
     { label: '计划结束日期', value: formatSapDate(order.OrderScheduledEndDate) },
     { label: '实际开始日期', value: formatSapDate(order.OrderActualStartDate) },
     { label: '实际结束日期', value: formatSapDate(order.OrderActualEndDate) },
+    { label: '实际释放日期', value: formatSapDate(order.OrderActualReleaseDate) },
+    { label: '技术完成日期', value: formatSapDate(order.TechnicalCompletionDate) },
     { label: '完全交货', value: order.IsCompletelyDelivered ? '是' : '否' },
   ];
 

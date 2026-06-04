@@ -2,44 +2,34 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
-import { FioriBadge, FioriFab, getSapStatusColor, getSapStatusLabel } from '@/components/fiori';
+import { FioriBadge, FioriFab } from '@/components/fiori';
 import { SAP_DEFAULTS } from '@/lib/sap-service';
-import { Factory, Search, RotateCcw, Filter, Inbox, LayoutList, Table2 } from 'lucide-react';
+import { Search, RotateCcw, Filter, Inbox, LayoutList, Table2 } from 'lucide-react';
 
 interface ProductionOrder {
   ProductionOrder: string;
-  OrderIsReleased?: boolean;
+  ProductionOrderType?: string;
   IsMarkedForDeletion?: boolean;
+  IsCompletelyDelivered?: boolean;
   Product?: string;
   ProductionPlant?: string;
   SalesOrder?: string;
   SalesOrderItem?: string;
-  PlannedTotalQty?: string;
-  GoodsReceiptQty?: string;
-  ManufacturingOrderType?: string;
-  ProductionOrderStatus?: string;
-  StatusText?: string;
+  OrderScheduledStartDate?: string;
+  OrderScheduledEndDate?: string;
+  OrderActualStartDate?: string;
+  OrderActualEndDate?: string;
+  OrderPlannedTotalQty?: string;
+  ActualDeliveredQuantity?: string;
 }
 
-const getStatusInfo = (status: string | undefined): { color: 'success' | 'warning' | 'error' | 'info' | 'neutral'; label: string } => {
-  if (!status) return { color: 'neutral', label: '-' };
-  const primaryStatus = status.split(' ')[0];
-  const statusMap: Record<string, { color: 'success' | 'warning' | 'error' | 'info' | 'neutral'; label: string }> = {
-    'CRTD': { color: 'info', label: '已创建' },
-    'REL': { color: 'warning', label: '已释放' },
-    'PCNF': { color: 'warning', label: '部分确认' },
-    'CNF': { color: 'success', label: '已确认' },
-    'PDLV': { color: 'warning', label: '部分交货' },
-    'DLV': { color: 'success', label: '已交货' },
-    'CLSD': { color: 'neutral', label: '已关闭' },
-    'TECO': { color: 'neutral', label: '技术完成' },
-  };
-  return statusMap[primaryStatus] || { color: getSapStatusColor(primaryStatus), label: getSapStatusLabel(primaryStatus) };
+const getStatusInfo = (order: ProductionOrder): { color: 'success' | 'warning' | 'error' | 'info' | 'neutral'; label: string } => {
+  if (order.IsMarkedForDeletion) return { color: 'error', label: '已删除' };
+  if (order.IsCompletelyDelivered) return { color: 'success', label: '已交货' };
+  if (order.OrderActualStartDate && !order.OrderActualEndDate) return { color: 'warning', label: '生产中' };
+  if (order.OrderActualEndDate) return { color: 'info', label: '已完成' };
+  return { color: 'neutral', label: '已创建' };
 };
 
 export default function ProductionOrdersPage() {
@@ -193,7 +183,7 @@ export default function ProductionOrdersPage() {
       {!loading && !error && orders.length > 0 && viewMode === 'card' && (
         <div className="space-y-2">
           {orders.map((order) => {
-            const statusInfo = getStatusInfo(order.ProductionOrderStatus);
+            const statusInfo = getStatusInfo(order);
             return (
               <Link key={order.ProductionOrder} href={`/production-orders/${order.ProductionOrder}`} className="fiori-oli" style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className={`fiori-oli-bar fiori-oli-bar--${statusInfo.color}`} />
@@ -206,9 +196,9 @@ export default function ProductionOrdersPage() {
                   <div className="fiori-oli-subtitle">
                     工厂: {order.ProductionPlant || '-'}
                     <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
-                    计划: {order.PlannedTotalQty || '0'}
+                    计划: {order.OrderPlannedTotalQty || '0'}
                     <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
-                    收货: {order.GoodsReceiptQty || '0'}
+                    交货: {order.ActualDeliveredQuantity || '0'}
                   </div>
                   <div className="flex items-center gap-2">
                     <FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge>
@@ -229,20 +219,20 @@ export default function ProductionOrdersPage() {
                 <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>物料</th>
                 <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>工厂</th>
                 <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>计划数量</th>
-                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>收货数量</th>
+                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>交货数量</th>
                 <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>状态</th>
               </tr>
             </thead>
             <tbody>
               {orders.map((order) => {
-                const statusInfo = getStatusInfo(order.ProductionOrderStatus);
+                const statusInfo = getStatusInfo(order);
                 return (
                   <tr key={order.ProductionOrder} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/production-orders/${order.ProductionOrder}`)}>
                     <td className="px-4 py-3 font-medium text-primary underline">{order.ProductionOrder}</td>
                     <td className="px-4 py-3">{order.Product || '-'}</td>
                     <td className="px-4 py-3">{order.ProductionPlant || '-'}</td>
-                    <td className="px-4 py-3 tabular-nums">{order.PlannedTotalQty || '0'}</td>
-                    <td className="px-4 py-3 tabular-nums">{order.GoodsReceiptQty || '0'}</td>
+                    <td className="px-4 py-3 tabular-nums">{order.OrderPlannedTotalQty || '0'}</td>
+                    <td className="px-4 py-3 tabular-nums">{order.ActualDeliveredQuantity || '0'}</td>
                     <td className="px-4 py-3 text-center">
                       <FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge>
                     </td>
