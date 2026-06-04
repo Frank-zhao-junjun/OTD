@@ -103,8 +103,8 @@ export default function OutboundDeliveryPage() {
       )}
 
       {/* Card View */}
-      {!loading && !error && deliveries.length > 0 && viewMode === 'card' && (
-        <div className="space-y-2">
+      {!loading && !error && deliveries.length > 0 && (
+        <div className={`space-y-2 ${viewMode === 'table' ? 'lg:hidden' : ''}`}>
           {deliveries.map((d) => {
             const statusInfo = MOVEMENT_STATUS[d.OverallGoodsMovementStatus || ''] || { color: getSapStatusColor(d.OverallGoodsMovementStatus), label: d.OverallGoodsMovementStatus || '-' };
             return (

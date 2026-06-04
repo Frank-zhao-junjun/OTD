@@ -79,8 +79,8 @@ export default function MaterialStockPage() {
       {!loading && !error && data.length === 0 && <div className="text-center py-12" style={{ color: 'var(--muted-foreground)' }}><Inbox className="w-10 h-10 mx-auto mb-2" /><p className="text-sm">暂无数据</p></div>}
 
       {/* Card View - Mobile default */}
-      {!loading && !error && data.length > 0 && viewMode === 'card' && (
-        <div className="space-y-2">
+      {!loading && !error && data.length > 0 && (
+        <div className={`space-y-2 ${viewMode === 'table' ? 'lg:hidden' : ''}`}>
           {data.map((item, idx) => {
             const qty = parseFloat(item.MatlWrhsStkQtyInMatlBaseUnit || '0');
             const isLowStock = qty < 100 && qty > 0;

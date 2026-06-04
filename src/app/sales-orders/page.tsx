@@ -192,8 +192,8 @@ export default function SalesOrdersPage() {
       )}
 
       {/* ===== Card View (Mobile: always, PC: when selected) ===== */}
-      {!loading && !error && data.length > 0 && viewMode === 'card' && (
-        <div className="space-y-2">
+      {!loading && !error && data.length > 0 && (
+        <div className={`space-y-2 ${viewMode === 'table' ? 'lg:hidden' : ''}`}>
           {data.map((order) => {
             const statusColor = getSapStatusColor(order.OverallSDProcessStatus);
             const statusLabel = getSapStatusLabel(order.OverallSDProcessStatus);

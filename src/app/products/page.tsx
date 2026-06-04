@@ -69,6 +69,13 @@ function getDescription(product: Product): string {
   return zh?.ProductDescription || descs[0]?.ProductDescription || product.Product;
 }
 
+// Helper: extract EN description from expand
+function getEnDescription(product: Product): string | null {
+  const descs = product.to_Description?.results || [];
+  const en = descs.find((d) => d.Language === 'EN');
+  return en?.ProductDescription || null;
+}
+
 // Helper: extract first plant info
 function getPlant(product: Product): ProductPlant | null {
   const plants = product.to_Plant?.results || [];
@@ -120,7 +127,7 @@ export default function ProductsPage() {
   const fetchData = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const params = new URLSearchParams({ top: '50', count: 'true' });
+      const params = new URLSearchParams({ top: '50', count: 'true', expand: 'to_Description' });
       if (searchQuery) params.set('filter', `(Product eq '${searchQuery}')`);
       const res = await fetch(`/api/sap/API_PRODUCT_SRV/A_Product?${params}`);
       const json = await res.json();
@@ -159,8 +166,8 @@ export default function ProductsPage() {
       {!loading && !error && data.length === 0 && <div className="text-center py-12" style={{ color: 'var(--muted-foreground)' }}><Inbox className="w-10 h-10 mx-auto mb-2" /><p className="text-sm">暂无数据</p></div>}
 
       {/* Card View (Mobile default + Desktop toggle) */}
-      {!loading && !error && data.length > 0 && viewMode === 'card' && (
-        <div className="space-y-2">
+      {!loading && !error && data.length > 0 && (
+        <div className={`space-y-2 ${viewMode === 'table' ? 'lg:hidden' : ''}`}>
           {data.map((item) => {
             const typeInfo = PRODUCT_TYPE_MAP[item.ProductType] || { label: item.ProductType, variant: 'neutral' as const };
             const plant = getPlant(item);
@@ -171,6 +178,7 @@ export default function ProductsPage() {
                 <div className={`fiori-oli-bar fiori-oli-bar--${typeInfo.variant}`} />
                 <div className="fiori-oli-content">
                   <div className="fiori-oli-title">{item.Product} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {desc}</div>
+                  {(() => { const enDesc = getEnDescription(item); return enDesc && enDesc !== desc ? <div className="fiori-oli-subtitle" style={{ color: 'var(--muted-foreground)' }}>EN: {enDesc}</div> : null; })()}
                   <div className="fiori-oli-subtitle">
                     {PRODUCT_GROUP_MAP[item.ProductGroup] || item.ProductGroup}
                   </div>
@@ -191,7 +199,8 @@ export default function ProductsPage() {
           <table className="w-full text-sm">
             <thead><tr style={{ background: 'var(--muted)' }}>
               <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>产品编号</th>
-              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>描述</th>
+              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>中文描述</th>
+              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>英文描述</th>
               <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>类型</th>
               <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>产品组</th>
               <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>价格</th>
@@ -201,9 +210,11 @@ export default function ProductsPage() {
               const plant = getPlant(item);
               const desc = getDescription(item);
               const val = getValuation(item);
+              const enDesc = getEnDescription(item);
               return (<tr key={item.Product} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/products/${encodeURIComponent(item.Product)}`)}>
                 <td className="px-4 py-3 font-medium text-[#0070F2]">{item.Product}</td>
                 <td className="px-4 py-3">{desc}</td>
+                <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{enDesc || '-'}</td>
                 <td className="px-4 py-3 text-center"><FioriBadge variant={typeInfo.variant}>{typeInfo.label}</FioriBadge></td>
                 <td className="px-4 py-3">{PRODUCT_GROUP_MAP[item.ProductGroup] || item.ProductGroup}</td>
                 <td className="px-4 py-3 text-right tabular-nums">{val ? `${val.StandardPrice !== '0.00' ? val.StandardPrice : val.MovingAveragePrice} ${val.Currency}` : '-'}</td>

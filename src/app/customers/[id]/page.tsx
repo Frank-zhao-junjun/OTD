@@ -8,16 +8,48 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { FioriBadge, FioriErrorState } from '@/components/fiori';
 import { formatSapDate } from '@/lib/utils';
 
+interface CustomerAddress {
+  AddressID: string;
+  FullName: string;
+  Language: string;
+  CityName: string;
+  Country: string;
+}
+
 interface Customer {
   Customer: string;
   CustomerFullName?: string;
   CustomerName?: string;
+  BPCustomerName?: string;
+  BPCustomerFullName?: string;
   CustomerAccountGroup?: string;
   CreationDate?: string;
   CustomerCorporateGroup?: string;
   Industry?: string;
   Supplier?: string;
+  to_BusinessPartner?: {
+    results?: {
+      BusinessPartnerFullName?: string;
+      OrganizationBPName1?: string;
+      CorrespondenceLanguage?: string;
+      to_BusinessPartnerAddress?: { results: CustomerAddress[] };
+    }[];
+  };
 }
+
+const LANG_MAP: Record<string, string> = {
+  'ZH': '中文',
+  'EN': '英文',
+  'DE': '德文',
+  'FR': '法文',
+  'JA': '日文',
+  'KO': '韩文',
+  'ES': '西班牙文',
+  'PT': '葡萄牙文',
+  'IT': '意大利文',
+  'RU': '俄文',
+  'AR': '阿拉伯文',
+};
 
 export default function CustomerDetailPage() {
   const params = useParams();
@@ -31,7 +63,7 @@ export default function CustomerDetailPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_Customer?id=${encodeURIComponent(id)}`);
+        const res = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_Customer?id=${encodeURIComponent(id)}&expand=to_BusinessPartner($expand=to_BusinessPartnerAddress)`);
         const data = await res.json();
         if (data.success && data.data && data.data.length > 0) {
           setCustomer(data.data[0]);
@@ -74,12 +106,26 @@ export default function CustomerDetailPage() {
     { label: '客户编号', value: customer.Customer || '-' },
     { label: '客户全名', value: customer.CustomerFullName || '-' },
     { label: '客户名称', value: customer.CustomerName || '-' },
+    { label: 'BP客户名称', value: customer.BPCustomerName || '-' },
+    { label: 'BP客户全名', value: customer.BPCustomerFullName || '-' },
     { label: '账户组', value: customer.CustomerAccountGroup || '-' },
     { label: '创建日期', value: formatSapDate(customer.CreationDate) },
     { label: '企业集团', value: customer.CustomerCorporateGroup || '-' },
     { label: '行业', value: customer.Industry || '-' },
     { label: '供应商', value: customer.Supplier || '-' },
   ];
+
+  // 从BusinessPartner地址中提取多语言名称
+  const bpResults = customer.to_BusinessPartner?.results;
+  const bp = Array.isArray(bpResults) ? bpResults[0] : bpResults;
+  const bpAddresses: CustomerAddress[] = bp?.to_BusinessPartnerAddress?.results || [];
+  // 去重：同一语言的多个地址只取第一个
+  const uniqueLangAddresses = bpAddresses.reduce<CustomerAddress[]>((acc, addr) => {
+    if (!acc.find((a) => a.Language === addr.Language)) {
+      acc.push(addr);
+    }
+    return acc;
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -110,6 +156,22 @@ export default function CustomerDetailPage() {
           ))}
         </div>
       </div>
+
+      {uniqueLangAddresses.length > 0 && (
+        <div className="fiori-objheader">
+          <div className="fiori-objheader-title text-base mb-3">多语言名称</div>
+          <div className="space-y-2">
+            {uniqueLangAddresses.map((addr) => (
+              <div key={addr.AddressID + '-' + addr.Language} className="flex items-baseline gap-3 px-1 py-1.5 border-b border-[#E4E4E4] last:border-b-0">
+                <span className="text-xs font-medium text-[#6A6D70] uppercase tracking-wide w-16 shrink-0">
+                  {LANG_MAP[addr.Language] || addr.Language}
+                </span>
+                <span className="text-sm text-[#1A2228]">{addr.FullName}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
