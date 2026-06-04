@@ -16,6 +16,15 @@ interface CustomerAddress {
   Country: string;
 }
 
+interface BusinessPartner {
+  BusinessPartner: string;
+  BusinessPartnerName: string;
+  BusinessPartnerFullName: string;
+  CorrespondenceLanguage: string;
+  OrganizationBPName1: string;
+  to_BusinessPartnerAddress?: CustomerAddress[] | { results: CustomerAddress[] };
+}
+
 interface Customer {
   Customer: string;
   CustomerFullName?: string;
@@ -27,14 +36,6 @@ interface Customer {
   CustomerCorporateGroup?: string;
   Industry?: string;
   Supplier?: string;
-  to_BusinessPartner?: {
-    results?: {
-      BusinessPartnerFullName?: string;
-      OrganizationBPName1?: string;
-      CorrespondenceLanguage?: string;
-      to_BusinessPartnerAddress?: { results: CustomerAddress[] };
-    }[];
-  };
 }
 
 const LANG_MAP: Record<string, string> = {
@@ -57,18 +58,31 @@ export default function CustomerDetailPage() {
   const id = params.id as string;
 
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [bpData, setBpData] = useState<BusinessPartner | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_Customer?id=${encodeURIComponent(id)}&expand=to_BusinessPartner($expand=to_BusinessPartnerAddress)`);
+        // 1. Fetch customer data
+        const res = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_Customer?id=${encodeURIComponent(id)}`);
         const data = await res.json();
         if (data.success && data.data && data.data.length > 0) {
           setCustomer(data.data[0]);
         } else {
           setError(data.error || '未找到客户');
+          return;
+        }
+        // 2. Fetch BP address data for multilingual names
+        try {
+          const bpRes = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_BusinessPartner?skip_sap_sync=true&filter=Customer%20eq%20'${encodeURIComponent(id)}'&expand=to_BusinessPartnerAddress`);
+          const bpJson = await bpRes.json();
+          if (bpJson.success && bpJson.data && bpJson.data.length > 0) {
+            setBpData(bpJson.data[0]);
+          }
+        } catch {
+          // BP data is optional, don't fail the page
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : '请求失败');
@@ -106,8 +120,8 @@ export default function CustomerDetailPage() {
     { label: '客户编号', value: customer.Customer || '-' },
     { label: '客户全名', value: customer.CustomerFullName || '-' },
     { label: '客户名称', value: customer.CustomerName || '-' },
-    { label: 'BP客户名称', value: customer.BPCustomerName || '-' },
-    { label: 'BP客户全名', value: customer.BPCustomerFullName || '-' },
+    { label: 'BP名称', value: bpData?.BusinessPartnerName || '-' },
+    { label: 'BP全名', value: bpData?.BusinessPartnerFullName || '-' },
     { label: '账户组', value: customer.CustomerAccountGroup || '-' },
     { label: '创建日期', value: formatSapDate(customer.CreationDate) },
     { label: '企业集团', value: customer.CustomerCorporateGroup || '-' },
@@ -116,9 +130,14 @@ export default function CustomerDetailPage() {
   ];
 
   // 从BusinessPartner地址中提取多语言名称
-  const bpResults = customer.to_BusinessPartner?.results;
-  const bp = Array.isArray(bpResults) ? bpResults[0] : bpResults;
-  const bpAddresses: CustomerAddress[] = bp?.to_BusinessPartnerAddress?.results || [];
+  function normalizeAddressList(data: CustomerAddress[] | { results: CustomerAddress[] } | undefined): CustomerAddress[] {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (data.results && Array.isArray(data.results)) return data.results;
+    return [];
+  }
+
+  const bpAddresses = normalizeAddressList(bpData?.to_BusinessPartnerAddress);
   // 去重：同一语言的多个地址只取第一个
   const uniqueLangAddresses = bpAddresses.reduce<CustomerAddress[]>((acc, addr) => {
     if (!acc.find((a) => a.Language === addr.Language)) {

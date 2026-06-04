@@ -67,6 +67,8 @@ export async function readFromDb(
   serviceEntity: string,
   options: {
     filter?: Record<string, string>;
+    likeFilter?: Record<string, string>;
+    likeFilterMode?: 'and' | 'or';
     top?: number;
     skip?: number;
     orderBy?: string;
@@ -91,6 +93,20 @@ export async function readFromDb(
       for (const [key, value] of Object.entries(options.filter)) {
         const dbKey = key; // already snake_case from filter mapping
         countQuery.eq(dbKey, value);
+      }
+    }
+    if (options.likeFilter) {
+      const mode = options.likeFilterMode || 'and';
+      if (mode === 'or') {
+        // Build OR condition: ilike.col1.likeval,ilike.col2.likeval
+        const orParts = Object.entries(options.likeFilter).map(
+          ([key, value]) => `ilike.${key}.${value}`
+        );
+        countQuery.or(orParts.join(','));
+      } else {
+        for (const [key, value] of Object.entries(options.likeFilter)) {
+          countQuery.ilike(key, value);
+        }
       }
     }
     if (options.id && config.keyFields.length > 0) {
@@ -121,6 +137,19 @@ export async function readFromDb(
     if (options.filter) {
       for (const [key, value] of Object.entries(options.filter)) {
         dataQuery = dataQuery.eq(key, value);
+      }
+    }
+    if (options.likeFilter) {
+      const mode = options.likeFilterMode || 'and';
+      if (mode === 'or') {
+        const orParts = Object.entries(options.likeFilter).map(
+          ([key, value]) => `ilike.${key}.${value}`
+        );
+        dataQuery = dataQuery.or(orParts.join(','));
+      } else {
+        for (const [key, value] of Object.entries(options.likeFilter)) {
+          dataQuery = dataQuery.ilike(key, value);
+        }
       }
     }
     if (options.id && config.keyFields.length > 0) {

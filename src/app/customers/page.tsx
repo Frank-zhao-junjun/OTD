@@ -38,7 +38,19 @@ export default function CustomersPage() {
     setLoading(true); setError(null);
     try {
       const params = new URLSearchParams({ top: '50', count: 'true' });
-      if (searchQuery) params.set('filter', `(Customer eq '${searchQuery}' or CustomerName eq '${searchQuery}')`);
+      if (searchQuery) {
+        // Step 1: 在本地DB中按名称/编号模糊搜索，获取精确代码
+        const searchRes = await fetch(`/api/sap/search?type=customer&q=${encodeURIComponent(searchQuery)}`);
+        const searchJson = await searchRes.json();
+        if (searchJson.success && searchJson.data && searchJson.data.length > 0) {
+          // Step 2: 用精确代码列表过滤SAP数据
+          const codes = searchJson.data.map((d: { customer: string }) => d.customer);
+          params.set('filter', codes.map((c: string) => `Customer eq '${c}'`).join(' or '));
+        } else {
+          // 没有匹配结果，直接返回空
+          setData([]); setTotalCount(0); setLoading(false); return;
+        }
+      }
       const res = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_Customer?${params}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Failed');
@@ -57,7 +69,7 @@ export default function CustomersPage() {
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--muted-foreground)' }} />
-            <input type="text" placeholder="客户编号 / 名称" className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchData()} />
+            <input type="text" placeholder="客户编号 / 名称（模糊搜索）" className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchData()} />
           </div>
         </div>
         <div className="hidden lg:flex items-center border rounded overflow-hidden" style={{ borderColor: 'var(--border)' }}>
