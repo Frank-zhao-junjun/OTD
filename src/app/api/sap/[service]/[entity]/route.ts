@@ -5,38 +5,37 @@ import { SAP_DEFAULT_SELECTS, SAP_DEFAULT_EXPANDS } from '@/lib/sap-service';
 
 /**
  * Read a value from .env.local by key, bypassing dotenv-expand.
- * dotenv-expand treats $XXX as variable references and mangles passwords containing $.
- * We read the raw file to get the literal value.
+ * Priority: /tmp/.env.local (runtime settings) > workspace .env.local (deploy config)
  */
 function readEnvLocal(key: string): string | undefined {
-  try {
-    const envPath = join(process.env.COZE_WORKSPACE_PATH || process.cwd(), '.env.local');
-    const content = readFileSync(envPath, 'utf-8');
-    const regex = new RegExp(`^${key}=(?:["'](.+?)["']|(.+))$`, 'm');
-    const match = content.match(regex);
-    if (match) {
-      const val = match[1] || match[2];
-      const commentIdx = val.search(/(?<!["'])#/);
-      return commentIdx > 0 ? val.substring(0, commentIdx).trimEnd() : val.trimEnd();
-    }
-  } catch { /* file not found */ }
+  const paths = ['/tmp/.env.local', join(process.env.COZE_WORKSPACE_PATH || process.cwd(), '.env.local')];
+  for (const envPath of paths) {
+    try {
+      const content = readFileSync(envPath, 'utf-8');
+      const regex = new RegExp(`^${key}=(?:["'](.+?)["']|(.+))$`, 'm');
+      const match = content.match(regex);
+      if (match) {
+        const val = match[1] || match[2];
+        const commentIdx = val.search(/(?<!["'])#/);
+        return commentIdx > 0 ? val.substring(0, commentIdx).trimEnd() : val.trimEnd();
+      }
+    } catch { /* file not found */ }
+  }
   return undefined;
 }
 
-// SAP configuration — ALL from environment variables, NO hardcoded values.
-// Variable names aligned with SAP Communication Scenarios (SAP_COM_xxxx) Postman environment:
-//   sapScheme    — http or https
-//   sapHost      — SAP S/4HANA Cloud host (e.g. my200967-api.s4hana.sapcloud.cn)
-//   sapClient    — SAP client number (default: 100)
-//   sapUsername   — Communication user
-//   sapPassword   — Communication password (may contain special chars like $)
-//   USE_MOCK      — Set to 'true' to use local mock data
-const sapScheme = process.env.sapScheme || readEnvLocal('sapScheme') || 'https';
-const sapHost = process.env.sapHost || readEnvLocal('sapHost') || '';
-const sapUsername = process.env.sapUsername || readEnvLocal('sapUsername') || '';
-const sapPassword = readEnvLocal('sapPassword') || process.env.sapPassword || '';
-const sapClient = process.env.sapClient || readEnvLocal('sapClient') || '100';
-const USE_MOCK = process.env.USE_MOCK === 'true';
+// SAP configuration — dynamically read on each request so settings take effect immediately.
+// Variable names aligned with SAP Communication Scenarios (SAP_COM_xxxx) Postman environment.
+function getSapConfig() {
+  return {
+    sapScheme: process.env.sapScheme || readEnvLocal('sapScheme') || 'https',
+    sapHost: process.env.sapHost || readEnvLocal('sapHost') || '',
+    sapUsername: process.env.sapUsername || readEnvLocal('sapUsername') || '',
+    sapPassword: readEnvLocal('sapPassword') || process.env.sapPassword || '',
+    sapClient: process.env.sapClient || readEnvLocal('sapClient') || '100',
+    useMock: process.env.USE_MOCK === 'true' || readEnvLocal('USE_MOCK') === 'true',
+  };
+}
 
 // Mock data file mapping: service:entity → mock file
 const MOCK_FILE_MAP: Record<string, string> = {
@@ -81,6 +80,7 @@ const DEFAULT_EXPAND_MAP = SAP_DEFAULT_EXPANDS;
 
 // Build authorization header (Basic Auth)
 function getAuthHeader(): string {
+  const { sapUsername, sapPassword } = getSapConfig();
   const credentials = Buffer.from(`${sapUsername}:${sapPassword}`).toString('base64');
   return `Basic ${credentials}`;
 }
@@ -223,22 +223,23 @@ export async function GET(
   { params }: { params: Promise<{ service: string; entity: string }> }
 ): Promise<NextResponse> {
   const { service, entity } = await params;
+  const config = getSapConfig();
 
   // === MOCK MODE ===
-  if (USE_MOCK) {
+  if (config.useMock) {
     return handleMockRequest(service, entity, request.nextUrl.searchParams);
   }
 
   // === LIVE SAP MODE ===
-  if (!sapHost) {
+  if (!config.sapHost) {
     return NextResponse.json(
-      { success: false, error: 'SAP host not configured. Please set sapHost in .env.local' },
+      { success: false, error: 'SAP host not configured. Please set sapHost via Settings page' },
       { status: 500 }
     );
   }
-  if (!sapUsername || !sapPassword) {
+  if (!config.sapUsername || !config.sapPassword) {
     return NextResponse.json(
-      { success: false, error: 'SAP credentials not configured. Please set sapUsername and sapPassword in .env.local' },
+      { success: false, error: 'SAP credentials not configured. Please set sapUsername and sapPassword via Settings page' },
       { status: 500 }
     );
   }
@@ -255,7 +256,7 @@ export async function GET(
   const searchParams = request.nextUrl.searchParams;
   const queryParams: string[] = [];
 
-  queryParams.push(`sap-client=${sapClient}`);
+  queryParams.push(`sap-client=${config.sapClient}`);
   if (odataVersion === 'v2') queryParams.push(`$format=json`);
 
   const top = searchParams.get('top');
@@ -289,7 +290,7 @@ export async function GET(
   let entityPath = entity;
   if (id) entityPath = `${entity}('${id}')`;
 
-  const sapUrl = `${sapScheme}://${sapHost}${servicePath}${entityPath}?${queryParams.join('&')}`;
+  const sapUrl = `${config.sapScheme}://${config.sapHost}${servicePath}${entityPath}?${queryParams.join('&')}`;
 
   try {
     const requestHeaders: Record<string, string> = {

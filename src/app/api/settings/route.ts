@@ -2,10 +2,57 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
-const ENV_PATH = path.join(process.env.COZE_WORKSPACE_PATH || process.cwd(), '.env.local');
+// 配置文件路径优先级：
+// 1. /tmp/.env.local (运行时可写，不需要重启)
+// 2. {COZE_WORKSPACE_PATH}/.env.local (部署时配置)
+function getConfigPaths(): string[] {
+  const paths: string[] = ['/tmp/.env.local'];
+  const workspace = process.env.COZE_WORKSPACE_PATH || process.cwd();
+  paths.push(path.join(workspace, '.env.local'));
+  return paths;
+}
 
-// Sensitive keys - mask in GET response
+// Sensitive keys - mask in GET response, never use process.env fallback
 const SENSITIVE_KEYS = ['sapPassword'];
+
+// 从配置文件读取值（按优先级）
+function readConfigValues(): Record<string, string> {
+  const values: Record<string, string> = {};
+  
+  // 先读 workspace 的 .env.local（低优先级）
+  const paths = getConfigPaths();
+  for (let i = paths.length - 1; i >= 0; i--) {
+    try {
+      if (fs.existsSync(paths[i])) {
+        const content = fs.readFileSync(paths[i], 'utf-8');
+        for (const line of content.split('\n')) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith('#')) continue;
+          const eqIndex = trimmed.indexOf('=');
+          if (eqIndex > 0) {
+            const key = trimmed.substring(0, eqIndex).trim();
+            let val = trimmed.substring(eqIndex + 1).trim();
+            // Remove surrounding quotes
+            if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+              val = val.slice(1, -1);
+            }
+            values[key] = val;
+          }
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
+  // process.env 补充（仅当readEnvLocal未读到时使用）
+  // 注意: dotenv-expand会破坏含$字符的密码，所以密码字段只用readEnvLocal
+  for (const key of CONFIG_KEYS) {
+    if (!values[key] && process.env[key] && !SENSITIVE_KEYS.includes(key as typeof SENSITIVE_KEYS[number])) {
+      values[key] = process.env[key] as string;
+    }
+  }
+  
+  return values;
+}
 
 // All configurable keys with labels and types
 const CONFIG_SCHEMA = [
@@ -16,123 +63,92 @@ const CONFIG_SCHEMA = [
   { key: 'sapPassword', label: '通信密码', type: 'password', default: '' },
   { key: 'USE_MOCK', label: 'Mock模式', type: 'select', options: ['true', 'false'], default: 'false' },
 ] as const;
+
 type ConfigKey = typeof CONFIG_SCHEMA[number]['key'];
+const CONFIG_KEYS: readonly ConfigKey[] = CONFIG_SCHEMA.map(s => s.key);
 
-function parseEnvFile(content: string): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eqIndex = trimmed.indexOf('=');
-    if (eqIndex === -1) continue;
-    const key = trimmed.substring(0, eqIndex).trim();
-    let value = trimmed.substring(eqIndex + 1).trim();
-    // Remove surrounding quotes
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1);
-    }
-    result[key] = value;
-  }
-  return result;
-}
+// Password mask
+const MASK = '••••••••';
 
-function buildEnvFile(values: Record<string, string>): string {
-  let content = '';
-  // Keep original file content for keys not in schema
-  let original: Record<string, string> = {};
-  if (fs.existsSync(ENV_PATH)) {
-    original = parseEnvFile(fs.readFileSync(ENV_PATH, 'utf-8'));
-  }
-
-  // Write schema keys first in order
-  for (const schema of CONFIG_SCHEMA) {
-    const val = values[schema.key] ?? original[schema.key] ?? schema.default;
-    // Quote values that contain special characters
-    const needsQuotes = /[\s#$'"`{}()\[\]\\]/.test(val);
-    const quoted = needsQuotes ? `'${val.replace(/'/g, "'\\''")}'` : val;
-    content += `${schema.key}=${quoted}\n`;
-  }
-
-  // Preserve other keys from original file
-  const schemaKeys = new Set<string>(CONFIG_SCHEMA.map(s => s.key));
-  for (const [key, val] of Object.entries(original)) {
-    if (!schemaKeys.has(key)) {
-      const needsQuotes = /[\s#$'"`{}()\[\]\\]/.test(val);
-      const quoted = needsQuotes ? `'${val.replace(/'/g, "'\\''")}'` : val;
-      content += `${key}=${quoted}\n`;
-    }
-  }
-
-  return content;
-}
-
-// GET /api/settings - Read current configuration
+// GET: Read current config
 export async function GET() {
   try {
-    const values: Record<string, string> = {};
+    const values = readConfigValues();
     
-    if (fs.existsSync(ENV_PATH)) {
-      const content = fs.readFileSync(ENV_PATH, 'utf-8');
-      const parsed = parseEnvFile(content);
-      for (const schema of CONFIG_SCHEMA) {
-        values[schema.key] = parsed[schema.key] ?? schema.default;
-      }
-    } else {
-      for (const schema of CONFIG_SCHEMA) {
-        values[schema.key] = schema.default;
-      }
-    }
-
     // Mask sensitive values
-    const masked = { ...values };
-    for (const key of SENSITIVE_KEYS) {
-      if (masked[key] && masked[key].length > 0) {
-        masked[key] = '••••••••';
+    const maskedValues: Record<string, string> = {};
+    for (const key of CONFIG_KEYS) {
+      if (SENSITIVE_KEYS.includes(key) && values[key]) {
+        maskedValues[key] = MASK;
+      } else {
+        maskedValues[key] = values[key] || '';
       }
     }
-
+    
     return NextResponse.json({
       success: true,
       schema: CONFIG_SCHEMA,
-      values: masked,
+      values: maskedValues,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    const message = error instanceof Error ? error.message : '读取配置失败';
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
-// POST /api/settings - Save configuration
+// POST: Save config
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as Record<string, string>;
     
-    // Read current values
-    let current: Record<string, string> = {};
-    if (fs.existsSync(ENV_PATH)) {
-      current = parseEnvFile(fs.readFileSync(ENV_PATH, 'utf-8'));
-    }
-
-    // Merge: don't overwrite password with masked value
-    const merged = { ...current };
-    for (const schema of CONFIG_SCHEMA) {
-      const newVal = body[schema.key];
-      if (newVal !== undefined) {
-        // Skip masked password values
-        if (schema.key === 'sapPassword' && newVal === '••••••••') {
-          continue;
-        }
-        merged[schema.key] = newVal;
+    // Validate keys
+    const validated: Record<string, string> = {};
+    for (const key of CONFIG_KEYS) {
+      if (body[key] !== undefined) {
+        validated[key] = String(body[key]);
       }
     }
-
-    // Write .env.local
-    const content = buildEnvFile(merged);
-    fs.writeFileSync(ENV_PATH, content, 'utf-8');
-
-    return NextResponse.json({ success: true, message: '配置已保存。请重启服务使配置生效。' });
+    
+    // Read existing values from all config files
+    const existing = readConfigValues();
+    
+    // Merge: skip masked passwords
+    for (const [key, value] of Object.entries(validated)) {
+      if (SENSITIVE_KEYS.includes(key) && value === MASK) {
+        continue; // Skip masked values
+      }
+      existing[key] = value;
+    }
+    
+    // Always write to /tmp/.env.local (runtime writable, no restart needed)
+    const tmpPath = '/tmp/.env.local';
+    const lines: string[] = ['# SAP S/4HANA Cloud Connection Settings', '# Auto-saved by OTD助手 Settings page', ''];
+    for (const key of CONFIG_KEYS) {
+      if (existing[key] !== undefined) {
+        const val = existing[key];
+        // Quote values containing special characters
+        if (/[{}()\[\]$&|;<>!#\s\\'"`]/.test(val)) {
+          lines.push(`${key}='${val}'`);
+        } else {
+          lines.push(`${key}=${val}`);
+        }
+      }
+    }
+    
+    fs.writeFileSync(tmpPath, lines.join('\n') + '\n', 'utf-8');
+    
+    // Also update process.env so current process picks up changes immediately
+    for (const [key, value] of Object.entries(validated)) {
+      if (SENSITIVE_KEYS.includes(key) && value === MASK) continue;
+      process.env[key] = value;
+    }
+    
+    return NextResponse.json({
+      success: true,
+      message: '配置已保存，立即生效。',
+    });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    const message = error instanceof Error ? error.message : '保存配置失败';
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
