@@ -28,12 +28,16 @@ corepack pnpm run e2e
 
 \* 也可用分散机密：`SAP_USERNAME` + `SAP_PASSWORD`（及可选 `E2E_PHONE` 等）。
 
-`SAP_SECRET` 示例（粘贴到 secret 值，一行一条）：
+`SAP_SECRET` 支持两种写法：
+
+1. **多行**（推荐，可改用户名）：
 
 ```
 SAP_USERNAME=EPC_USER
 SAP_PASSWORD=your-sandbox-password
 ```
+
+2. **单行**：仅沙箱密码 → CI 默认 `SAP_USERNAME=EPC_USER`
 
 `E2E_SECRET` 示例（可选，不配则用代码内默认）：
 
@@ -42,6 +46,8 @@ E2E_PHONE=13800000002
 E2E_PASSWORD=demo123
 E2E_SALES_ORDER=1
 ```
+
+或 **单行** 仅门户密码 → 手机号仍用默认 `13800000002`。
 
 Fork 来的 PR 不会跑 `e2e-sap`（无 Secrets），仅跑 smoke。
 

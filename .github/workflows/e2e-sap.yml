@@ -81,13 +81,22 @@ jobs:
             echo 'SAP_CLIENT=100'
           } > .env.e2e.local
           if [ -n "${SAP_SECRET:-}" ]; then
-            printf '%s\n' "$SAP_SECRET" >> .env.e2e.local
+            if [[ "$SAP_SECRET" == *"="* ]]; then
+              printf '%s\n' "$SAP_SECRET" >> .env.e2e.local
+            else
+              echo 'SAP_USERNAME=EPC_USER' >> .env.e2e.local
+              printf 'SAP_PASSWORD=%s\n' "$SAP_SECRET" >> .env.e2e.local
+            fi
           else
             [ -n "${SAP_USERNAME:-}" ] && echo "SAP_USERNAME=${SAP_USERNAME}" >> .env.e2e.local
             [ -n "${SAP_PASSWORD:-}" ] && echo "SAP_PASSWORD=${SAP_PASSWORD}" >> .env.e2e.local
           fi
           if [ -n "${E2E_SECRET:-}" ]; then
-            printf '%s\n' "$E2E_SECRET" >> .env.e2e.local
+            if [[ "$E2E_SECRET" == *"="* ]]; then
+              printf '%s\n' "$E2E_SECRET" >> .env.e2e.local
+            else
+              printf 'E2E_PASSWORD=%s\n' "$E2E_SECRET" >> .env.e2e.local
+            fi
           else
             [ -n "${E2E_PHONE:-}" ] && echo "E2E_PHONE=${E2E_PHONE}" >> .env.e2e.local
             [ -n "${E2E_PASSWORD:-}" ] && echo "E2E_PASSWORD=${E2E_PASSWORD}" >> .env.e2e.local
