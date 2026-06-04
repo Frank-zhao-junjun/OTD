@@ -4,19 +4,18 @@ import { join } from 'path';
 import { SAP_DEFAULT_SELECTS, SAP_DEFAULT_EXPANDS } from '@/lib/sap-service';
 
 /**
- * Read a value from .env.local by key, bypassing dotenv variable expansion.
- * This is needed because passwords with $ characters get mangled by dotenv-expand.
+ * Read a value from .env.local by key, bypassing dotenv-expand.
+ * dotenv-expand treats $XXX as variable references and mangles passwords containing $.
+ * We read the raw file to get the literal value.
  */
 function readEnvLocal(key: string): string | undefined {
   try {
     const envPath = join(process.cwd(), '.env.local');
     const content = readFileSync(envPath, 'utf-8');
-    // Match KEY=VALUE or KEY="VALUE" or KEY='VALUE'
     const regex = new RegExp(`^${key}=(?:["'](.+?)["']|(.+))$`, 'm');
     const match = content.match(regex);
     if (match) {
       const val = match[1] || match[2];
-      // Remove trailing comment (# not inside quotes)
       const commentIdx = val.search(/(?<!["'])#/);
       return commentIdx > 0 ? val.substring(0, commentIdx).trimEnd() : val.trimEnd();
     }
@@ -24,12 +23,16 @@ function readEnvLocal(key: string): string | undefined {
   return undefined;
 }
 
-// SAP configuration from environment variables
-const SAP_BASE_URL = process.env.SAP_BASE_URL || 'https://my200967-api.s4hana.sapcloud.cn';
+// SAP configuration — ALL from environment variables, NO hardcoded values.
+// Set these in .env.local or deployment environment:
+//   SAP_BASE_URL    — e.g. https://my200967-api.s4hana.sapcloud.cn
+//   SAP_USERNAME    — Communication user
+//   SAP_PASSWORD    — Communication password (may contain special chars like $)
+//   SAP_CLIENT      — SAP client number (default: 100)
+//   USE_MOCK        — Set to 'true' to use local mock data
+const SAP_BASE_URL = process.env.SAP_BASE_URL || readEnvLocal('SAP_BASE_URL') || '';
 const SAP_USERNAME = process.env.SAP_USERNAME || readEnvLocal('SAP_USERNAME') || '';
-// Use readEnvLocal for passwords because dotenv-expand mangles $ characters
 const SAP_PASSWORD = readEnvLocal('SAP_PASSWORD') || process.env.SAP_PASSWORD || '';
-// console.log removed
 const SAP_CLIENT = process.env.SAP_CLIENT || '100';
 const USE_MOCK = process.env.USE_MOCK === 'true';
 
@@ -130,7 +133,6 @@ function handleMockRequest(
   const id = searchParams.get('id');
   if (id && Array.isArray(data)) {
     data = (data as Record<string, unknown>[]).filter(item => {
-      // Try common key field names
       const keyField = Object.keys(item).find(k =>
         k === entity || k === entity.replace(/^A_/, '') || k === 'SalesOrder' || k === 'ProductionOrder' || k === 'DeliveryDocument' || k === 'BillingDocument' || k === 'MaterialDocument' || k === 'Product' || k === 'Customer'
       );
@@ -187,14 +189,11 @@ function applyODataFilter(
   data: Record<string, unknown>[],
   filter: string
 ): Record<string, unknown>[] {
-  // Split by ' and ' for AND conditions
   const andParts = filter.split(/\s+and\s+/i);
 
   return data.filter(item => {
     return andParts.every(part => {
       const trimmed = part.trim().replace(/^\(/, '').replace(/\)$/, '');
-
-      // Match: Property op 'Value' or Property op Value
       const match = trimmed.match(/^(\w+)\s+(eq|ne|gt|lt|ge|le)\s+'?([^']*)'?$/);
       if (!match) return true;
 
@@ -229,6 +228,12 @@ export async function GET(
   }
 
   // === LIVE SAP MODE ===
+  if (!SAP_BASE_URL) {
+    return NextResponse.json(
+      { success: false, error: 'SAP base URL not configured. Please set SAP_BASE_URL in .env.local' },
+      { status: 500 }
+    );
+  }
   if (!SAP_USERNAME || !SAP_PASSWORD) {
     return NextResponse.json(
       { success: false, error: 'SAP credentials not configured. Please set SAP_USERNAME and SAP_PASSWORD in .env.local' },
