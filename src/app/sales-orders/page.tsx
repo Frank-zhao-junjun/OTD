@@ -159,6 +159,7 @@ export default function SalesOrdersPage() {
                 <option value="A">未处理</option>
                 <option value="B">部分发货</option>
                 <option value="C">已完成</option>
+                <option value="X">已取消</option>
               </select>
             </div>
           </div>

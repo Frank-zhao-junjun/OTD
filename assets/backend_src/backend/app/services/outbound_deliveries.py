@@ -257,6 +257,7 @@ class OutboundDeliveryService:
                 "$filter": doc_filter,
                 "$expand": "to_DeliveryDocumentPartner/to_Address",
                 "$top": len(chunk),
+                "$select": settings.outbound_header_default_select,
             }
             payload = self.client.get_entity_set(HEADER_ENTITY, params)
             chunks.append(_header_lookup(payload.get("results", [])))
@@ -283,6 +284,7 @@ class OutboundDeliveryService:
             "$expand": "to_DocumentFlow",
             "$top": top,
             "$orderby": "DeliveryDocument desc,DeliveryDocumentItem asc",
+            "$select": settings.outbound_item_default_select,
         }
         payload = self.client.get_entity_set(ITEM_ENTITY, params)
         return payload.get("results", [])
