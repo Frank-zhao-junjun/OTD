@@ -41,7 +41,16 @@ export default function MaterialStockPage() {
     setLoading(true); setError(null);
     try {
       const params = new URLSearchParams({ top: '50', count: 'true' });
-      if (searchQuery) params.set('filter', `(Material eq '${searchQuery}')`);
+      if (searchQuery) {
+        const searchRes = await fetch(`/api/sap/search?type=product&q=${encodeURIComponent(searchQuery)}`);
+        const searchData = await searchRes.json();
+        const productCodes = (searchData.data || []).map((p: { product: string }) => p.product);
+        if (productCodes.length > 0) {
+          params.set('filter', productCodes.map((m: string) => `Material eq '${m}'`).join(' or '));
+        } else {
+          params.set('filter', `Material eq '${searchQuery}'`);
+        }
+      }
       const res = await fetch(`/api/sap/API_MATERIAL_STOCK_SRV/A_MatlStkInAcctMod?${params}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Failed');
@@ -60,7 +69,7 @@ export default function MaterialStockPage() {
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--muted-foreground)' }} />
-            <input type="text" placeholder="物料编号" className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchData()} />
+            <input type="text" placeholder="搜索物料名称或编号" className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchData()} />
           </div>
         </div>
         <div className="hidden lg:flex items-center border rounded overflow-hidden" style={{ borderColor: 'var(--border)' }}>

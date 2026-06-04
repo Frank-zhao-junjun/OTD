@@ -57,7 +57,14 @@ export default function BillingDocumentsPage() {
     setLoading(true); setError(null);
     try {
       const params = new URLSearchParams({ top: '50', count: 'true' });
-      if (searchQuery) params.set('filter', `(BillingDocument eq '${searchQuery}' or SoldToParty eq '${searchQuery}')`);
+      if (searchQuery) {
+        const searchRes = await fetch(`/api/sap/search?type=all&q=${encodeURIComponent(searchQuery)}`);
+        const searchData = await searchRes.json();
+        const customerCodes = (searchData.customers || []).map((c: { customer: string }) => c.customer);
+        const filters: string[] = [`BillingDocument eq '${searchQuery}'`];
+        if (customerCodes.length > 0) filters.push(customerCodes.map((c: string) => `SoldToParty eq '${c}'`).join(' or '));
+        params.set('filter', filters.length > 0 ? filters.join(' or ') : `BillingDocument eq '${searchQuery}'`);
+      }
       const res = await fetch(`/api/sap/API_BILLING_DOCUMENT_SRV/A_BillingDocument?${params}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Failed');

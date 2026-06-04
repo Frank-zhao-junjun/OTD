@@ -53,9 +53,20 @@ export default function ProductionOrdersPage() {
 
       const filterParts: string[] = [];
       if (plant && plant !== 'all') filterParts.push(`ProductionPlant eq '${plant}'`);
-      if (searchQuery) {
-        filterParts.push(`(ProductionOrder eq '${searchQuery}' or Product eq '${searchQuery}')`);
+
+      // 搜索关键词：先在DB中模糊搜索产品名称获取精确编号，再用编号过滤
+      if (searchQuery.trim()) {
+        const keyword = searchQuery.trim();
+        const searchRes = await fetch(`/api/sap/search?type=product&q=${encodeURIComponent(keyword)}`);
+        const searchData = await searchRes.json();
+        if (searchData.success && searchData.data?.length > 0) {
+          const productFilters = searchData.data.map((p: { product: string }) => `Product eq '${p.product}'`);
+          filterParts.push(`(ProductionOrder eq '${keyword}' or ${productFilters.join(' or ')})`);
+        } else {
+          filterParts.push(`(ProductionOrder eq '${keyword}' or Product eq '${keyword}')`);
+        }
       }
+
       if (filterParts.length > 0) params.set('filter', filterParts.join(' and '));
 
       const response = await fetch(`/api/sap/CE_PRODUCTIONORDER_0001/ProductionOrder?${params.toString()}`);
@@ -91,7 +102,7 @@ export default function ProductionOrdersPage() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--muted-foreground)' }} />
             <input
               type="text"
-              placeholder="订单号 / 物料号"
+              placeholder="订单号/物料名..."
               className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none"
               style={{ background: 'var(--background)', borderColor: 'var(--border)' }}
               value={searchQuery}
