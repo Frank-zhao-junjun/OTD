@@ -185,34 +185,54 @@ function handleMockRequest(
 
 /**
  * Simple OData $filter parser
- * Supports: eq, ne, gt, lt, ge, le, and, or
+ * Supports: eq, ne, gt, lt, ge, le, and, or, substringof
  */
 function applyODataFilter(
   data: Record<string, unknown>[],
   filter: string
 ): Record<string, unknown>[] {
-  const andParts = filter.split(/\s+and\s+/i);
-
-  return data.filter(item => {
-    return andParts.every(part => {
-      const trimmed = part.trim().replace(/^\(/, '').replace(/\)$/, '');
-      const match = trimmed.match(/^(\w+)\s+(eq|ne|gt|lt|ge|le)\s+'?([^']*)'?$/);
-      if (!match) return true;
-
-      const [, prop, op, val] = match;
-      const itemVal = String(item[prop] ?? '');
-
-      switch (op) {
-        case 'eq': return itemVal === val;
-        case 'ne': return itemVal !== val;
-        case 'gt': return itemVal > val;
-        case 'lt': return itemVal < val;
-        case 'ge': return itemVal >= val;
-        case 'le': return itemVal <= val;
-        default: return true;
-      }
+  // Handle or-separated parts first
+  const orParts = filter.split(/\s+or\s+/i);
+  if (orParts.length > 1) {
+    return data.filter(item => {
+      return orParts.some(part => evaluateFilterPart(item, part.trim()));
     });
+  }
+
+  // Handle and-separated parts
+  const andParts = filter.split(/\s+and\s+/i);
+  return data.filter(item => {
+    return andParts.every(part => evaluateFilterPart(item, part.trim()));
   });
+}
+
+function evaluateFilterPart(item: Record<string, unknown>, part: string): boolean {
+  const trimmed = part.replace(/^\(/, '').replace(/\)$/, '');
+
+  // substringof('value', Property)
+  const subMatch = trimmed.match(/^substringof\(\s*'([^']*)'\s*,\s*(\w+)\s*\)$/i);
+  if (subMatch) {
+    const [, val, prop] = subMatch;
+    const itemVal = String(item[prop] ?? '');
+    return itemVal.toLowerCase().includes(val.toLowerCase());
+  }
+
+  // Comparison operators: eq, ne, gt, lt, ge, le
+  const match = trimmed.match(/^(\w+)\s+(eq|ne|gt|lt|ge|le)\s+'?([^']*)'?$/);
+  if (!match) return true;
+
+  const [, prop, op, val] = match;
+  const itemVal = String(item[prop] ?? '');
+
+  switch (op) {
+    case 'eq': return itemVal === val;
+    case 'ne': return itemVal !== val;
+    case 'gt': return itemVal > val;
+    case 'lt': return itemVal < val;
+    case 'ge': return itemVal >= val;
+    case 'le': return itemVal <= val;
+    default: return true;
+  }
 }
 
 /**
@@ -255,15 +275,25 @@ export async function GET(
           const skip = parseInt(request.nextUrl.searchParams.get('skip') || '0', 10) || undefined;
           const filterStr = request.nextUrl.searchParams.get('filter');
 
-          // Parse OData $filter into simple DB filters
+          // Parse OData $filter into simple DB filters (only eq supported, use /api/sap/search for fuzzy)
           const filter: Record<string, string> = {};
           if (filterStr) {
-            const andParts = filterStr.split(/\s+and\s+/i);
-            for (const part of andParts) {
-              const match = part.trim().replace(/^\(/, '').replace(/\)$/, '').match(/^(\w+)\s+eq\s+'?([^']*)'?$/);
-              if (match) {
-                const [, prop, val] = match;
-                // Convert SAP PascalCase filter field to snake_case for DB
+            const parts = filterStr.split(/\s+or\s+/i);
+            for (const part of parts) {
+              let trimmed = part.trim();
+              if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
+                let depth = 0; let matched = true;
+                for (let i = 0; i < trimmed.length - 1; i++) {
+                  if (trimmed[i] === '(') depth++;
+                  else if (trimmed[i] === ')') depth--;
+                  if (depth === 0 && i < trimmed.length - 1) { matched = false; break; }
+                }
+                if (matched) trimmed = trimmed.slice(1, -1);
+              }
+              const eqMatch = trimmed.match(/^(\w+)\s+eq\s+'?([^']*)'?$/);
+              if (eqMatch) {
+                const prop = eqMatch[1];
+                const val = eqMatch[2];
                 const dbProp = prop.replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2')
                   .replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
                 filter[dbProp] = val;
@@ -288,7 +318,6 @@ export async function GET(
             });
           }
 
-          // DB read failed, fall through to SAP
           console.warn(`DB read failed for ${serviceEntityKey}: ${result.error}, falling back to SAP`);
         }
       }

@@ -56,35 +56,43 @@ interface Product {
   CrossPlantStatus: string;
   CreatedByUser: string;
   CreationDate: string;
-  to_Description?: { results: ProductDescription[] };
-  to_Plant?: { results: ProductPlant[] };
-  to_SalesDelivery?: { results: ProductSalesDelivery[] };
-  to_Valuation?: { results: ProductValuation[] };
+  to_Description?: { results: ProductDescription[] } | ProductDescription[];
+  to_Plant?: { results: ProductPlant[] } | ProductPlant[];
+  to_SalesDelivery?: { results: ProductSalesDelivery[] } | ProductSalesDelivery[];
+  to_Valuation?: { results: ProductValuation[] } | ProductValuation[];
+}
+
+// Helper: normalize expand result (SAP V2 returns {results:[...]}, proxy may return plain array)
+function normalizeExpand<T>(data: { results: T[] } | T[] | undefined): T[] {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (data.results && Array.isArray(data.results)) return data.results;
+  return [];
 }
 
 // Helper: extract ZH description from expand
 function getDescription(product: Product): string {
-  const descs = product.to_Description?.results || [];
+  const descs = normalizeExpand(product.to_Description);
   const zh = descs.find((d) => d.Language === 'ZH');
   return zh?.ProductDescription || descs[0]?.ProductDescription || product.Product;
 }
 
 // Helper: extract EN description from expand
 function getEnDescription(product: Product): string | null {
-  const descs = product.to_Description?.results || [];
+  const descs = normalizeExpand(product.to_Description);
   const en = descs.find((d) => d.Language === 'EN');
   return en?.ProductDescription || null;
 }
 
 // Helper: extract first plant info
 function getPlant(product: Product): ProductPlant | null {
-  const plants = product.to_Plant?.results || [];
+  const plants = normalizeExpand(product.to_Plant);
   return plants.length > 0 ? plants[0] : null;
 }
 
 // Helper: extract first valuation
 function getValuation(product: Product): ProductValuation | null {
-  const vals = product.to_Valuation?.results || [];
+  const vals = normalizeExpand(product.to_Valuation);
   return vals.length > 0 ? vals[0] : null;
 }
 
@@ -127,8 +135,20 @@ export default function ProductsPage() {
   const fetchData = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const params = new URLSearchParams({ top: '50', count: 'true', expand: 'to_Description' });
-      if (searchQuery) params.set('filter', `(Product eq '${searchQuery}')`);
+      const params = new URLSearchParams({ top: '50', count: 'true', expand: 'to_Description', skip_sap_sync: 'true' });
+      if (searchQuery.trim()) {
+        // Step 1: 在本地DB中按名称/编号模糊搜索，获取精确代码
+        const searchRes = await fetch(`/api/sap/search?type=product&q=${encodeURIComponent(searchQuery.trim())}`);
+        const searchJson = await searchRes.json();
+        if (searchJson.success && searchJson.data && searchJson.data.length > 0) {
+          // Step 2: 用精确代码列表过滤SAP数据
+          const codes = searchJson.data.map((d: { product: string }) => d.product);
+          params.set('filter', codes.map((c: string) => `Product eq '${c}'`).join(' or '));
+        } else {
+          // 没有匹配结果，直接返回空
+          setData([]); setTotalCount(0); setLoading(false); return;
+        }
+      }
       const res = await fetch(`/api/sap/API_PRODUCT_SRV/A_Product?${params}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Failed');
@@ -147,7 +167,7 @@ export default function ProductsPage() {
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--muted-foreground)' }} />
-            <input type="text" placeholder="产品编号" className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchData()} />
+            <input type="text" placeholder="编号 / 名称" className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchData()} />
           </div>
         </div>
         <div className="hidden lg:flex items-center border rounded overflow-hidden" style={{ borderColor: 'var(--border)' }}>

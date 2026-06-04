@@ -59,10 +59,18 @@ interface Product {
   CrossPlantStatus: string;
   CreatedByUser: string;
   CreationDate: string;
-  to_Description?: { results: ProductDescription[] };
-  to_Plant?: { results: ProductPlant[] };
-  to_SalesDelivery?: { results: ProductSalesDelivery[] };
-  to_Valuation?: { results: ProductValuation[] };
+  to_Description?: { results: ProductDescription[] } | ProductDescription[];
+  to_Plant?: { results: ProductPlant[] } | ProductPlant[];
+  to_SalesDelivery?: { results: ProductSalesDelivery[] } | ProductSalesDelivery[];
+  to_Valuation?: { results: ProductValuation[] } | ProductValuation[];
+}
+
+// Helper: normalize expand result (SAP V2 returns {results:[...]}, proxy may return plain array)
+function normalizeExpand<T>(data: { results: T[] } | T[] | undefined): T[] {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (data.results && Array.isArray(data.results)) return data.results;
+  return [];
 }
 
 const PRODUCT_TYPE_MAP: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'neutral' }> = {
@@ -85,18 +93,18 @@ const PROCUREMENT_TYPE_MAP: Record<string, string> = {
 };
 
 function getDescription(product: Product): string {
-  const descs = product.to_Description?.results || [];
+  const descs = normalizeExpand(product.to_Description);
   const zh = descs.find((d) => d.Language === 'ZH');
   return zh?.ProductDescription || descs[0]?.ProductDescription || product.Product;
 }
 
 function getPlant(product: Product): ProductPlant | null {
-  const plants = product.to_Plant?.results || [];
+  const plants = normalizeExpand(product.to_Plant);
   return plants.length > 0 ? plants[0] : null;
 }
 
 function getValuation(product: Product): ProductValuation | null {
-  const vals = product.to_Valuation?.results || [];
+  const vals = normalizeExpand(product.to_Valuation);
   return vals.length > 0 ? vals[0] : null;
 }
 
@@ -118,6 +126,7 @@ export default function ProductDetailPage() {
         searchParams.set('filter', `Product eq '${id}'`);
         searchParams.set('top', '1');
         searchParams.set('expand', 'to_Description,to_Plant,to_Valuation');
+        searchParams.set('skip_sap_sync', 'true');
         const response = await fetch(`/api/sap/API_PRODUCT_SRV/A_Product?${searchParams.toString()}`);
         const data = await response.json();
         if (!data.success) throw new Error(data.error || 'Failed to fetch');
@@ -191,7 +200,7 @@ export default function ProductDetailPage() {
   ] : [];
 
   // 多语言描述
-  const descriptions = product.to_Description?.results || [];
+  const descriptions = normalizeExpand(product.to_Description);
   const LANG_MAP: Record<string, string> = {
     'ZH': '中文',
     'EN': '英文',
