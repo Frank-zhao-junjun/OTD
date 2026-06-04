@@ -218,6 +218,12 @@ export const SAP_FIELD_LABELS = {
 // Status display helpers — 销售说明见 sap-sales-order-status.ts
 export { SALES_ORDER_STATUS_MAP } from '@/lib/sap-sales-order-status';
 
+// Default $expand per service:entity (SAP navigation properties)
+export const SAP_DEFAULT_EXPANDS: Record<string, string> = {
+  // Products (V2) — expand description (ZH name) and plant (MRP/production info)
+  'API_PRODUCT_SRV:A_Product': 'to_Description,to_Plant,to_SalesDelivery,to_Valuation',
+};
+
 export const SALES_ORDER_STATUS_FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: 'all', label: '全部' },
   { value: 'A', label: '未处理 (A)' },

@@ -157,7 +157,8 @@ export function getSapStatusColor(status: string | undefined): 'success' | 'warn
   // C = Completed, // A = Open/pending
   if (s === 'C' || s === 'CLSD' || s === 'DLV' || s === 'CNF') return 'success';
   if (s === 'B' || s === 'REL' || s === 'PCNF' || s === 'PDLV') return 'warning';
-  if (s === 'X' || s === 'FAIL' || s === 'REJ') return 'error';
+  if (s === 'X') return 'neutral';
+  if (s === 'FAIL' || s === 'REJ') return 'error';
   if (s === 'A' || s === 'CRTD' || s === 'OPN') return 'info';
   return 'neutral';
 }
