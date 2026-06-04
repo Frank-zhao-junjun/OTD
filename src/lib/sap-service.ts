@@ -238,25 +238,25 @@ export const SAP_FIELD_LABELS = {
 export const SAP_DEFAULT_SELECTS: Record<string, string> = {
   // Production Order (V4) — user-specified field set + UI-needed fields
   'CE_PRODUCTIONORDER_0001:ProductionOrder':
-    'ProductionOrder,OrderIsReleased,IsMarkedForDeletion,Product,ProductionPlant,SalesOrder,SalesOrderItem,PlannedTotalQty,GoodsReceiptQty,ProductionOrderStatus,ManufacturingOrderType',
+    'ProductionOrder,IsMarkedForDeletion,IsCompletelyDelivered,Product,ProductionPlant,SalesOrder,SalesOrderItem,OrderPlannedTotalQty,ActualDeliveredQuantity,ProductionOrderType,OrderScheduledStartDate,OrderScheduledEndDate,OrderActualStartDate,OrderActualEndDate',
   // Sales Order (V4)
   'CE_SALESORDER_0001:SalesOrder':
-    'SalesOrder,SalesOrderType,SalesOrganization,DistributionChannel,OrganizationDivision,SoldToParty,PurchaseOrderByCustomer,SalesOrderDate,TotalNetAmount,TransactionCurrency,OverallSDProcessStatus,OverallDeliveryStatus,OverallBillingStatus',
+    'SalesOrder,SalesOrderType,SalesOrganization,DistributionChannel,OrganizationDivision,SoldToParty,PurchaseOrderByCustomer,SalesOrderDate,TotalNetAmount,TransactionCurrency,OverallSDProcessStatus',
   // Products (V2) — $select only basic fields; $expand fetches description & plant
   'API_PRODUCT_SRV:A_Product':
     'Product,ProductType,ProductGroup,BaseUnit,WeightUnit,GrossWeight,NetWeight,IsMarkedForDeletion,CrossPlantStatus,CreatedByUser,CreationDate',
   // Customers (V2)
   'API_BUSINESS_PARTNER:A_Customer':
-    'Customer,CustomerName,Country,CityName,PostalCode,SalesOrganization,DistributionChannel,Division,CustomerGroup,Currency',
+    'Customer,CustomerName,CustomerFullName,CustomerAccountGroup,CreationDate',
   // Material Stock (V2)
   'API_MATERIAL_STOCK_SRV:A_MatlStkInAcctMod':
-    'Material,MaterialName,Plant,StorageLocation,Batch,MaterialBaseQuantity,BaseUnit,StockType,SupplyArea',
+    'Material,Plant,StorageLocation,Batch,InventoryStockType,MaterialBaseUnit,MatlWrhsStkQtyInMatlBaseUnit',
   // Outbound Delivery (V2)
   'API_OUTBOUND_DELIVERY_SRV:A_OutbDeliveryHeader':
-    'DeliveryDocument,SoldToParty,DeliveryDate,DeliveryType,OverallGoodsMovementStatus,TotalNetAmount,TransactionCurrency',
+    'DeliveryDocument,SoldToParty,DeliveryDate,DeliveryDocumentType,OverallGoodsMovementStatus,OverallSDProcessStatus,SalesOrganization,ShippingPoint',
   // Billing Document (V2)
   'API_BILLING_DOCUMENT_SRV:A_BillingDocument':
-    'BillingDocument,SoldToParty,BillingDocumentDate,BillingType,TotalNetAmount,TransactionCurrency,BillingDocumentStatus',
+    'BillingDocument,SoldToParty,BillingDocumentDate,BillingDocumentType,TotalNetAmount,TransactionCurrency,OverallBillingStatus,AccountingPostingStatus,SalesOrganization',
   // Material Document (V2)
   'API_MATERIAL_DOCUMENT_SRV:A_MaterialDocumentItem':
     'MaterialDocument,MaterialDocumentYear,PostingDate,Material,Plant,MovementType,Quantity,BaseUnit,GoodsRecipient,ReferenceDocument',
