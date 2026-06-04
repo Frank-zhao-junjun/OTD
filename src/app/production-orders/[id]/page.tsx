@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FioriBadge, FioriErrorState } from '@/components/fiori';
 import { getSapStatusColor, getSapStatusLabel } from '@/components/fiori';
+import { formatSapDate } from '@/lib/utils';
 
 const API_BASE = '/api/sap';
 
@@ -56,15 +57,6 @@ export default function ProductionOrderDetailPage() {
     if (id) fetchData();
   }, [id]);
 
-  const formatDate = (dateStr: string | undefined): string => {
-    if (!dateStr) return '-';
-    if (dateStr.startsWith('/Date(')) {
-      const match = dateStr.match(/\/Date\((\d+)\)\//);
-      if (match) return new Date(parseInt(match[1])).toLocaleDateString('zh-CN');
-    }
-    return dateStr;
-  };
-
   if (loading) {
     return (
       <div className="space-y-4">
@@ -96,10 +88,10 @@ export default function ProductionOrderDetailPage() {
     { label: '实际交付数量', value: order.ActualDeliveredQuantity ? String(order.ActualDeliveredQuantity) : '-' },
     { label: '销售订单', value: order.SalesOrder || '-' },
     { label: '销售订单行', value: order.SalesOrderItem || '-' },
-    { label: '计划开始日期', value: formatDate(order.OrderScheduledStartDate) },
-    { label: '计划结束日期', value: formatDate(order.OrderScheduledEndDate) },
-    { label: '实际开始日期', value: formatDate(order.OrderActualStartDate) },
-    { label: '实际结束日期', value: formatDate(order.OrderActualEndDate) },
+    { label: '计划开始日期', value: formatSapDate(order.OrderScheduledStartDate) },
+    { label: '计划结束日期', value: formatSapDate(order.OrderScheduledEndDate) },
+    { label: '实际开始日期', value: formatSapDate(order.OrderActualStartDate) },
+    { label: '实际结束日期', value: formatSapDate(order.OrderActualEndDate) },
     { label: '完全交货', value: order.IsCompletelyDelivered ? '是' : '否' },
   ];
 
