@@ -19,6 +19,7 @@ import {
   LayoutDashboard,
   X,
   ChevronRight,
+  Settings,
 } from 'lucide-react';
 
 const BUSINESS_ITEMS = [
@@ -35,13 +36,18 @@ const MASTER_ITEMS = [
   { id: 'customers', label: '客户管理', icon: Users, path: '/customers' },
 ];
 
+const SYSTEM_ITEMS = [
+  { id: 'settings', label: '设置', icon: Settings, path: '/settings' },
+];
+
 const ALL_ITEMS = [
   { id: 'home', label: '工作台', icon: LayoutDashboard, path: '/' },
   ...BUSINESS_ITEMS,
   ...MASTER_ITEMS,
+  ...SYSTEM_ITEMS,
 ];
 
-// Mobile tab items (bottom navigation) - all 8 modules
+// Mobile tab items (bottom navigation) - 8 items
 const MOBILE_TAB_ITEMS = [
   { icon: LayoutDashboard, label: '工作台', path: '/' },
   { icon: FileText, label: '销售', path: '/sales-orders' },
@@ -50,7 +56,7 @@ const MOBILE_TAB_ITEMS = [
   { icon: BarChart3, label: '库存', path: '/material-stock' },
   { icon: Receipt, label: '开票', path: '/billing-documents' },
   { icon: FileSpreadsheet, label: '入库', path: '/material-documents' },
-  { icon: Package, label: '更多', path: '/products' },
+  { icon: Settings, label: '设置', path: '/settings' },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -102,7 +108,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Logo */}
         <div className="flex items-center gap-2 mr-1">
           <div className="w-7 h-7 rounded flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(255,255,255,0.2)', color: '#FFF' }}>
-            ES
+            OT
           </div>
         </div>
 
@@ -199,6 +205,24 @@ export function AppShell({ children }: { children: ReactNode }) {
           {/* Master Data Group */}
           <div className="fiori-sidebar-group-label">主数据</div>
           {MASTER_ITEMS.map((item) => {
+            const isActive = pathname === item.path || pathname.startsWith(item.path + '/');
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.id}
+                href={item.path}
+                className={`fiori-sidebar-item ${isActive ? 'active' : ''}`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <Icon className="w-[18px] h-[18px]" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+
+          {/* System Group */}
+          <div className="fiori-sidebar-group-label">系统</div>
+          {SYSTEM_ITEMS.map((item) => {
             const isActive = pathname === item.path || pathname.startsWith(item.path + '/');
             const Icon = item.icon;
             return (
