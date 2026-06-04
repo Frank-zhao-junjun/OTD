@@ -7,10 +7,13 @@ import {
 
 export const SALES_ORDER_PAGE_SIZE = 50;
 
+export const RISK_SORT_MODE = 'page' as const;
+export const RISK_SORT_NOTE = '风险排序仅在当前页内生效；翻页仍按 SAP 基础排序。';
+
 export type SalesOrderListSortField = 'risk' | 'orderDate' | 'deliveryDate' | 'amount';
 
 export const SALES_ORDER_SORT_OPTIONS: { value: SalesOrderListSortField; label: string }[] = [
-  { value: 'risk', label: '风险优先级（默认）' },
+  { value: 'risk', label: '风险优先级（默认，当页）' },
   { value: 'orderDate', label: '订单日期' },
   { value: 'deliveryDate', label: '请求交期' },
   { value: 'amount', label: '金额' },

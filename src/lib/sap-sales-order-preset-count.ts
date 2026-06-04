@@ -3,6 +3,7 @@ import { SAP_DEFAULTS } from '@/lib/sap-service';
 import { buildSalesOrderListFilter, type SalesOrderSearchFilters } from '@/lib/sap-sales-order-filters';
 import {
   getSalesOrderPresetFilters,
+  SALES_ORDER_PRESET_LIST,
   type SalesOrderPresetId,
 } from '@/lib/sap-sales-order-presets';
 
@@ -84,7 +85,7 @@ export async function fetchSalesOrderPresetCount(
 export async function fetchAllSalesOrderPresetCounts(): Promise<
   Record<SalesOrderPresetId, PresetCountResult>
 > {
-  const ids = Object.keys(SALES_ORDER_PRESETS) as SalesOrderPresetId[];
+  const ids = SALES_ORDER_PRESET_LIST.map((preset) => preset.id);
   const results = await Promise.all(
     ids.map(async (id) => [id, await fetchSalesOrderPresetCount(id)] as const)
   );

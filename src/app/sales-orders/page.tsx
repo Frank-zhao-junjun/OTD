@@ -26,6 +26,8 @@ import { summarizeSalesOrderRisks, assessSalesOrderRisk } from '@/lib/sap-sales-
 import { assessSalesOrderCancellation } from '@/lib/sap-sales-order-cancellation';
 import {
   SALES_ORDER_PAGE_SIZE,
+  RISK_SORT_MODE,
+  RISK_SORT_NOTE,
   SALES_ORDER_SORT_OPTIONS,
   canGoNextPage,
   salesOrderSapOrderBy,
@@ -254,7 +256,8 @@ function SalesOrdersPageContent() {
     }
     auditPayload.riskSemantics = {
       sortedByRiskPriority: activeSortField === 'risk',
-      note: '销售视角风险提示，不改变 SAP 状态',
+      mode: RISK_SORT_MODE,
+      note: RISK_SORT_NOTE,
     };
 
     try {
@@ -621,7 +624,7 @@ function SalesOrdersPageContent() {
                 <span className="text-sm font-medium text-slate-700">查询结果</span>
                 {!loading && !error && orders.length > 0 && sortField === 'risk' && (
                   <p className="text-[11px] text-slate-400 mt-0.5">
-                    默认：当页内风险优先，其次订单日期倒序；翻页按 SAP 订单日期分页
+                    默认：{RISK_SORT_NOTE}
                   </p>
                 )}
               </div>

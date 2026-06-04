@@ -31,8 +31,8 @@ function addDays(base: Date, days: number): Date {
   return d;
 }
 
-function last7DaysRange(): { from: string; to: string } {
-  const to = new Date();
+function last7DaysRange(now = new Date()): { from: string; to: string } {
+  const to = new Date(now);
   const from = addDays(to, -7);
   return { from: isoDate(from), to: isoDate(to) };
 }
@@ -68,15 +68,10 @@ export const SALES_ORDER_PRESETS: Record<SalesOrderPresetId, SalesOrderPresetDef
     /** SalesOrder.BillingDocumentDate（V4 抬头字段，见 SalesOrder metaData） */
     description: '开票状态=完全处理，且抬头开票日期在近 7 天内',
     href: `/sales-orders?${SALES_ORDER_PRESET_PARAM}=invoiced-7d`,
-    filters: (() => {
-      const { from, to } = last7DaysRange();
-      return {
-        statusField: 'billing',
-        statusValue: 'C',
-        billingDateFrom: from,
-        billingDateTo: to,
-      };
-    })(),
+    filters: {
+      statusField: 'billing',
+      statusValue: 'C',
+    },
   },
   'delivery-7d': {
     id: 'delivery-7d',
@@ -96,6 +91,14 @@ export function getSalesOrderPresetFilters(
   now = new Date()
 ): SalesOrderSearchFilters {
   const base = { ...SALES_ORDER_PRESETS[preset].filters };
+  if (preset === 'invoiced-7d') {
+    const { from, to } = last7DaysRange(now);
+    return {
+      ...base,
+      billingDateFrom: from,
+      billingDateTo: to,
+    };
+  }
   if (preset === 'delivery-7d') {
     return {
       ...base,
@@ -119,6 +122,8 @@ export function mergePresetWithForm(
 ): SalesOrderSearchFilters {
   const base = { ...getSalesOrderPresetFilters(preset) };
   const merged: SalesOrderSearchFilters = { ...base };
+  const keepDeliveryStatusNe = preset === 'delivery-7d' && !!base.deliveryStatusNe;
+  const keepBillingStatusNe = preset === 'shipped-unbilled' && !!base.billingStatusNe;
 
   if (form.salesOrderNo?.trim()) merged.salesOrderNo = form.salesOrderNo;
   if (form.customer?.trim()) merged.customer = form.customer;
@@ -140,8 +145,12 @@ export function mergePresetWithForm(
     merged.statusValue = form.statusValue;
     merged.processStatusIn = undefined;
     merged.deliveryStatus = undefined;
-    merged.deliveryStatusNe = undefined;
-    merged.billingStatusNe = undefined;
+    if (!keepDeliveryStatusNe) {
+      merged.deliveryStatusNe = undefined;
+    }
+    if (!keepBillingStatusNe) {
+      merged.billingStatusNe = undefined;
+    }
   }
 
   if (form.requestedDeliveryFrom) merged.requestedDeliveryFrom = form.requestedDeliveryFrom;
