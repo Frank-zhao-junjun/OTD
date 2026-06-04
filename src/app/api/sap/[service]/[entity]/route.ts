@@ -3,10 +3,33 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { SAP_DEFAULT_SELECTS, SAP_DEFAULT_EXPANDS } from '@/lib/sap-service';
 
+/**
+ * Read a value from .env.local by key, bypassing dotenv variable expansion.
+ * This is needed because passwords with $ characters get mangled by dotenv-expand.
+ */
+function readEnvLocal(key: string): string | undefined {
+  try {
+    const envPath = join(process.cwd(), '.env.local');
+    const content = readFileSync(envPath, 'utf-8');
+    // Match KEY=VALUE or KEY="VALUE" or KEY='VALUE'
+    const regex = new RegExp(`^${key}=(?:["'](.+?)["']|(.+))$`, 'm');
+    const match = content.match(regex);
+    if (match) {
+      const val = match[1] || match[2];
+      // Remove trailing comment (# not inside quotes)
+      const commentIdx = val.search(/(?<!["'])#/);
+      return commentIdx > 0 ? val.substring(0, commentIdx).trimEnd() : val.trimEnd();
+    }
+  } catch { /* file not found */ }
+  return undefined;
+}
+
 // SAP configuration from environment variables
 const SAP_BASE_URL = process.env.SAP_BASE_URL || 'https://my200967-api.s4hana.sapcloud.cn';
-const SAP_USERNAME = process.env.SAP_USERNAME || '';
-const SAP_PASSWORD = process.env.SAP_PASSWORD || '';
+const SAP_USERNAME = process.env.SAP_USERNAME || readEnvLocal('SAP_USERNAME') || '';
+// Use readEnvLocal for passwords because dotenv-expand mangles $ characters
+const SAP_PASSWORD = readEnvLocal('SAP_PASSWORD') || process.env.SAP_PASSWORD || '';
+// console.log removed
 const SAP_CLIENT = process.env.SAP_CLIENT || '100';
 const USE_MOCK = process.env.USE_MOCK === 'true';
 
