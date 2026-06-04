@@ -216,7 +216,10 @@ function applyODataFilter(
 }
 
 /**
- * Generic SAP OData proxy endpoint
+ * Generic SAP OData proxy endpoint — DB-first with SAP fallback
+ * 1. Try to read from Supabase DB
+ * 2. If DB has data, return it (converted to SAP format)
+ * 3. If DB is empty, fetch from SAP, auto-sync to DB, then return
  */
 export async function GET(
   request: NextRequest,
@@ -224,10 +227,75 @@ export async function GET(
 ): Promise<NextResponse> {
   const { service, entity } = await params;
   const config = getSapConfig();
+  const serviceEntityKey = `${service}:${entity}`;
 
   // === MOCK MODE ===
   if (config.useMock) {
     return handleMockRequest(service, entity, request.nextUrl.searchParams);
+  }
+
+  // === SKIP DB SYNC (used by /api/sync to prevent infinite loop) ===
+  const skipDbSync = request.nextUrl.searchParams.get('skip_sap_sync') === 'true';
+
+  // === DB-FIRST MODE ===
+  // Try reading from Supabase DB first (unless explicitly skipped)
+  if (!skipDbSync) {
+    try {
+      const { readFromDb, dbHasData } = await import('@/lib/db-service');
+      const { SAP_TABLE_FIELDS } = await import('@/lib/sap-db-sync');
+
+      const tableConfig = SAP_TABLE_FIELDS[serviceEntityKey];
+      if (tableConfig) {
+        const hasData = await dbHasData(serviceEntityKey);
+
+        if (hasData) {
+          // Parse query params for DB query
+          const id = request.nextUrl.searchParams.get('id');
+          const top = parseInt(request.nextUrl.searchParams.get('top') || '0', 10) || undefined;
+          const skip = parseInt(request.nextUrl.searchParams.get('skip') || '0', 10) || undefined;
+          const filterStr = request.nextUrl.searchParams.get('filter');
+
+          // Parse OData $filter into simple DB filters
+          const filter: Record<string, string> = {};
+          if (filterStr) {
+            const andParts = filterStr.split(/\s+and\s+/i);
+            for (const part of andParts) {
+              const match = part.trim().replace(/^\(/, '').replace(/\)$/, '').match(/^(\w+)\s+eq\s+'?([^']*)'?$/);
+              if (match) {
+                const [, prop, val] = match;
+                // Convert SAP PascalCase filter field to snake_case for DB
+                const dbProp = prop.replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2')
+                  .replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+                filter[dbProp] = val;
+              }
+            }
+          }
+
+          const result = await readFromDb(serviceEntityKey, {
+            id: id || undefined,
+            top,
+            skip,
+            filter: Object.keys(filter).length > 0 ? filter : undefined,
+          });
+
+          if (!result.error) {
+            return NextResponse.json({
+              success: true,
+              data: result.data,
+              count: result.count,
+              totalCount: result.count,
+              _source: 'database',
+            });
+          }
+
+          // DB read failed, fall through to SAP
+          console.warn(`DB read failed for ${serviceEntityKey}: ${result.error}, falling back to SAP`);
+        }
+      }
+    } catch (dbErr) {
+      // Supabase not available or not configured, fall through to SAP
+      console.warn(`DB not available, falling back to SAP:`, dbErr instanceof Error ? dbErr.message : dbErr);
+    }
   }
 
   // === LIVE SAP MODE ===
@@ -384,12 +452,27 @@ export async function GET(
       });
     };
 
+    const sanitizedData = sanitizeResults(results);
+
+    // Auto-sync to DB (background, non-blocking)
+    if (!skipDbSync && !isSingleEntity) {
+      try {
+        const { syncModuleToDb } = await import('@/lib/db-service');
+        // Fire and forget - don't await
+        syncModuleToDb(serviceEntityKey, sanitizedData as Record<string, unknown>[])
+          .catch(err => console.warn(`Background sync failed for ${serviceEntityKey}:`, err));
+      } catch {
+        // DB sync not available, continue
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      data: sanitizeResults(results),
+      data: sanitizedData,
       count: resultCount,
       totalCount: resultCount,
       odataVersion,
+      _source: 'sap',
     });
   } catch (error) {
     console.error('SAP API request failed:', error);
