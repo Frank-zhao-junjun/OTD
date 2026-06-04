@@ -259,7 +259,7 @@ export const SAP_DEFAULT_SELECTS: Record<string, string> = {
     'BillingDocument,SoldToParty,BillingDocumentDate,BillingDocumentType,TotalNetAmount,TransactionCurrency,OverallBillingStatus,AccountingPostingStatus,SalesOrganization',
   // Material Document (V2)
   'API_MATERIAL_DOCUMENT_SRV:A_MaterialDocumentItem':
-    'MaterialDocument,MaterialDocumentYear,PostingDate,Material,Plant,MovementType,Quantity,BaseUnit,GoodsRecipient,ReferenceDocument',
+    'MaterialDocument,MaterialDocumentYear,MaterialDocumentItem,Material,Plant,StorageLocation,GoodsMovementType,QuantityInBaseUnit,MaterialBaseUnit,GoodsRecipientName,ManufacturingOrder',
 };
 
 // Default $expand per service:entity (SAP navigation properties)
