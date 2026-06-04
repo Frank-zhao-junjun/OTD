@@ -8,6 +8,7 @@ import { FioriBadge, FioriErrorState } from '@/components/fiori';
 import { getSapStatusColor } from '@/components/fiori';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { SALES_ORDER_STATUS_MAP } from '@/lib/sap-service';
+import { formatSapDate } from '@/lib/utils';
 
 interface SalesOrder {
   SalesOrder: string;
@@ -98,16 +99,6 @@ export default function SalesOrderDetailPage() {
     );
   }
 
-  const formatDate = (dateStr: string | undefined): string => {
-    if (!dateStr) return '-';
-    const match = dateStr.match(/\/Date\((\d+)\)\//);
-    if (match) {
-      const d = new Date(parseInt(match[1]));
-      return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
-    }
-    return dateStr;
-  };
-
   const processStatus = SALES_ORDER_STATUS_MAP[order.OverallSDProcessStatus || '']?.label || order.OverallSDProcessStatus || '-';
   const deliveryStatus = SALES_ORDER_STATUS_MAP[order.OverallDeliveryStatus || '']?.label || order.OverallDeliveryStatus || '-';
   const billingStatus = SALES_ORDER_STATUS_MAP[order.OverallBillingStatus || '']?.label || order.OverallBillingStatus || '-';
@@ -120,10 +111,10 @@ export default function SalesOrderDetailPage() {
     { label: '分销渠道', value: order.DistributionChannel || '-' },
     { label: '产品组', value: order.OrganizationDivision || '-' },
     { label: '订单金额', value: order.TotalNetAmount ? `${Number(order.TotalNetAmount).toLocaleString()} ${order.TransactionCurrency || 'CNY'}` : '-' },
-    { label: '订单日期', value: formatDate(order.SalesOrderDate) },
-    { label: '请求交货日期', value: formatDate(order.RequestedDeliveryDate) },
-    { label: '创建日期', value: formatDate(order.CreationDate) },
-    { label: '最后更改', value: formatDate(order.LastChangeDate) },
+    { label: '订单日期', value: formatSapDate(order.SalesOrderDate) },
+    { label: '请求交货日期', value: formatSapDate(order.RequestedDeliveryDate) },
+    { label: '创建日期', value: formatSapDate(order.CreationDate) },
+    { label: '最后更改', value: formatSapDate(order.LastChangeDate) },
     { label: '销售组', value: order.SalesGroup || '-' },
   ];
 
@@ -143,7 +134,7 @@ export default function SalesOrderDetailPage() {
           <div>
             <div className="fiori-objheader-title">{order.SalesOrder}</div>
             <div className="fiori-objheader-subtitle">
-              {order.SoldToParty || '-'} · {formatDate(order.SalesOrderDate)}
+              {order.SoldToParty || '-'} · {formatSapDate(order.SalesOrderDate)}
             </div>
           </div>
         </div>

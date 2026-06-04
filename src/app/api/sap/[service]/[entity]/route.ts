@@ -307,9 +307,16 @@ export async function GET(
 
     if (!response.ok) {
       const errorText = await response.text();
+      // Sanitize error details - remove internal hostnames, transaction IDs, and etags
+      const sanitizedDetails = errorText
+        .replace(/https?:\/\/[^\s"']+/g, '[URL_REDACTED]')
+        .replace(/"transactionid"\s*:\s*"[^"]*"/g, '"transactionid":"[REDACTED]"')
+        .replace(/"etag"\s*:\s*"[^"]*"/g, '"etag":"[REDACTED]"')
+        .substring(0, 500);
+
       console.error(`SAP API error: ${response.status} - ${errorText.substring(0, 500)}`);
       return NextResponse.json(
-        { success: false, error: `SAP API returned ${response.status}`, details: errorText.substring(0, 500) },
+        { success: false, error: `SAP API returned ${response.status}`, details: sanitizedDetails },
         { status: response.status }
       );
     }
@@ -332,9 +339,21 @@ export async function GET(
       resultCount = 1;
     }
 
+    // Strip __metadata from results to avoid exposing internal SAP hostnames/URLs
+    const sanitizeResults = (items: unknown[]): unknown[] => {
+      if (!Array.isArray(items)) return items;
+      return items.map(item => {
+        if (item && typeof item === 'object') {
+          const { __metadata, ...rest } = item as Record<string, unknown>;
+          return rest;
+        }
+        return item;
+      });
+    };
+
     return NextResponse.json({
       success: true,
-      data: results,
+      data: sanitizeResults(results),
       count: resultCount,
       totalCount: resultCount,
       odataVersion,

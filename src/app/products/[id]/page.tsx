@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FioriBadge, FioriErrorState } from '@/components/fiori';
 import { ArrowLeft, Package } from 'lucide-react';
+import { formatSapDate } from '@/lib/utils';
 
 interface ProductDescription {
   Product: string;
@@ -99,16 +100,6 @@ function getValuation(product: Product): ProductValuation | null {
   return vals.length > 0 ? vals[0] : null;
 }
 
-function formatDate(dateStr: string | undefined): string {
-  if (!dateStr) return '-';
-  const match = dateStr.match(/\/Date\((\d+)\)\//);
-  if (match) {
-    const d = new Date(parseInt(match[1]));
-    return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
-  }
-  return dateStr;
-}
-
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -179,7 +170,7 @@ export default function ProductDetailPage() {
     { label: '净重', value: product.NetWeight ? `${product.NetWeight} ${product.WeightUnit || ''}` : '-' },
     { label: '跨工厂状态', value: product.CrossPlantStatus || '-' },
     { label: '创建者', value: product.CreatedByUser || '-' },
-    { label: '创建日期', value: formatDate(product.CreationDate) },
+    { label: '创建日期', value: formatSapDate(product.CreationDate) },
   ];
 
   const plantFields = plant ? [
