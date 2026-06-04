@@ -1,4 +1,5 @@
 'use client';
+import { useRouter } from 'next/navigation';
 
 import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab } from '@/components/fiori';
@@ -31,6 +32,7 @@ export default function CustomersPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalCount, setTotalCount] = useState(0);
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
   const fetchData = useCallback(async () => {
@@ -79,7 +81,7 @@ export default function CustomersPage() {
           {data.map((item) => {
             const groupColor = GROUP_COLORS[item.CustomerGroup] || 'neutral';
             return (
-              <div key={item.Customer} className="fiori-oli">
+              <div key={item.Customer} className="fiori-oli cursor-pointer" onClick={() => router.push(`/customers/${item.Customer}`)}>
                 <div className={`fiori-oli-bar fiori-oli-bar--${groupColor}`} />
                 <div className="fiori-oli-content">
                   <div className="fiori-oli-title">{item.Customer} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.CustomerName}</div>
@@ -101,7 +103,7 @@ export default function CustomersPage() {
             <thead><tr style={{ background: 'var(--muted)' }}><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>客户编号</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>名称</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>城市</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>国家</th><th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>客户组</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>币种</th></tr></thead>
             <tbody>{data.map((item) => {
               const groupColor = GROUP_COLORS[item.CustomerGroup] || 'neutral';
-              return (<tr key={item.Customer} className="border-t hover:bg-accent/50 transition-colors" style={{ borderColor: 'var(--border)' }}><td className="px-4 py-3 font-medium">{item.Customer}</td><td className="px-4 py-3">{item.CustomerName}</td><td className="px-4 py-3">{item.City}</td><td className="px-4 py-3">{item.CountryText}</td><td className="px-4 py-3 text-center"><FioriBadge variant={groupColor}>{item.CustomerGroupText}</FioriBadge></td><td className="px-4 py-3">{item.Currency}</td></tr>);
+              return (<tr key={item.Customer} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/customers/${item.Customer}`)}><td className="px-4 py-3 font-medium text-[#0070F2]">{item.Customer}</td><td className="px-4 py-3">{item.CustomerName}</td><td className="px-4 py-3">{item.City}</td><td className="px-4 py-3">{item.CountryText}</td><td className="px-4 py-3 text-center"><FioriBadge variant={groupColor}>{item.CustomerGroupText}</FioriBadge></td><td className="px-4 py-3">{item.Currency}</td></tr>);
             })}</tbody>
           </table>
         </div>

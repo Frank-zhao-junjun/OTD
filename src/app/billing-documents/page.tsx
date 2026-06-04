@@ -1,4 +1,5 @@
 'use client';
+import { useRouter } from 'next/navigation';
 
 import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab, getSapStatusColor } from '@/components/fiori';
@@ -43,6 +44,7 @@ export default function BillingDocumentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalCount, setTotalCount] = useState(0);
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
   const fetchData = useCallback(async () => {
@@ -90,7 +92,7 @@ export default function BillingDocumentsPage() {
           {data.map((item) => {
             const statusInfo = BILLING_STATUS[item.BillingDocumentStatus || ''] || { color: getSapStatusColor(item.BillingDocumentStatus), label: item.StatusText || item.BillingDocumentStatus || '-' };
             return (
-              <div key={item.BillingDocument} className="fiori-oli">
+              <div key={item.BillingDocument} className="fiori-oli cursor-pointer" onClick={() => router.push(`/billing-documents/${item.BillingDocument}`)}>
                 <div className={`fiori-oli-bar fiori-oli-bar--${statusInfo.color}`} />
                 <div className="fiori-oli-content">
                   <div className="fiori-oli-title">{item.BillingDocument} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.SoldToPartyName || item.SoldToParty || '-'}</div>
@@ -112,7 +114,7 @@ export default function BillingDocumentsPage() {
             <thead><tr style={{ background: 'var(--muted)' }}><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>单据号</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>客户</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>开票日期</th><th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>金额</th><th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>状态</th></tr></thead>
             <tbody>{data.map((item) => {
               const statusInfo = BILLING_STATUS[item.BillingDocumentStatus || ''] || { color: getSapStatusColor(item.BillingDocumentStatus), label: item.StatusText || '-' };
-              return (<tr key={item.BillingDocument} className="border-t hover:bg-accent/50 transition-colors" style={{ borderColor: 'var(--border)' }}><td className="px-4 py-3 font-medium">{item.BillingDocument}</td><td className="px-4 py-3">{item.SoldToPartyName || item.SoldToParty || '-'}</td><td className="px-4 py-3 tabular-nums">{formatDate(item.BillingDocumentDate)}</td><td className="px-4 py-3 text-right font-medium tabular-nums">{formatAmount(item.TotalNetAmount, item.TransactionCurrency)}</td><td className="px-4 py-3 text-center"><FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge></td></tr>);
+              return (<tr key={item.BillingDocument} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/billing-documents/${item.BillingDocument}`)}><td className="px-4 py-3 font-medium text-[#0070F2]">{item.BillingDocument}</td><td className="px-4 py-3">{item.SoldToPartyName || item.SoldToParty || '-'}</td><td className="px-4 py-3 tabular-nums">{formatDate(item.BillingDocumentDate)}</td><td className="px-4 py-3 text-right font-medium tabular-nums">{formatAmount(item.TotalNetAmount, item.TransactionCurrency)}</td><td className="px-4 py-3 text-center"><FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge></td></tr>);
             })}</tbody>
           </table>
         </div>

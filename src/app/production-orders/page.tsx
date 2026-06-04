@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import Link from 'next/link';
 import { FioriBadge, FioriFab, getSapStatusColor, getSapStatusLabel } from '@/components/fiori';
 import { SAP_DEFAULTS } from '@/lib/sap-service';
 import { Factory, Search, RotateCcw, Filter, Inbox, LayoutList, Table2 } from 'lucide-react';
@@ -41,6 +43,7 @@ const getStatusInfo = (status: string | undefined): { color: 'success' | 'warnin
 };
 
 export default function ProductionOrdersPage() {
+  const router = useRouter();
   const [orders, setOrders] = useState<ProductionOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -192,7 +195,7 @@ export default function ProductionOrdersPage() {
           {orders.map((order) => {
             const statusInfo = getStatusInfo(order.ProductionOrderStatus);
             return (
-              <div key={order.ProductionOrder} className="fiori-oli">
+              <Link key={order.ProductionOrder} href={`/production-orders/${order.ProductionOrder}`} className="fiori-oli" style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className={`fiori-oli-bar fiori-oli-bar--${statusInfo.color}`} />
                 <div className="fiori-oli-content">
                   <div className="fiori-oli-title">
@@ -211,13 +214,12 @@ export default function ProductionOrdersPage() {
                     <FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge>
                   </div>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
       )}
 
-      {/* ===== Table View (PC only) ===== */}
       {!loading && !error && orders.length > 0 && viewMode === 'table' && (
         <div className="hidden lg:block rounded-lg border overflow-hidden" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
           <table className="w-full text-sm">
@@ -235,8 +237,8 @@ export default function ProductionOrdersPage() {
               {orders.map((order) => {
                 const statusInfo = getStatusInfo(order.ProductionOrderStatus);
                 return (
-                  <tr key={order.ProductionOrder} className="border-t hover:bg-accent/50 transition-colors" style={{ borderColor: 'var(--border)' }}>
-                    <td className="px-4 py-3 font-medium">{order.ProductionOrder}</td>
+                  <tr key={order.ProductionOrder} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/production-orders/${order.ProductionOrder}`)}>
+                    <td className="px-4 py-3 font-medium text-primary underline">{order.ProductionOrder}</td>
                     <td className="px-4 py-3">{order.Product || '-'}</td>
                     <td className="px-4 py-3">{order.ProductionPlant || '-'}</td>
                     <td className="px-4 py-3 tabular-nums">{order.PlannedTotalQty || '0'}</td>

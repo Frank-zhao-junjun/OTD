@@ -256,13 +256,26 @@ export async function GET(
   const searchParams = request.nextUrl.searchParams;
   const queryParams: string[] = [];
 
+  const id = searchParams.get('id');
+  const isSingleEntity = !!id;
+
   queryParams.push(`sap-client=${config.sapClient}`);
   if (odataVersion === 'v2') queryParams.push(`$format=json`);
 
-  const top = searchParams.get('top');
-  const skip = searchParams.get('skip');
-  if (top) queryParams.push(`$top=${top}`);
-  if (skip) queryParams.push(`$skip=${skip}`);
+  // $top, $skip, $orderby, $inlinecount are NOT allowed for single-entity requests
+  if (!isSingleEntity) {
+    const top = searchParams.get('top');
+    const skip = searchParams.get('skip');
+    if (top) queryParams.push(`$top=${top}`);
+    if (skip) queryParams.push(`$skip=${skip}`);
+
+    const orderby = searchParams.get('orderby');
+    if (orderby) queryParams.push(`$orderby=${encodeURIComponent(orderby)}`);
+
+    const count = searchParams.get('count');
+    if (odataVersion === 'v4' && count === 'true') queryParams.push('$count=true');
+    if (odataVersion === 'v2') queryParams.push('$inlinecount=allpages');
+  }
 
   const filter = searchParams.get('filter');
   if (filter) queryParams.push(`$filter=${encodeURIComponent(filter)}`);
@@ -274,19 +287,11 @@ export async function GET(
   const effectiveSelect = select || defaultSelect;
   if (effectiveSelect) queryParams.push(`$select=${encodeURIComponent(effectiveSelect)}`);
 
-  const orderby = searchParams.get('orderby');
-  if (orderby) queryParams.push(`$orderby=${encodeURIComponent(orderby)}`);
-
   const expand = searchParams.get('expand');
   const defaultExpand = DEFAULT_EXPAND_MAP[defaultSelectKey];
   const effectiveExpand = expand || defaultExpand;
   if (effectiveExpand) queryParams.push(`$expand=${encodeURIComponent(effectiveExpand)}`);
 
-  const count = searchParams.get('count');
-  if (odataVersion === 'v4' && count === 'true') queryParams.push('$count=true');
-  if (odataVersion === 'v2') queryParams.push('$inlinecount=allpages');
-
-  const id = searchParams.get('id');
   let entityPath = entity;
   if (id) entityPath = `${entity}('${id}')`;
 

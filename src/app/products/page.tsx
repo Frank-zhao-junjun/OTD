@@ -1,4 +1,5 @@
 'use client';
+import { useRouter } from 'next/navigation';
 
 import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab } from '@/components/fiori';
@@ -113,6 +114,7 @@ export default function ProductsPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalCount, setTotalCount] = useState(0);
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
   const fetchData = useCallback(async () => {
@@ -165,7 +167,7 @@ export default function ProductsPage() {
             const desc = getDescription(item);
             const price = getPrice(item);
             return (
-              <div key={item.Product} className="fiori-oli">
+              <div key={item.Product} className="fiori-oli cursor-pointer" onClick={() => router.push(`/products/${encodeURIComponent(item.Product)}`)}>
                 <div className={`fiori-oli-bar fiori-oli-bar--${typeInfo.variant}`} />
                 <div className="fiori-oli-content">
                   <div className="fiori-oli-title">{item.Product} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {desc}</div>
@@ -205,8 +207,8 @@ export default function ProductsPage() {
               const plant = getPlant(item);
               const desc = getDescription(item);
               const val = getValuation(item);
-              return (<tr key={item.Product} className="border-t hover:bg-accent/50 transition-colors" style={{ borderColor: 'var(--border)' }}>
-                <td className="px-4 py-3 font-medium">{item.Product}</td>
+              return (<tr key={item.Product} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/products/${encodeURIComponent(item.Product)}`)}>
+                <td className="px-4 py-3 font-medium text-[#0070F2]">{item.Product}</td>
                 <td className="px-4 py-3">{desc}</td>
                 <td className="px-4 py-3 text-center"><FioriBadge variant={typeInfo.variant}>{typeInfo.label}</FioriBadge></td>
                 <td className="px-4 py-3">{PRODUCT_GROUP_MAP[item.ProductGroup] || item.ProductGroup}</td>
