@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { SESSION_COOKIE, verifySessionToken } from '@/lib/auth-session';
+
+const SESSION_COOKIE = 'otd_session';
 
 const PUBLIC_PATHS = ['/login', '/api/auth/login'];
 
@@ -21,7 +22,7 @@ function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
@@ -37,9 +38,11 @@ export function middleware(request: NextRequest) {
   }
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
-  const session = verifySessionToken(token);
+  // Edge runtime only does a lightweight cookie shape check here.
+  // Strict signature/expiry/user validation remains in Node API routes.
+  const hasSession = Boolean(token && token.includes('.'));
 
-  if (!session) {
+  if (!hasSession) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ success: false, error: '请先登录', code: 'AUTH_REQUIRED' }, { status: 401 });
     }
