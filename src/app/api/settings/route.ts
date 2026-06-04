@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
-const ENV_PATH = path.join(process.cwd(), '.env.local');
+const ENV_PATH = path.join(process.env.COZE_WORKSPACE_PATH || process.cwd(), '.env.local');
 
 // Sensitive keys - mask in GET response
 const SENSITIVE_KEYS = ['sapPassword'];
