@@ -10,6 +10,8 @@ interface Customer {
   Customer: string;
   CustomerName: string;
   CustomerFullName: string;
+  BPCustomerName?: string;
+  BPCustomerFullName?: string;
   CustomerAccountGroup: string;
   CreationDate: string;
   CustomerCorporateGroup: string;
@@ -73,8 +75,8 @@ export default function CustomersPage() {
       {error && !loading && <div className="text-center py-12" style={{ color: 'var(--color-fiori-error)' }}><p className="text-sm">{error}</p><button className="mt-2 text-sm underline" onClick={fetchData}>重试</button></div>}
       {!loading && !error && data.length === 0 && <div className="text-center py-12" style={{ color: 'var(--muted-foreground)' }}><Inbox className="w-10 h-10 mx-auto mb-2" /><p className="text-sm">暂无数据</p></div>}
 
-      {!loading && !error && data.length > 0 && viewMode === 'card' && (
-        <div className="space-y-2">
+      {!loading && !error && data.length > 0 && (
+        <div className={`space-y-2 ${viewMode === 'table' ? 'lg:hidden' : ''}`}>
           {data.map((item) => {
             const groupColor = GROUP_COLORS[item.CustomerAccountGroup] || 'neutral';
             return (
@@ -82,6 +84,9 @@ export default function CustomersPage() {
                 <div className={`fiori-oli-bar fiori-oli-bar--${groupColor}`} />
                 <div className="fiori-oli-content">
                   <div className="fiori-oli-title">{item.Customer} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.CustomerName}</div>
+                  {item.CustomerFullName && item.CustomerFullName !== item.CustomerName && (
+                    <div className="fiori-oli-subtitle" style={{ color: 'var(--muted-foreground)' }}>{item.CustomerFullName}</div>
+                  )}
                   <div className="fiori-oli-subtitle">{item.Industry || '-'}</div>
                   <div className="flex items-center gap-2">
                     <FioriBadge variant={groupColor}>{item.CustomerAccountGroup}</FioriBadge>
@@ -99,6 +104,7 @@ export default function CustomersPage() {
             <thead><tr style={{ background: 'var(--muted)' }}>
               <th className="px-4 py-2 text-left">客户编号</th>
               <th className="px-4 py-2 text-left">名称</th>
+              <th className="px-4 py-2 text-left">全名</th>
               <th className="px-4 py-2 text-left">行业</th>
               <th className="px-4 py-2 text-center">账户组</th>
             </tr></thead>
@@ -107,6 +113,7 @@ export default function CustomersPage() {
               return <tr key={item.Customer} className="border-t cursor-pointer hover:bg-muted/50" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/customers/${item.Customer}`)}>
                 <td className="px-4 py-3 font-medium">{item.Customer}</td>
                 <td className="px-4 py-3">{item.CustomerName}</td>
+                <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{item.CustomerFullName || '-'}</td>
                 <td className="px-4 py-3">{item.Industry || '-'}</td>
                 <td className="px-4 py-3 text-center"><FioriBadge variant={groupColor}>{item.CustomerAccountGroup}</FioriBadge></td>
               </tr>;

@@ -95,8 +95,8 @@ export default function MaterialDocumentsPage() {
       {error && !loading && <div className="text-center py-12" style={{ color: 'var(--color-fiori-error)' }}><p className="text-sm">{error}</p><button className="mt-2 text-sm underline" onClick={fetchData}>重试</button></div>}
       {!loading && !error && data.length === 0 && <div className="text-center py-12" style={{ color: 'var(--muted-foreground)' }}><Inbox className="w-10 h-10 mx-auto mb-2" /><p className="text-sm">暂无数据</p></div>}
 
-      {!loading && !error && data.length > 0 && viewMode === 'card' && (
-        <div className="space-y-2">
+      {!loading && !error && data.length > 0 && (
+        <div className={`space-y-2 ${viewMode === 'table' ? 'lg:hidden' : ''}`}>
           {data.map((item, idx) => {
             const barColor = MOVEMENT_COLORS[item.GoodsMovementType] || 'neutral';
             const movementLabel = getMovementLabel(item.GoodsMovementType);

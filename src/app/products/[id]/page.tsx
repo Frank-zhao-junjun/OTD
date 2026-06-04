@@ -117,6 +117,7 @@ export default function ProductDetailPage() {
         const searchParams = new URLSearchParams();
         searchParams.set('filter', `Product eq '${id}'`);
         searchParams.set('top', '1');
+        searchParams.set('expand', 'to_Description,to_Plant,to_Valuation');
         const response = await fetch(`/api/sap/API_PRODUCT_SRV/A_Product?${searchParams.toString()}`);
         const data = await response.json();
         if (!data.success) throw new Error(data.error || 'Failed to fetch');
@@ -189,6 +190,22 @@ export default function ProductDetailPage() {
     { label: '移动平均价', value: `${val.MovingAveragePrice} ${val.Currency}` },
   ] : [];
 
+  // 多语言描述
+  const descriptions = product.to_Description?.results || [];
+  const LANG_MAP: Record<string, string> = {
+    'ZH': '中文',
+    'EN': '英文',
+    'DE': '德文',
+    'FR': '法文',
+    'JA': '日文',
+    'KO': '韩文',
+    'ES': '西班牙文',
+    'PT': '葡萄牙文',
+    'IT': '意大利文',
+    'RU': '俄文',
+    'AR': '阿拉伯文',
+  };
+
   return (
     <div className="space-y-4">
       <Button variant="ghost" size="sm" onClick={() => router.push('/products')} className="mb-0">
@@ -217,6 +234,22 @@ export default function ProductDetailPage() {
           ))}
         </div>
       </div>
+
+      {descriptions.length > 0 && (
+        <div className="fiori-objheader">
+          <div className="fiori-objheader-title text-base mb-3">多语言描述</div>
+          <div className="space-y-2">
+            {descriptions.map((d) => (
+              <div key={d.Language} className="flex items-baseline gap-3 px-1 py-1.5 border-b border-[#E4E4E4] last:border-b-0">
+                <span className="text-xs font-medium text-[#6A6D70] uppercase tracking-wide w-16 shrink-0">
+                  {LANG_MAP[d.Language] || d.Language}
+                </span>
+                <span className="text-sm text-[#1A2228]">{d.ProductDescription}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {plantFields.length > 0 && (
         <div className="fiori-objheader">
