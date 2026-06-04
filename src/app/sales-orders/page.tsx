@@ -58,8 +58,48 @@ export default function SalesOrdersPage() {
         skip: String(skip),
         count: 'true',
       });
-      if (search) params.set('search', search);
-      if (statusFilter !== 'all') params.set('filter', `OverallSDProcessStatus eq '${statusFilter}'`);
+
+      // 构建过滤条件
+      const filters: string[] = [];
+      if (statusFilter !== 'all') {
+        filters.push(`OverallSDProcessStatus eq '${statusFilter}'`);
+      }
+
+      // 搜索关键词：先在DB中模糊搜索获取精确编号，再用编号过滤
+      if (search.trim()) {
+        const keyword = search.trim();
+        const searchRes = await fetch(`/api/sap/search?type=all&q=${encodeURIComponent(keyword)}`);
+        const searchData = await searchRes.json();
+        if (searchData.success) {
+          const customerFilters: string[] = [];
+          const productFilters: string[] = [];
+
+          if (searchData.customers?.length > 0) {
+            for (const c of searchData.customers) {
+              customerFilters.push(`SoldToParty eq '${c.customer}'`);
+            }
+          }
+          if (searchData.products?.length > 0) {
+            for (const p of searchData.products) {
+              productFilters.push(`Material eq '${p.product}'`);
+            }
+          }
+
+          // 客户编号或产品编号匹配
+          const codeFilters: string[] = [];
+          if (customerFilters.length > 0) codeFilters.push(customerFilters.join(' or '));
+          if (productFilters.length > 0) codeFilters.push(productFilters.join(' or '));
+
+          if (codeFilters.length > 0) {
+            filters.push(`(${codeFilters.join(' or ')})`);
+          } else {
+            // DB中也搜不到，尝试用关键词直接匹配订单号
+            filters.push(`SalesOrder eq '${keyword}'`);
+          }
+        }
+      }
+
+      if (filters.length > 0) params.set('filter', filters.join(' and '));
 
       const res = await fetch(`/api/sap/CE_SALESORDER_0001/SalesOrder?${params}`);
       const json = await res.json();
@@ -96,7 +136,7 @@ export default function SalesOrdersPage() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--muted-foreground)' }} />
             <input
               type="text"
-              placeholder="搜索订单号/客户..."
+              placeholder="搜索订单号/客户名/产品名..."
               className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none"
               style={{ background: 'var(--background)', borderColor: 'var(--border)' }}
               value={search}

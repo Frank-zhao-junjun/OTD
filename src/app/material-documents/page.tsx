@@ -58,7 +58,14 @@ export default function MaterialDocumentsPage() {
     setLoading(true); setError(null);
     try {
       const params = new URLSearchParams({ top: '50', count: 'true' });
-      if (searchQuery) params.set('filter', `(MaterialDocument eq '${searchQuery}' or Material eq '${searchQuery}')`);
+      if (searchQuery) {
+        const searchRes = await fetch(`/api/sap/search?type=product&q=${encodeURIComponent(searchQuery)}`);
+        const searchData = await searchRes.json();
+        const productCodes = (searchData.data || []).map((p: { product: string }) => p.product);
+        const filters: string[] = [`MaterialDocument eq '${searchQuery}'`];
+        if (productCodes.length > 0) filters.push(productCodes.map((m: string) => `Material eq '${m}'`).join(' or '));
+        params.set('filter', filters.length > 0 ? filters.join(' or ') : `MaterialDocument eq '${searchQuery}'`);
+      }
       const res = await fetch(`/api/sap/API_MATERIAL_DOCUMENT_SRV/A_MaterialDocumentItem?${params}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Failed');
@@ -77,7 +84,7 @@ export default function MaterialDocumentsPage() {
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--muted-foreground)' }} />
-            <input type="text" placeholder="凭证号 / 物料号" className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchData()} />
+            <input type="text" placeholder="凭证号 / 物料名称" className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchData()} />
           </div>
         </div>
         <div className="hidden lg:flex items-center border rounded overflow-hidden" style={{ borderColor: 'var(--border)' }}>

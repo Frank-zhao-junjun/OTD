@@ -51,7 +51,20 @@ export default function OutboundDeliveryPage() {
       const params = new URLSearchParams();
       params.set('top', '50');
       params.set('count', 'true');
-      if (searchQuery) params.set('filter', `(DeliveryDocument eq '${searchQuery}' or SoldToParty eq '${searchQuery}')`);
+
+      if (searchQuery.trim()) {
+        const keyword = searchQuery.trim();
+        // 先在DB中模糊搜索客户名称获取精确编号
+        const searchRes = await fetch(`/api/sap/search?type=customer&q=${encodeURIComponent(keyword)}`);
+        const searchData = await searchRes.json();
+        if (searchData.success && searchData.data?.length > 0) {
+          const customerFilters = searchData.data.map((c: { customer: string }) => `SoldToParty eq '${c.customer}'`);
+          const filterStr = `(DeliveryDocument eq '${keyword}' or ${customerFilters.join(' or ')})`;
+          params.set('filter', filterStr);
+        } else {
+          params.set('filter', `(DeliveryDocument eq '${keyword}' or SoldToParty eq '${keyword}')`);
+        }
+      }
 
       const response = await fetch(`/api/sap/API_OUTBOUND_DELIVERY_SRV/A_OutbDeliveryHeader?${params.toString()}`);
       const data = await response.json();
@@ -77,7 +90,7 @@ export default function OutboundDeliveryPage() {
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--muted-foreground)' }} />
-            <input type="text" placeholder="交货单号 / 客户" className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchDeliveries()} />
+            <input type="text" placeholder="单据号/客户名..." className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchDeliveries()} />
           </div>
         </div>
         <div className="hidden lg:flex items-center border rounded overflow-hidden" style={{ borderColor: 'var(--border)' }}>
