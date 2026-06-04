@@ -2,9 +2,11 @@ from typing import Any
 
 import requests
 from requests.auth import HTTPBasicAuth
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from app.config import settings
-from app.sap.client import SapApiError
+from app.sap.client import SapApiError, _extract_sap_error_message
 
 
 class SapODataV4Client:
@@ -15,10 +17,24 @@ class SapODataV4Client:
         self.service_path = service_path or settings.sap_so_path
         self.session = requests.Session()
         self.session.auth = HTTPBasicAuth(settings.sap_username, settings.sap_password)
+        retry = Retry(
+            total=settings.sap_retry_total,
+            connect=settings.sap_retry_total,
+            read=settings.sap_retry_total,
+            status=settings.sap_retry_total,
+            backoff_factor=settings.sap_retry_backoff_seconds,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=frozenset(["GET", "POST", "PUT", "PATCH", "DELETE"]),
+            raise_on_status=False,
+        )
+        adapter = HTTPAdapter(pool_connections=settings.sap_pool_maxsize, pool_maxsize=settings.sap_pool_maxsize, max_retries=retry)
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
         self.session.headers.update(
             {
                 "Accept": "application/json",
                 "User-Agent": "SAP-ERP-Portal-Backend/1.0",
+                "SAP-Client": settings.sap_client,
             }
         )
 
@@ -43,14 +59,22 @@ class SapODataV4Client:
             if params:
                 query.update(params)
 
-        response = self.session.request(method, request_url, params=query, timeout=90)
+        timeout = (settings.sap_connect_timeout_seconds, settings.sap_read_timeout_seconds)
+        response = self.session.request(method, request_url, params=query, timeout=timeout)
         if response.status_code >= 400:
             raise SapApiError(
                 status_code=response.status_code,
                 message=f"SAP OData V4 request failed: {response.status_code}",
-                sap_body=response.text[:1500],
+                sap_body=_extract_sap_error_message(response),
             )
-        return response.json()
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise SapApiError(
+                status_code=response.status_code,
+                message="SAP OData V4 response is not valid JSON",
+                sap_body=response.text[:1500],
+            ) from exc
 
     def get_collection(
         self,

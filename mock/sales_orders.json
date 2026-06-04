@@ -56,8 +56,8 @@
     "SalesOrderDate": "/Date(1717459200000)/",
     "TotalNetAmount": "215600.00",
     "TransactionCurrency": "CNY",
-    "OverallSDProcessStatus": "C",
-    "StatusText": "已完成"
+    "OverallSDProcessStatus": "X",
+    "StatusText": "已取消"
   },
   {
     "SalesOrder": "100000005",

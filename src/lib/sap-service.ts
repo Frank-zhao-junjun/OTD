@@ -270,9 +270,10 @@ export const SAP_DEFAULT_EXPANDS: Record<string, string> = {
 
 // Status display helpers
 export const SALES_ORDER_STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  'A': { label: '已完成', variant: 'default' },
+  'A': { label: '开放', variant: 'outline' },
   'B': { label: '处理中', variant: 'secondary' },
-  'C': { label: '已取消', variant: 'destructive' },
+  'C': { label: '已完成', variant: 'default' },
+  'X': { label: '已取消', variant: 'outline' },
   'D': { label: '已关闭', variant: 'outline' },
 };
 

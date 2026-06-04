@@ -25,6 +25,26 @@ class Settings(BaseSettings):
     sap_matdoc_path: str = "/sap/opu/odata/sap/API_MATERIAL_DOCUMENT_SRV/"
     sap_confirmation_path: str = "/sap/opu/odata/sap/API_PROD_ORDER_CONFIRMATION_2_SRV/"
     sap_product_path: str = "/sap/opu/odata/sap/API_PRODUCT_SRV/"
+    sap_connect_timeout_seconds: int = 10
+    sap_read_timeout_seconds: int = 90
+    sap_retry_total: int = 3
+    sap_retry_backoff_seconds: float = 0.4
+    sap_pool_maxsize: int = 20
+
+    billing_item_default_select: str = (
+        "BillingDocument,BillingDocumentItem,ReferenceSDDocument,ReferenceSDDocumentItem,"
+        "Material,BillingDocumentItemText,MaterialDescription,BillingQuantity,RequestedQuantity,"
+        "BillingQuantityUnit,BaseUnit,NetAmount,ConditionAmount,TaxAmount,TransactionCurrency"
+    )
+    billing_header_default_select: str = (
+        "BillingDocument,BillingDocumentDate,CreationDate,SoldToParty,SoldToPartyName,TransactionCurrency"
+    )
+    outbound_item_default_select: str = (
+        "DeliveryDocument,DeliveryDocumentItem,ReferenceSDDocument,ReferenceSDDocumentItem,Material,"
+        "DeliveryDocumentItemText,ActualDeliveryQuantity,ActualDeliveredQtyInBaseUnit,"
+        "DeliveryQuantityUnit,GoodsMovementStatus,Plant"
+    )
+    outbound_header_default_select: str = "DeliveryDocument,SoldToParty,ActualGoodsMovementDate"
     default_sales_order_type: str = "OR"
     od_sync_sample_path: str = str(
         Path(__file__).resolve().parent.parent.parent

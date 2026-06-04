@@ -19,9 +19,11 @@ from typing import Any
 
 import requests
 from requests.auth import HTTPBasicAuth
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from app.config import settings
-from app.sap.client import SapApiError
+from app.sap.client import SapApiError, _extract_sap_error_message
 
 
 class SapProductionOrderClient:
@@ -32,10 +34,24 @@ class SapProductionOrderClient:
         self.service_path = settings.sap_po_path
         self.session = requests.Session()
         self.session.auth = HTTPBasicAuth(settings.sap_username, settings.sap_password)
+        retry = Retry(
+            total=settings.sap_retry_total,
+            connect=settings.sap_retry_total,
+            read=settings.sap_retry_total,
+            status=settings.sap_retry_total,
+            backoff_factor=settings.sap_retry_backoff_seconds,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=frozenset(["GET", "POST", "PUT", "PATCH", "DELETE"]),
+            raise_on_status=False,
+        )
+        adapter = HTTPAdapter(pool_connections=settings.sap_pool_maxsize, pool_maxsize=settings.sap_pool_maxsize, max_retries=retry)
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
         self.session.headers.update(
             {
                 "Accept": "application/json",
                 "User-Agent": "SAP-ERP-Portal-Backend/1.0",
+                "SAP-Client": settings.sap_client,
             }
         )
 
@@ -69,15 +85,14 @@ class SapProductionOrderClient:
         if body is not None:
             headers["Content-Type"] = "application/json"
 
-        response = self.session.request(
-            method, url, params=query, json=body, headers=headers, timeout=90
-        )
+        timeout = (settings.sap_connect_timeout_seconds, settings.sap_read_timeout_seconds)
+        response = self.session.request(method, url, params=query, json=body, headers=headers, timeout=timeout)
 
         if response.status_code >= 400:
             raise SapApiError(
                 status_code=response.status_code,
                 message=f"SAP Production Order API error: {response.status_code}",
-                sap_body=response.text[:2000],
+                sap_body=_extract_sap_error_message(response),
             )
 
         if response.status_code == 204:

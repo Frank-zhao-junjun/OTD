@@ -100,6 +100,7 @@ class BillingDocumentService:
             params: dict[str, Any] = {
                 "$filter": doc_filter,
                 "$top": len(chunk),
+                "$select": settings.billing_header_default_select,
             }
             payload = self.client.get_entity_set(HEADER_ENTITY, params)
             merged.update(_header_lookup(payload.get("results", [])))
@@ -119,6 +120,7 @@ class BillingDocumentService:
         params: dict[str, Any] = {
             "$top": top,
             "$orderby": "BillingDocument desc,BillingDocumentItem asc",
+            "$select": settings.billing_item_default_select,
         }
         if parts:
             params["$filter"] = " and ".join(parts)
