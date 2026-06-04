@@ -1,4 +1,5 @@
 'use client';
+import { useRouter } from 'next/navigation';
 
 import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab, getSapStatusColor } from '@/components/fiori';
@@ -47,6 +48,7 @@ export default function MaterialDocumentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalCount, setTotalCount] = useState(0);
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
   const fetchData = useCallback(async () => {
@@ -96,7 +98,7 @@ export default function MaterialDocumentsPage() {
             const barColor = MOVEMENT_COLORS[item.GoodsMovementType] || 'neutral';
             const movementLabel = getMovementLabel(item.GoodsMovementType);
             return (
-              <div key={`${item.MaterialDocument}-${idx}`} className="fiori-oli">
+              <div key={`${item.MaterialDocument}-${idx}`} className="fiori-oli cursor-pointer" onClick={() => router.push(`/material-documents/${item.MaterialDocument}`)}>
                 <div className={`fiori-oli-bar fiori-oli-bar--${barColor}`} />
                 <div className="fiori-oli-content">
                   <div className="fiori-oli-title">{item.MaterialDocument} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.Material}</div>
@@ -119,7 +121,7 @@ export default function MaterialDocumentsPage() {
             <tbody>{data.map((item, idx) => {
               const barColor = MOVEMENT_COLORS[item.GoodsMovementType] || 'neutral';
               const movementLabel = getMovementLabel(item.GoodsMovementType);
-              return (<tr key={`${item.MaterialDocument}-${idx}`} className="border-t hover:bg-accent/50 transition-colors" style={{ borderColor: 'var(--border)' }}><td className="px-4 py-3 font-medium">{item.MaterialDocument}</td><td className="px-4 py-3">{item.Material}</td><td className="px-4 py-3">{item.Plant}</td><td className="px-4 py-3"><FioriBadge variant={barColor}>{movementLabel}</FioriBadge></td><td className="px-4 py-3 text-right font-medium tabular-nums">{parseFloat(item.QuantityInBaseUnit || '0').toLocaleString()} {item.MaterialBaseUnit}</td><td className="px-4 py-3 tabular-nums">{item.StorageLocation}</td></tr>);
+              return (<tr key={`${item.MaterialDocument}-${idx}`} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/material-documents/${item.MaterialDocument}`)}><td className="px-4 py-3 font-medium text-[#0070F2]">{item.MaterialDocument}</td><td className="px-4 py-3">{item.Material}</td><td className="px-4 py-3">{item.Plant}</td><td className="px-4 py-3"><FioriBadge variant={barColor}>{movementLabel}</FioriBadge></td><td className="px-4 py-3 text-right font-medium tabular-nums">{parseFloat(item.QuantityInBaseUnit || '0').toLocaleString()} {item.MaterialBaseUnit}</td><td className="px-4 py-3 tabular-nums">{item.StorageLocation}</td></tr>);
             })}</tbody>
           </table>
         </div>

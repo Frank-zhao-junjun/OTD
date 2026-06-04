@@ -1,4 +1,5 @@
 'use client';
+import { useRouter } from 'next/navigation';
 
 import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab } from '@/components/fiori';
@@ -30,6 +31,7 @@ export default function MaterialStockPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalCount, setTotalCount] = useState(0);
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
   const fetchData = useCallback(async () => {
@@ -81,7 +83,7 @@ export default function MaterialStockPage() {
             const isNoStock = parseFloat(item.MaterialBaseQuantity) === 0;
             const barColor = isNoStock ? 'error' : isLowStock ? 'warning' : 'success';
             return (
-              <div key={`${item.Material}-${item.Batch}-${idx}`} className="fiori-oli">
+              <div key={`${item.Material}-${item.Batch}-${idx}`} className="fiori-oli cursor-pointer" onClick={() => router.push(`/material-stock/${encodeURIComponent(item.Material)}`)}>
                 <div className={`fiori-oli-bar fiori-oli-bar--${barColor}`} />
                 <div className="fiori-oli-content">
                   <div className="fiori-oli-title">{item.Material} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.MaterialName}</div>
@@ -121,8 +123,8 @@ export default function MaterialStockPage() {
                 const isLowStock = parseFloat(item.MaterialBaseQuantity) < 100;
                 const isNoStock = parseFloat(item.MaterialBaseQuantity) === 0;
                 return (
-                  <tr key={`${item.Material}-${item.Batch}-${idx}`} className="border-t hover:bg-accent/50 transition-colors" style={{ borderColor: 'var(--border)' }}>
-                    <td className="px-4 py-3 font-medium">{item.Material}</td>
+                  <tr key={`${item.Material}-${item.Batch}-${idx}`} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/material-stock/${encodeURIComponent(item.Material)}`)}>
+                    <td className="px-4 py-3 font-medium text-[#0070F2]">{item.Material}</td>
                     <td className="px-4 py-3">{item.MaterialName}</td>
                     <td className="px-4 py-3">{item.Plant}</td>
                     <td className="px-4 py-3">{item.StorageLocation}</td>

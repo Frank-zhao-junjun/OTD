@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { FioriBadge, FioriFab, getSapStatusColor } from '@/components/fiori';
 import { Truck, Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
 
@@ -46,6 +47,7 @@ export default function OutboundDeliveryPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalCount, setTotalCount] = useState(0);
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
   const fetchDeliveries = useCallback(async () => {
@@ -112,7 +114,7 @@ export default function OutboundDeliveryPage() {
           {deliveries.map((d) => {
             const statusInfo = MOVEMENT_STATUS[d.OverallGoodsMovementStatus || ''] || { color: getSapStatusColor(d.OverallGoodsMovementStatus), label: d.StatusText || d.OverallGoodsMovementStatus || '-' };
             return (
-              <div key={d.DeliveryDocument} className="fiori-oli">
+              <div key={d.DeliveryDocument} className="fiori-oli cursor-pointer" onClick={() => router.push(`/outbound-delivery/${d.DeliveryDocument}`)}>
                 <div className={`fiori-oli-bar fiori-oli-bar--${statusInfo.color}`} />
                 <div className="fiori-oli-content">
                   <div className="fiori-oli-title">{d.DeliveryDocument} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {d.SoldToPartyName || d.SoldToParty || '-'}</div>
@@ -145,8 +147,8 @@ export default function OutboundDeliveryPage() {
               {deliveries.map((d) => {
                 const statusInfo = MOVEMENT_STATUS[d.OverallGoodsMovementStatus || ''] || { color: getSapStatusColor(d.OverallGoodsMovementStatus), label: d.StatusText || '-' };
                 return (
-                  <tr key={d.DeliveryDocument} className="border-t hover:bg-accent/50 transition-colors" style={{ borderColor: 'var(--border)' }}>
-                    <td className="px-4 py-3 font-medium">{d.DeliveryDocument}</td>
+                  <tr key={d.DeliveryDocument} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/outbound-delivery/${d.DeliveryDocument}`)}>
+                    <td className="px-4 py-3 font-medium text-[#0070F2]">{d.DeliveryDocument}</td>
                     <td className="px-4 py-3">{d.SoldToPartyName || d.SoldToParty || '-'}</td>
                     <td className="px-4 py-3 tabular-nums">{formatDate(d.DeliveryDate)}</td>
                     <td className="px-4 py-3 text-right font-medium tabular-nums">{formatAmount(d.TotalNetAmount, d.TransactionCurrency)}</td>
