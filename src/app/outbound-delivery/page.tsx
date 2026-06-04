@@ -17,9 +17,7 @@ interface Delivery {
   OverallSDProcessStatus: string;
   SalesOrganization: string;
   ShippingPoint: string;
-  TransactionCurrency: string;
   SalesOffice: string;
-  OverallPickingStatus: string;
   IncotermsClassification: string;
 }
 

@@ -197,6 +197,8 @@ export const SAP_FIELD_LABELS = {
   OrderScheduledEndDate: '计划结束日期',
   OrderActualStartDate: '实际开始日期',
   OrderActualEndDate: '实际结束日期',
+  OrderActualReleaseDate: '实际释放日期',
+  TechnicalCompletionDate: '技术完成日期',
 
   // === Material Stock fields (V2: API_MATERIAL_STOCK_SRV/A_MatlStkInAcctMod) ===
   Material: '物料号',
@@ -260,7 +262,7 @@ export const SAP_FIELD_LABELS = {
 export const SAP_DEFAULT_SELECTS: Record<string, string> = {
   // Production Order (V4) — user-specified field set + UI-needed fields
   'CE_PRODUCTIONORDER_0001:ProductionOrder':
-    'ProductionOrder,IsMarkedForDeletion,IsCompletelyDelivered,Product,ProductionPlant,SalesOrder,SalesOrderItem,OrderPlannedTotalQty,ActualDeliveredQuantity,ProductionOrderType,OrderScheduledStartDate,OrderScheduledEndDate,OrderActualStartDate,OrderActualEndDate',
+    'ProductionOrder,IsMarkedForDeletion,IsCompletelyDelivered,Product,ProductionPlant,SalesOrder,SalesOrderItem,OrderPlannedTotalQty,ActualDeliveredQuantity,ProductionOrderType,OrderScheduledStartDate,OrderScheduledEndDate,OrderActualStartDate,OrderActualEndDate,OrderActualReleaseDate,TechnicalCompletionDate',
   // Sales Order (V4)
   'CE_SALESORDER_0001:SalesOrder':
     'SalesOrder,SalesOrderType,SalesOrganization,DistributionChannel,OrganizationDivision,SoldToParty,PurchaseOrderByCustomer,SalesOrderDate,TotalNetAmount,TransactionCurrency,OverallSDProcessStatus',

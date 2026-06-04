@@ -7,16 +7,19 @@ import { BarChart3, Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-
 
 interface StockItem {
   Material: string;
-  MaterialName: string;
   Plant: string;
   StorageLocation: string;
   Batch: string;
-  MaterialBaseQuantity: string;
-  BaseUnit: string;
-  StockType: string;
-  StockTypeText: string;
-  SupplyArea: string;
+  InventoryStockType: string;
+  MaterialBaseUnit: string;
+  MatlWrhsStkQtyInMatlBaseUnit: string;
 }
+
+const STOCK_TYPE_MAP: Record<string, string> = {
+  '01': '非限制使用',
+  '02': '质量检验',
+  '03': '冻结',
+};
 
 function formatNumber(num: string | undefined): string {
   if (!num) return '-';
@@ -79,21 +82,22 @@ export default function MaterialStockPage() {
       {!loading && !error && data.length > 0 && viewMode === 'card' && (
         <div className="space-y-2">
           {data.map((item, idx) => {
-            const isLowStock = parseFloat(item.MaterialBaseQuantity) < 100;
-            const isNoStock = parseFloat(item.MaterialBaseQuantity) === 0;
+            const qty = parseFloat(item.MatlWrhsStkQtyInMatlBaseUnit || '0');
+            const isLowStock = qty < 100 && qty > 0;
+            const isNoStock = qty === 0;
             const barColor = isNoStock ? 'error' : isLowStock ? 'warning' : 'success';
             return (
               <div key={`${item.Material}-${item.Batch}-${idx}`} className="fiori-oli cursor-pointer" onClick={() => router.push(`/material-stock/${encodeURIComponent(item.Material)}`)}>
                 <div className={`fiori-oli-bar fiori-oli-bar--${barColor}`} />
                 <div className="fiori-oli-content">
-                  <div className="fiori-oli-title">{item.Material} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.MaterialName}</div>
-                  <div className="fiori-oli-subtitle">{item.Plant} / {item.StorageLocation} / {item.Batch}</div>
+                  <div className="fiori-oli-title">{item.Material} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {STOCK_TYPE_MAP[item.InventoryStockType] || item.InventoryStockType}</div>
+                  <div className="fiori-oli-subtitle">{item.Plant} / {item.StorageLocation} / {item.Batch || '-'}</div>
                   <div className="flex items-center gap-2">
                     <FioriBadge variant={isNoStock ? 'error' : isLowStock ? 'warning' : 'success'}>
-                      {isNoStock ? '缺货' : isLowStock ? '低库存' : item.StockTypeText}
+                      {isNoStock ? '缺货' : isLowStock ? '低库存' : '正常'}
                     </FioriBadge>
                     <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>
-                      {formatNumber(item.MaterialBaseQuantity)} {item.BaseUnit}
+                      {formatNumber(item.MatlWrhsStkQtyInMatlBaseUnit)} {item.MaterialBaseUnit}
                     </span>
                   </div>
                 </div>
@@ -110,7 +114,6 @@ export default function MaterialStockPage() {
             <thead>
               <tr style={{ background: 'var(--muted)' }}>
                 <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>物料</th>
-                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>描述</th>
                 <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>工厂</th>
                 <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>库位</th>
                 <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>批次</th>
@@ -120,21 +123,21 @@ export default function MaterialStockPage() {
             </thead>
             <tbody>
               {data.map((item, idx) => {
-                const isLowStock = parseFloat(item.MaterialBaseQuantity) < 100;
-                const isNoStock = parseFloat(item.MaterialBaseQuantity) === 0;
+                const qty = parseFloat(item.MatlWrhsStkQtyInMatlBaseUnit || '0');
+                const isLowStock = qty < 100 && qty > 0;
+                const isNoStock = qty === 0;
                 return (
                   <tr key={`${item.Material}-${item.Batch}-${idx}`} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/material-stock/${encodeURIComponent(item.Material)}`)}>
                     <td className="px-4 py-3 font-medium text-[#0070F2]">{item.Material}</td>
-                    <td className="px-4 py-3">{item.MaterialName}</td>
                     <td className="px-4 py-3">{item.Plant}</td>
                     <td className="px-4 py-3">{item.StorageLocation}</td>
-                    <td className="px-4 py-3">{item.Batch}</td>
+                    <td className="px-4 py-3">{item.Batch || '-'}</td>
                     <td className="px-4 py-3 text-right font-medium tabular-nums" style={{ color: isNoStock ? 'var(--color-fiori-error)' : isLowStock ? 'var(--color-fiori-warning)' : 'var(--foreground)' }}>
-                      {formatNumber(item.MaterialBaseQuantity)} {item.BaseUnit}
+                      {formatNumber(item.MatlWrhsStkQtyInMatlBaseUnit)} {item.MaterialBaseUnit}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <FioriBadge variant={isNoStock ? 'error' : isLowStock ? 'warning' : 'success'}>
-                        {isNoStock ? '缺货' : isLowStock ? '低库存' : item.StockTypeText}
+                        {STOCK_TYPE_MAP[item.InventoryStockType] || item.InventoryStockType}
                       </FioriBadge>
                     </td>
                   </tr>
