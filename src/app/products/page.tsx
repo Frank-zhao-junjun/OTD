@@ -173,13 +173,10 @@ export default function ProductsPage() {
                   <div className="fiori-oli-title">{item.Product} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {desc}</div>
                   <div className="fiori-oli-subtitle">
                     {PRODUCT_GROUP_MAP[item.ProductGroup] || item.ProductGroup}
-                    {plant ? ` · ${plant.Plant}` : ''}
-                    {plant ? ` · ${PROCUREMENT_TYPE_MAP[plant.ProcurementType] || plant.ProcurementType}` : ''}
                   </div>
                   <div className="flex items-center gap-2">
                     <FioriBadge variant={typeInfo.variant}>{typeInfo.label}</FioriBadge>
-                    <span className="text-xs tabular-nums" style={{ color: 'var(--muted-foreground)' }}>{price}</span>
-                    {plant?.MRPType && <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>MRP: {plant.MRPType}</span>}
+                    {price && <span className="text-xs tabular-nums" style={{ color: 'var(--muted-foreground)' }}>{price}</span>}
                   </div>
                 </div>
               </div>
@@ -197,10 +194,7 @@ export default function ProductsPage() {
               <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>描述</th>
               <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>类型</th>
               <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>产品组</th>
-              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>工厂</th>
-              <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>采购类型</th>
               <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>价格</th>
-              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>MRP</th>
             </tr></thead>
             <tbody>{data.map((item) => {
               const typeInfo = PRODUCT_TYPE_MAP[item.ProductType] || { label: item.ProductType, variant: 'neutral' as const };
@@ -212,10 +206,7 @@ export default function ProductsPage() {
                 <td className="px-4 py-3">{desc}</td>
                 <td className="px-4 py-3 text-center"><FioriBadge variant={typeInfo.variant}>{typeInfo.label}</FioriBadge></td>
                 <td className="px-4 py-3">{PRODUCT_GROUP_MAP[item.ProductGroup] || item.ProductGroup}</td>
-                <td className="px-4 py-3">{plant?.Plant || '-'}</td>
-                <td className="px-4 py-3 text-center">{plant ? (PROCUREMENT_TYPE_MAP[plant.ProcurementType] || plant.ProcurementType) : '-'}</td>
                 <td className="px-4 py-3 text-right tabular-nums">{val ? `${val.StandardPrice !== '0.00' ? val.StandardPrice : val.MovingAveragePrice} ${val.Currency}` : '-'}</td>
-                <td className="px-4 py-3">{plant?.MRPType || '-'}</td>
               </tr>);
             })}</tbody>
           </table>

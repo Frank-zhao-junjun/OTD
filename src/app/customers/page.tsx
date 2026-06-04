@@ -82,10 +82,9 @@ export default function CustomersPage() {
                 <div className={`fiori-oli-bar fiori-oli-bar--${groupColor}`} />
                 <div className="fiori-oli-content">
                   <div className="fiori-oli-title">{item.Customer} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.CustomerName}</div>
-                  <div className="fiori-oli-subtitle">{item.CustomerFullName} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> 创建于 {formatSapDate(item.CreationDate)}</div>
+                  <div className="fiori-oli-subtitle">{item.Industry || '-'}</div>
                   <div className="flex items-center gap-2">
                     <FioriBadge variant={groupColor}>{item.CustomerAccountGroup}</FioriBadge>
-                    {item.Industry && <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{item.Industry}</span>}
                   </div>
                 </div>
               </div>
@@ -97,10 +96,20 @@ export default function CustomersPage() {
       {!loading && !error && data.length > 0 && viewMode === 'table' && (
         <div className="hidden lg:block rounded-lg border overflow-hidden" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
           <table className="w-full text-sm">
-            <thead><tr style={{ background: 'var(--muted)' }}><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>客户编号</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>名称</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>全称</th><th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>账户组</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>行业</th><th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>创建日期</th></tr></thead>
+            <thead><tr style={{ background: 'var(--muted)' }}>
+              <th className="px-4 py-2 text-left">客户编号</th>
+              <th className="px-4 py-2 text-left">名称</th>
+              <th className="px-4 py-2 text-left">行业</th>
+              <th className="px-4 py-2 text-center">账户组</th>
+            </tr></thead>
             <tbody>{data.map((item) => {
               const groupColor = GROUP_COLORS[item.CustomerAccountGroup] || 'neutral';
-              return (<tr key={item.Customer} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/customers/${item.Customer}`)}><td className="px-4 py-3 font-medium text-[#0070F2]">{item.Customer}</td><td className="px-4 py-3">{item.CustomerName}</td><td className="px-4 py-3">{item.CustomerFullName}</td><td className="px-4 py-3 text-center"><FioriBadge variant={groupColor}>{item.CustomerAccountGroup}</FioriBadge></td><td className="px-4 py-3">{item.Industry || '-'}</td><td className="px-4 py-3 tabular-nums">{formatSapDate(item.CreationDate)}</td></tr>);
+              return <tr key={item.Customer} className="border-t cursor-pointer hover:bg-muted/50" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/customers/${item.Customer}`)}>
+                <td className="px-4 py-3 font-medium">{item.Customer}</td>
+                <td className="px-4 py-3">{item.CustomerName}</td>
+                <td className="px-4 py-3">{item.Industry || '-'}</td>
+                <td className="px-4 py-3 text-center"><FioriBadge variant={groupColor}>{item.CustomerAccountGroup}</FioriBadge></td>
+              </tr>;
             })}</tbody>
           </table>
         </div>
