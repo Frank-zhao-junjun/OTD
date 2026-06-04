@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   FileText,
   Factory,
@@ -17,7 +17,11 @@ import {
   LayoutDashboard,
   Menu,
   X,
+  LogOut,
+  Settings,
 } from 'lucide-react';
+import { fetchSession, clearSessionCache, type ClientSessionUser } from '@/lib/auth-client';
+import { Button } from '@/components/ui/button';
 
 const BUSINESS_ITEMS = [
   { id: 'sales-orders', label: '销售订单', icon: FileText, path: '/sales-orders' },
@@ -41,18 +45,32 @@ const ALL_ITEMS = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [session, setSession] = useState<ClientSessionUser | null>(null);
 
   useEffect(() => {
     setMounted(true);
+    fetchSession(true).then(setSession);
   }, []);
 
   // Close mobile menu on route change
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    clearSessionCache();
+    router.push('/login');
+    router.refresh();
+  };
+
+  if (pathname === '/login') {
+    return <>{children}</>;
+  }
 
   if (!mounted) {
     return (
@@ -153,6 +171,28 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Link>
             );
           })}
+
+          {session?.role === 'admin' && (
+            <>
+              {!collapsed && (
+                <div className="px-4 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600 font-semibold">
+                  系统
+                </div>
+              )}
+              <Link
+                href="/admin/users"
+                title={collapsed ? '账号映射' : undefined}
+                className={`flex items-center gap-3 mx-2 my-0.5 rounded-md cursor-pointer transition-all duration-150 text-sm h-9 ${
+                  pathname.startsWith('/admin')
+                    ? 'bg-blue-600/20 text-blue-400 font-medium'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                } ${collapsed ? 'px-0 justify-center' : 'px-3'}`}
+              >
+                <Settings className="w-4 h-4 shrink-0" />
+                {!collapsed && <span>账号映射</span>}
+              </Link>
+            </>
+          )}
         </nav>
 
         <button
@@ -276,8 +316,27 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="font-medium text-slate-800">{currentLabel}</span>
             </div>
           </div>
-          <div className="text-xs text-slate-400 hidden sm:block">
-            ES+OTD &middot; SAP ERP 数据查询
+          <div className="flex items-center gap-3">
+            {session && (
+              <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500">
+                <span className="font-medium text-slate-700">{session.displayName}</span>
+                {session.sapUserId ? (
+                  <span className="text-slate-400">SAP {session.sapUserId}</span>
+                ) : (
+                  <span className="text-amber-600">未绑定SAP</span>
+                )}
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-slate-500 h-8 px-2"
+              onClick={handleLogout}
+              title="退出登录"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline ml-1">退出</span>
+            </Button>
           </div>
         </header>
 

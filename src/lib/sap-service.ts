@@ -215,22 +215,29 @@ export const SAP_FIELD_LABELS = {
   ManufacturingOrder: '生产订单',
 } as const;
 
-// Status display helpers
-export const SALES_ORDER_STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  'A': { label: '已完成', variant: 'default' },
-  'B': { label: '处理中', variant: 'secondary' },
-  'C': { label: '已取消', variant: 'destructive' },
-  'D': { label: '已关闭', variant: 'outline' },
-};
+// Status display helpers — 销售说明见 sap-sales-order-status.ts
+export { SALES_ORDER_STATUS_MAP } from '@/lib/sap-sales-order-status';
+
+export const SALES_ORDER_STATUS_FILTER_OPTIONS: { value: string; label: string }[] = [
+  { value: 'all', label: '全部' },
+  { value: 'A', label: '未处理 (A)' },
+  { value: 'B', label: '部分处理 (B)' },
+  { value: 'C', label: '完全处理 (C)' },
+  { value: 'D', label: '不适用 (D)' },
+];
 
 export const PRODUCTION_ORDER_STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  'CRTD': { label: '已创建', variant: 'outline' },
-  'REL': { label: '已释放', variant: 'default' },
-  'PCNF': { label: '部分确认', variant: 'secondary' },
-  'CNF': { label: '已确认', variant: 'default' },
-  'PDLV': { label: '部分交货', variant: 'secondary' },
-  'DLV': { label: '已交货', variant: 'default' },
-  'TECO': { label: '技术完成', variant: 'outline' },
-  'CLSD': { label: '已关闭', variant: 'outline' },
-  'DLFL': { label: '已删除', variant: 'destructive' },
+  CRTD: { label: '已创建', variant: 'outline' },
+  REL: { label: '已下达', variant: 'default' },
+  PARTIAL_CONFIRM: { label: '部分确认', variant: 'secondary' },
+  PARTIAL_GR: { label: '部分收货', variant: 'secondary' },
+  GR_COMPLETE: { label: '收货完成', variant: 'default' },
+  DLV: { label: '交货完成', variant: 'default' },
+  TECO: { label: '技术完成', variant: 'outline' },
+  DEL: { label: '已删除', variant: 'destructive' },
+  UNKNOWN: { label: '未知', variant: 'outline' },
+  // Legacy / system status codes
+  PCNF: { label: '部分确认', variant: 'secondary' },
+  CNF: { label: '部分确认', variant: 'secondary' },
+  DLFL: { label: '已删除', variant: 'destructive' },
 };
