@@ -92,6 +92,7 @@ export default function SalesOrdersPage() {
 
       // 搜索关键词：先在DB中模糊搜索获取精确编号，再用编号过滤
       let searchProductCodes: Set<string> | null = null;
+      let hasCustomerMatch = false;
       if (search.trim()) {
         const keyword = search.trim();
         const searchRes = await fetch(`/api/sap/search?type=all&q=${encodeURIComponent(keyword)}`);
@@ -113,7 +114,10 @@ export default function SalesOrdersPage() {
 
           // 客户编号匹配
           const codeFilters: string[] = [];
-          if (customerFilters.length > 0) codeFilters.push(customerFilters.join(' or '));
+          if (customerFilters.length > 0) {
+            codeFilters.push(customerFilters.join(' or '));
+            hasCustomerMatch = true;
+          }
 
           if (codeFilters.length > 0) {
             filters.push(`(${codeFilters.join(' or ')})`);
@@ -123,7 +127,8 @@ export default function SalesOrdersPage() {
           }
 
           // 保存产品编号集合，用于后续客户端过滤（产品过滤无法在header级别OData实现）
-          if (productFilters.length > 0) {
+          // 仅当没有客户匹配时才做产品过滤，保持搜索的 OR 语义
+          if (productFilters.length > 0 && !hasCustomerMatch) {
             searchProductCodes = new Set(productFilters);
           }
         }
