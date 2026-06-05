@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 
 import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab } from '@/components/fiori';
-import { Users, Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
+import { Users, Search, RotateCcw, Inbox, LayoutList, Table2, CloudDownload } from 'lucide-react';
 import { formatSapDate } from '@/lib/utils';
 
 interface Customer {
@@ -28,12 +28,14 @@ const GROUP_COLORS: Record<string, 'success' | 'warning' | 'info' | 'neutral'> =
 export default function CustomersPage() {
   const [data, setData] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
+  const [sapRefreshing, setSapRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalCount, setTotalCount] = useState(0);
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
+  // 从本地DB查询（默认行为，DB优先）
   const fetchData = useCallback(async () => {
     setLoading(true); setError(null);
     try {
@@ -43,7 +45,7 @@ export default function CustomersPage() {
         const searchRes = await fetch(`/api/sap/search?type=customer&q=${encodeURIComponent(searchQuery)}`);
         const searchJson = await searchRes.json();
         if (searchJson.success && searchJson.data && searchJson.data.length > 0) {
-          // Step 2: 用精确代码列表过滤SAP数据
+          // Step 2: 用精确代码列表过滤DB数据
           const codes = searchJson.data.map((d: { customer: string }) => d.customer);
           params.set('filter', codes.map((c: string) => `Customer eq '${c}'`).join(' or '));
         } else {
@@ -58,6 +60,20 @@ export default function CustomersPage() {
     } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
     finally { setLoading(false); }
   }, [searchQuery]);
+
+  // 从SAP直接查询并增量保存到DB
+  const fetchFromSap = useCallback(async () => {
+    setSapRefreshing(true); setError(null);
+    try {
+      const params = new URLSearchParams({ top: '200', count: 'true', sap_direct: 'true' });
+      const res = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_Customer?${params}`);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'SAP查询失败');
+      // SAP数据已自动增量保存到DB，刷新页面数据
+      setData(json.data || []); setTotalCount(json.totalCount || json.count || 0);
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
+    finally { setSapRefreshing(false); }
+  }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -78,6 +94,7 @@ export default function CustomersPage() {
         </div>
         <div className="flex items-center gap-2">
           <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={fetchData} disabled={loading}><Search className="w-3.5 h-3.5 inline mr-1" /> 查询</button>
+          <button className="h-8 px-3 text-sm rounded border flex items-center gap-1" style={{ background: 'var(--card)', borderColor: 'var(--border)', color: '#0A6ED1' }} onClick={fetchFromSap} disabled={sapRefreshing}><CloudDownload className="w-3.5 h-3.5" /> {sapRefreshing ? '同步中...' : '从SAP查询'}</button>
           <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={() => setSearchQuery('')}><RotateCcw className="w-3.5 h-3.5 inline mr-1" /> 清除</button>
         </div>
       </div>

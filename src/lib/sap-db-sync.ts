@@ -55,26 +55,7 @@ export function toPascalCase(str: string): string {
 // ============================================================
 
 export const SAP_TABLE_FIELDS: Record<string, { dbTable: string; keyFields: string[]; sapFields: string[] }> = {
-  'CE_SALESORDER_0001:SalesOrder': {
-    dbTable: 'sales_orders',
-    keyFields: ['sales_order'],
-    sapFields: [
-      'SalesOrder', 'SalesOrderType', 'SoldToParty', 'SalesOrganization',
-      'DistributionChannel', 'OrganizationDivision', 'PurchaseOrderByCustomer',
-      'SalesOrderDate', 'TotalNetAmount', 'TransactionCurrency', 'OverallSDProcessStatus',
-    ],
-  },
-  'CE_PRODUCTIONORDER_0001:ProductionOrder': {
-    dbTable: 'production_orders',
-    keyFields: ['production_order'],
-    sapFields: [
-      'ProductionOrder', 'IsMarkedForDeletion', 'IsCompletelyDelivered',
-      'ProductionOrderType', 'Product', 'ProductionPlant', 'SalesOrder', 'SalesOrderItem',
-      'OrderScheduledStartDate', 'OrderScheduledEndDate', 'OrderActualStartDate',
-      'OrderActualEndDate', 'OrderActualReleaseDate', 'TechnicalCompletionDate',
-      'OrderPlannedTotalQty', 'ActualDeliveredQuantity',
-    ],
-  },
+  // === Master Data: cached in DB, DB-first with SAP refresh ===
   'API_PRODUCT_SRV:A_Product': {
     dbTable: 'products',
     keyFields: ['product'],
@@ -102,44 +83,9 @@ export const SAP_TABLE_FIELDS: Record<string, { dbTable: string; keyFields: stri
       'CreationDate', 'CustomerCorporateGroup', 'Industry', 'Supplier',
     ],
   },
-  'API_MATERIAL_STOCK_SRV:A_MatlStkInAcctMod': {
-    dbTable: 'material_stock',
-    keyFields: ['material', 'plant', 'storage_location', 'batch', 'inventory_stock_type'],
-    sapFields: [
-      'Material', 'Plant', 'StorageLocation', 'Batch',
-      'InventoryStockType', 'MaterialBaseUnit', 'MatlWrhsStkQtyInMatlBaseUnit',
-    ],
-  },
-  'API_OUTBOUND_DELIVERY_SRV:A_OutbDeliveryHeader': {
-    dbTable: 'outbound_deliveries',
-    keyFields: ['delivery_document'],
-    sapFields: [
-      'DeliveryDocument', 'DeliveryDocumentType', 'DeliveryDate',
-      'ActualGoodsMovementDate', 'OverallGoodsMovementStatus', 'OverallSDProcessStatus',
-      'SalesOrganization', 'ShippingPoint', 'SoldToParty', 'ShipToParty',
-      'SalesOffice', 'IncotermsClassification',
-    ],
-  },
-  'API_BILLING_DOCUMENT_SRV:A_BillingDocument': {
-    dbTable: 'billing_documents',
-    keyFields: ['billing_document'],
-    sapFields: [
-      'BillingDocument', 'BillingDocumentType', 'SalesOrganization',
-      'DistributionChannel', 'Division', 'BillingDocumentDate', 'TotalNetAmount',
-      'TransactionCurrency', 'CompanyCode', 'SoldToParty', 'OverallBillingStatus',
-      'AccountingPostingStatus', 'CreationTime', 'LastChangeDate',
-    ],
-  },
-  'API_MATERIAL_DOCUMENT_SRV:A_MaterialDocumentItem': {
-    dbTable: 'material_documents',
-    keyFields: ['material_document_year', 'material_document', 'material_document_item'],
-    sapFields: [
-      'MaterialDocumentYear', 'MaterialDocument', 'MaterialDocumentItem',
-      'Material', 'Plant', 'StorageLocation', 'Batch', 'GoodsMovementType',
-      'PurchaseOrder', 'PurchaseOrderItem', 'ManufacturingOrder', 'CostCenter',
-      'ProfitCenter', 'MaterialBaseUnit', 'QuantityInBaseUnit', 'GoodsRecipientName',
-    ],
-  },
+  // NOTE: Document tables (sales_orders, production_orders, outbound_deliveries,
+  // billing_documents, material_documents, material_stock) are NOT cached to DB.
+  // They are always queried directly from SAP.
 };
 
 // ============================================================
