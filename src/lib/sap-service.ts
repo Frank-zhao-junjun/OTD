@@ -275,7 +275,9 @@ export const SAP_DEFAULT_SELECTS: Record<string, string> = {
   // Production Order (V4) — user-specified field set + UI-needed fields
   'CE_PRODUCTIONORDER_0001:ProductionOrder':
     'ProductionOrder,IsMarkedForDeletion,IsCompletelyDelivered,Product,ProductionPlant,SalesOrder,SalesOrderItem,OrderPlannedTotalQty,ActualDeliveredQuantity,ProductionOrderType,OrderScheduledStartDate,OrderScheduledEndDate,OrderActualStartDate,OrderActualEndDate,OrderActualReleaseDate,TechnicalCompletionDate',
-  // Sales Order (V4)
+  'API_SALES_ORDER_SRV:A_SalesOrder':
+    'SalesOrder,SalesOrderType,SalesOrganization,DistributionChannel,OrganizationDivision,SoldToParty,PurchaseOrderByCustomer,SalesOrderDate,TotalNetAmount,TransactionCurrency,OverallSDProcessStatus,CreatedByUser',
+  // Sales Order (V4) — DEPRECATED: SalesOrderType returns internal code instead of business type
   'CE_SALESORDER_0001:SalesOrder':
     'SalesOrder,SalesOrderType,SalesOrganization,DistributionChannel,OrganizationDivision,SoldToParty,PurchaseOrderByCustomer,SalesOrderDate,TotalNetAmount,TransactionCurrency,OverallSDProcessStatus',
   // Products (V2) — $select only basic fields; $expand fetches description & plant

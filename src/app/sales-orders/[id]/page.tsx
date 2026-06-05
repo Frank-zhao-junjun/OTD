@@ -11,25 +11,19 @@ import { formatSapDate } from '@/lib/utils';
 
 interface SalesOrderItem {
   SalesOrderItem: string;
-  Product: string;
+  Material: string;
   SalesOrderItemText: string;
-  RequestedQuantity: number | string;
-  OrderQuantitySAPUnit: string;
-  NetAmount: number | string;
+  RequestedQuantity: string;
+  RequestedQuantityUnit: string;
+  NetAmount: string;
   TransactionCurrency: string;
   Plant: string;
   SalesOrderItemCategory: string;
-  RequestedDeliveryDate?: string;
-  ConfirmedDeliveryDate?: string;
-  ItemGrossWeight?: number | string;
-  ItemNetWeight?: number | string;
-  ItemWeightSAPUnit?: string;
 }
 
 interface SalesOrderPartner {
   PartnerFunction: string;
   Customer: string;
-  BusinessPartnerName1: string;
 }
 
 interface SalesOrder {
@@ -44,15 +38,18 @@ interface SalesOrder {
   SalesOrderDate?: string;
   OverallSDProcessStatus?: string;
   PurchaseOrderByCustomer?: string;
-  _Item?: SalesOrderItem[];
-  _Partner?: SalesOrderPartner[];
+  CreatedByUser?: string;
+  SalesOrderTypeInternalCode?: string;
+  to_Item?: SalesOrderItem[];
+  to_Partner?: SalesOrderPartner[];
 }
 
+// V2 partner function codes
 const PARTNER_FUNCTION_MAP: Record<string, string> = {
-  'AG': '售达方',
-  'RE': '收款方',
-  'WE': '送达方',
-  'RG': '付款方',
+  'SP': '售达方',
+  'SH': '送达方',
+  'BP': '收款方',
+  'PY': '付款方',
 };
 
 function formatAmount(amount: string | number | undefined, currency: string | undefined): string {
@@ -70,6 +67,7 @@ export default function SalesOrderDetailPage() {
   const [order, setOrder] = useState<SalesOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState('');
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -78,14 +76,28 @@ export default function SalesOrderDetailPage() {
       try {
         const searchParams = new URLSearchParams();
         searchParams.set('id', id);
-        searchParams.set('expand', '_Item,_Partner');
+        searchParams.set('expand', 'to_Item,to_Partner');
 
-        const response = await fetch(`/api/sap/CE_SALESORDER_0001/SalesOrder?${searchParams.toString()}`);
+        const response = await fetch(`/api/sap/API_SALES_ORDER_SRV/A_SalesOrder?${searchParams.toString()}`);
         const data = await response.json();
 
         if (!data.success) throw new Error(data.error || 'Failed to fetch');
         const results = data.data || [];
-        setOrder(results[0] || null);
+        const orderData = results[0] || null;
+        setOrder(orderData);
+
+        // Fetch customer name from DB
+        if (orderData?.SoldToParty) {
+          try {
+            const cRes = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_Customer?filter=${encodeURIComponent(`Customer eq '${orderData.SoldToParty}'`)}&top=1`);
+            const cData = await cRes.json();
+            if (cData.success && cData.data?.length > 0) {
+              setCustomerName(cData.data[0].CustomerName || cData.data[0].CustomerFullName || '');
+            }
+          } catch {
+            // Customer name fetch failure is non-critical
+          }
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
@@ -132,10 +144,6 @@ export default function SalesOrderDetailPage() {
 
   const processStatus = SALES_ORDER_STATUS_MAP[order.OverallSDProcessStatus || '']?.label || order.OverallSDProcessStatus || '-';
 
-  // Extract customer name from _Partner
-  const soldToPartner = order._Partner?.find(p => p.PartnerFunction === 'AG');
-  const customerName = soldToPartner?.BusinessPartnerName1 || '';
-
   const headerFields = [
     { label: '订单类型', value: order.SalesOrderType || '-' },
     { label: '客户编号', value: order.SoldToParty || '-' },
@@ -146,9 +154,10 @@ export default function SalesOrderDetailPage() {
     { label: '产品组', value: order.OrganizationDivision || '-' },
     { label: '订单金额', value: formatAmount(order.TotalNetAmount, order.TransactionCurrency) },
     { label: '订单日期', value: formatSapDate(order.SalesOrderDate) },
+    { label: '创建人', value: order.CreatedByUser || '-' },
   ];
 
-  const items = order._Item || [];
+  const items = order.to_Item || [];
 
   return (
     <div className="space-y-4">
@@ -212,10 +221,8 @@ export default function SalesOrderDetailPage() {
                     <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>行号</th>
                     <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>产品</th>
                     <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>描述</th>
-                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>类别</th>
                     <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>数量</th>
                     <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>单位</th>
-                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>工厂</th>
                     <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>净额</th>
                   </tr>
                 </thead>
@@ -223,12 +230,10 @@ export default function SalesOrderDetailPage() {
                   {items.map((item) => (
                     <tr key={item.SalesOrderItem} className="border-t" style={{ borderColor: 'var(--border)' }}>
                       <td className="px-4 py-3 tabular-nums">{item.SalesOrderItem}</td>
-                      <td className="px-4 py-3 font-medium" style={{ color: 'var(--primary)' }}>{item.Product}</td>
+                      <td className="px-4 py-3 font-medium" style={{ color: 'var(--primary)' }}>{item.Material}</td>
                       <td className="px-4 py-3">{item.SalesOrderItemText || '-'}</td>
-                      <td className="px-4 py-3">{item.SalesOrderItemCategory || '-'}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{item.RequestedQuantity ?? '-'}</td>
-                      <td className="px-4 py-3">{item.OrderQuantitySAPUnit || '-'}</td>
-                      <td className="px-4 py-3">{item.Plant || '-'}</td>
+                      <td className="px-4 py-3">{item.RequestedQuantityUnit || '-'}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{formatAmount(item.NetAmount, item.TransactionCurrency)}</td>
                     </tr>
                   ))}
@@ -242,7 +247,7 @@ export default function SalesOrderDetailPage() {
                 <div key={item.SalesOrderItem} className="px-4 py-3">
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-medium text-sm" style={{ color: 'var(--primary)' }}>
-                      {item.Product}
+                      {item.Material}
                     </span>
                     <span className="text-xs tabular-nums" style={{ color: 'var(--muted-foreground)' }}>
                       行 {item.SalesOrderItem}
@@ -250,7 +255,7 @@ export default function SalesOrderDetailPage() {
                   </div>
                   <div className="text-sm mb-1">{item.SalesOrderItemText || '-'}</div>
                   <div className="flex items-center justify-between text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                    <span>数量: {item.RequestedQuantity ?? '-'} {item.OrderQuantitySAPUnit || ''}</span>
+                    <span>数量: {item.RequestedQuantity ?? '-'} {item.RequestedQuantityUnit || ''}</span>
                     <span className="font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>
                       {formatAmount(item.NetAmount, item.TransactionCurrency)}
                     </span>
@@ -263,21 +268,16 @@ export default function SalesOrderDetailPage() {
       </div>
 
       {/* Partner Information */}
-      {order._Partner && order._Partner.length > 0 && (
+      {order.to_Partner && order.to_Partner.length > 0 && (
         <div className="rounded-lg border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
           <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
             <span className="font-semibold text-sm">业务伙伴</span>
           </div>
           <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
-            {order._Partner.map((partner, idx) => (
+            {order.to_Partner.map((partner, idx) => (
               <div key={idx} className="px-4 py-2 flex items-center justify-between">
                 <span className="text-sm">{PARTNER_FUNCTION_MAP[partner.PartnerFunction] || partner.PartnerFunction}</span>
-                <span className="text-sm">
-                  <span className="font-medium">{partner.Customer}</span>
-                  {partner.BusinessPartnerName1 && (
-                    <span style={{ color: 'var(--muted-foreground)' }}> {partner.BusinessPartnerName1}</span>
-                  )}
-                </span>
+                <span className="text-sm font-medium">{partner.Customer}</span>
               </div>
             ))}
           </div>

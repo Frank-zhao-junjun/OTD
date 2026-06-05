@@ -8,20 +8,17 @@ import { getSapStatusColor, getSapStatusLabel } from '@/components/fiori';
 
 interface SalesOrderItem {
   SalesOrderItem: string;
-  Product: string;
+  Material: string;
   SalesOrderItemText: string;
-  RequestedQuantity: number | string;
-  OrderQuantitySAPUnit: string;
-  NetAmount: number | string;
+  RequestedQuantity: string;
+  RequestedQuantityUnit: string;
+  NetAmount: string;
   TransactionCurrency: string;
-  Plant: string;
-  SalesOrderItemCategory: string;
 }
 
 interface SalesOrderPartner {
   PartnerFunction: string;
   Customer: string;
-  BusinessPartnerName1: string;
 }
 
 interface SalesOrder {
@@ -36,8 +33,9 @@ interface SalesOrder {
   TotalNetAmount: string;
   TransactionCurrency: string;
   OverallSDProcessStatus: string;
-  _Item?: SalesOrderItem[];
-  _Partner?: SalesOrderPartner[];
+  SalesOrderTypeInternalCode?: string;
+  to_Item?: SalesOrderItem[];
+  to_Partner?: SalesOrderPartner[];
 }
 
 const PAGE_SIZE = 10;
@@ -57,18 +55,6 @@ function formatAmount(amount: string | number, currency: string): string {
   return num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + currency;
 }
 
-/** Extract sold-to customer name from _Partner expand data */
-function getCustomerName(order: SalesOrder): string {
-  if (!order._Partner) return '';
-  const soldTo = order._Partner.find(p => p.PartnerFunction === 'AG');
-  return soldTo?.BusinessPartnerName1 || '';
-}
-
-/** Count line items from _Item expand data */
-function getItemCount(order: SalesOrder): number {
-  return order._Item?.length || 0;
-}
-
 export default function SalesOrdersPage() {
   const [data, setData] = useState<SalesOrder[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -80,6 +66,7 @@ export default function SalesOrdersPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [customerMap, setCustomerMap] = useState<Record<string, string>>({});
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -89,8 +76,7 @@ export default function SalesOrdersPage() {
       const params = new URLSearchParams({
         top: String(PAGE_SIZE),
         skip: String(skip),
-        count: 'true',
-        expand: '_Item,_Partner',
+        expand: 'to_Item,to_Partner',
       });
 
       // 构建过滤条件
@@ -117,19 +103,20 @@ export default function SalesOrdersPage() {
             }
           }
           if (searchData.products?.length > 0) {
+            // V2: 行项目用Material字段，需要在header级别用SoldToParty过滤
+            // 产品编号过滤无法在header级别直接应用，后续在客户端过滤
             for (const p of searchData.products) {
-              productFilters.push(`Material eq '${p.product}'`);
+              productFilters.push(p.product);
             }
           }
 
-          // 客户编号或产品编号匹配
+          // 客户编号匹配
           const codeFilters: string[] = [];
           if (customerFilters.length > 0) codeFilters.push(customerFilters.join(' or '));
-          if (productFilters.length > 0) codeFilters.push(productFilters.join(' or '));
 
           if (codeFilters.length > 0) {
             filters.push(`(${codeFilters.join(' or ')})`);
-          } else {
+          } else if (productFilters.length === 0) {
             // DB中也搜不到，尝试用关键词直接匹配订单号
             filters.push(`SalesOrder eq '${keyword}'`);
           }
@@ -138,11 +125,38 @@ export default function SalesOrdersPage() {
 
       if (filters.length > 0) params.set('filter', filters.join(' and '));
 
-      const res = await fetch(`/api/sap/CE_SALESORDER_0001/SalesOrder?${params}`);
+      const res = await fetch(`/api/sap/API_SALES_ORDER_SRV/A_SalesOrder?${params}`);
       const json = await res.json();
       if (json.success) {
-        setData(json.data || []);
-        setTotalCount(json.totalCount || 0);
+        let orders = json.data || [];
+        setTotalCount(json.totalCount || json.count || 0);
+
+        // 如果有产品搜索条件，在客户端过滤包含该产品的订单
+        if (search.trim()) {
+          const keyword = search.trim();
+          const searchRes = await fetch(`/api/sap/search?type=all&q=${encodeURIComponent(keyword)}`);
+          const searchData = await searchRes.json();
+          if (searchData.success && searchData.products?.length > 0) {
+            const productCodes = new Set(searchData.products.map((p: { product: string }) => p.product));
+            const customerCodes = searchData.customers?.length > 0
+              ? new Set(searchData.customers.map((c: { customer: string }) => c.customer))
+              : null;
+            if (!customerCodes) {
+              // 只按产品过滤
+              orders = orders.filter((o: SalesOrder) =>
+                o.to_Item?.some((item: SalesOrderItem) => productCodes.has(item.Material))
+              );
+            }
+          }
+        }
+
+        setData(orders);
+
+        // 获取客户名称（从DB查询）
+        const customerCodes = [...new Set(orders.map((o: SalesOrder) => o.SoldToParty).filter(Boolean))] as string[];
+        if (customerCodes.length > 0) {
+          fetchCustomerNames(customerCodes);
+        }
       } else {
         setError(json.error || '查询失败');
       }
@@ -151,13 +165,41 @@ export default function SalesOrdersPage() {
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search, statusFilter, typeFilter]);
+
+  const fetchCustomerNames = async (codes: string[]) => {
+    try {
+      const filter = codes.map(c => `Customer eq '${c}'`).join(' or ');
+      const res = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_Customer?filter=${encodeURIComponent(filter)}&top=100`);
+      const json = await res.json();
+      if (json.success && json.data) {
+        const map: Record<string, string> = {};
+        for (const c of json.data) {
+          map[c.Customer] = c.CustomerName || c.CustomerFullName || '';
+        }
+        setCustomerMap(prev => ({ ...prev, ...map }));
+      }
+    } catch {
+      // 客户名称获取失败不影响主流程
+    }
+  };
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
+  /** Get customer name from lookup map */
+  function getCustomerName(soldToParty: string): string {
+    return customerMap[soldToParty] || '';
+  }
+
+  /** Count line items from to_Item expand data */
+  function getItemCount(order: SalesOrder): number {
+    return order.to_Item?.length || 0;
+  }
 
   return (
     <div className="space-y-4">
@@ -289,7 +331,7 @@ export default function SalesOrdersPage() {
           {data.map((order) => {
             const statusColor = getSapStatusColor(order.OverallSDProcessStatus);
             const statusLabel = getSapStatusLabel(order.OverallSDProcessStatus);
-            const customerName = getCustomerName(order);
+            const cname = getCustomerName(order.SoldToParty);
             const itemCount = getItemCount(order);
             return (
               <Link key={order.SalesOrder} href={`/sales-orders/${order.SalesOrder}`} className="fiori-oli block">
@@ -299,7 +341,7 @@ export default function SalesOrdersPage() {
                     {order.SalesOrder}
                     <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
                     {order.SoldToParty}
-                    {customerName && <span style={{ color: 'var(--muted-foreground)' }}> {customerName}</span>}
+                    {cname && <span style={{ color: 'var(--muted-foreground)' }}> {cname}</span>}
                   </div>
                   <div className="fiori-oli-subtitle">
                     {order.SalesOrderType}
@@ -340,7 +382,7 @@ export default function SalesOrdersPage() {
               {data.map((order) => {
                 const statusColor = getSapStatusColor(order.OverallSDProcessStatus);
                 const statusLabel = getSapStatusLabel(order.OverallSDProcessStatus);
-                const customerName = getCustomerName(order);
+                const cname = getCustomerName(order.SoldToParty);
                 const itemCount = getItemCount(order);
                 return (
                   <tr key={order.SalesOrder} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }}>
@@ -352,7 +394,7 @@ export default function SalesOrdersPage() {
                     <td className="px-4 py-3">{order.SalesOrderType}</td>
                     <td className="px-4 py-3">
                       {order.SoldToParty}
-                      {customerName && <span style={{ color: 'var(--muted-foreground)' }}> {customerName}</span>}
+                      {cname && <span style={{ color: 'var(--muted-foreground)' }}> {cname}</span>}
                     </td>
                     <td className="px-4 py-3 tabular-nums">{formatDate(order.SalesOrderDate)}</td>
                     <td className="px-4 py-3 text-center">{itemCount}</td>
