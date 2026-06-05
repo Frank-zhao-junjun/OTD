@@ -54,6 +54,9 @@ export default function MaterialDocumentsPage() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
+  // 默认过滤：凭证号5开头 + 移动类型101 + 生产订单号不为空
+  const DEFAULT_FILTER = "startswith(MaterialDocument,'5') eq true and GoodsMovementType eq '101' and ManufacturingOrder ne ''";
+
   const fetchData = useCallback(async () => {
     setLoading(true); setError(null);
     try {
@@ -62,9 +65,12 @@ export default function MaterialDocumentsPage() {
         const searchRes = await fetch(`/api/sap/search?type=product&q=${encodeURIComponent(searchQuery)}`);
         const searchData = await searchRes.json();
         const productCodes = (searchData.data || []).map((p: { product: string }) => p.product);
-        const filters: string[] = [`MaterialDocument eq '${searchQuery}'`];
-        if (productCodes.length > 0) filters.push(productCodes.map((m: string) => `Material eq '${m}'`).join(' or '));
-        params.set('filter', filters.length > 0 ? filters.join(' or ') : `MaterialDocument eq '${searchQuery}'`);
+        const searchFilters: string[] = [`MaterialDocument eq '${searchQuery}'`];
+        if (productCodes.length > 0) searchFilters.push(productCodes.map((m: string) => `Material eq '${m}'`).join(' or '));
+        // 搜索时叠加默认过滤
+        params.set('filter', `(${searchFilters.join(' or ')}) and ${DEFAULT_FILTER}`);
+      } else {
+        params.set('filter', DEFAULT_FILTER);
       }
       const res = await fetch(`/api/sap/API_MATERIAL_DOCUMENT_SRV/A_MaterialDocumentItem?${params}`);
       const json = await res.json();
@@ -78,14 +84,14 @@ export default function MaterialDocumentsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="lg:hidden"><h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>入库单</h1></div>
+      <div className="lg:hidden"><h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>入库单</h1><p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>生产订单入库（凭证号5开头，移动类型101）</p></div>
 
       <div className="fiori-filterbar">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--muted-foreground)' }} />
             <input type="text" placeholder="凭证号 / 物料名称" className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchData()} />
-          </div>
+</div>
         </div>
         <div className="hidden lg:flex items-center border rounded overflow-hidden" style={{ borderColor: 'var(--border)' }}>
           <button className={`h-8 w-8 flex items-center justify-center ${viewMode === 'card' ? 'text-white' : ''}`} style={viewMode === 'card' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }} onClick={() => setViewMode('card')}><LayoutList className="w-4 h-4" /></button>
@@ -112,7 +118,7 @@ export default function MaterialDocumentsPage() {
                 <div className={`fiori-oli-bar fiori-oli-bar--${barColor}`} />
                 <div className="fiori-oli-content">
                   <div className="fiori-oli-title">{item.MaterialDocument} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.Material}</div>
-                  <div className="fiori-oli-subtitle">{item.Plant} / {item.StorageLocation} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {movementLabel} ({item.GoodsMovementType})</div>
+                  <div className="fiori-oli-subtitle">生产订单: {item.ManufacturingOrder} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.Plant} / {item.StorageLocation}</div>
                   <div className="flex items-center gap-2">
                     <FioriBadge variant={barColor}>{movementLabel}</FioriBadge>
                     <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>{parseFloat(item.QuantityInBaseUnit || '0').toLocaleString()} {item.MaterialBaseUnit}</span>
@@ -130,18 +136,17 @@ export default function MaterialDocumentsPage() {
             <thead><tr style={{ background: 'var(--muted)' }}>
               <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>凭证号</th>
               <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>物料</th>
+              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>生产订单</th>
               <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>工厂/库位</th>
-              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>移动类型</th>
               <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>数量</th>
             </tr></thead>
             <tbody>{data.map((item, idx) => {
               const barColor = MOVEMENT_COLORS[item.GoodsMovementType] || 'neutral';
-              const movementLabel = getMovementLabel(item.GoodsMovementType);
               return (<tr key={`${item.MaterialDocument}-${item.MaterialDocumentItem}-${idx}`} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/material-documents/${item.MaterialDocument}`)}>
                 <td className="px-4 py-3 font-medium text-[#0070F2]">{item.MaterialDocument}</td>
                 <td className="px-4 py-3">{item.Material}</td>
+                <td className="px-4 py-3">{item.ManufacturingOrder}</td>
                 <td className="px-4 py-3 tabular-nums">{item.Plant} / {item.StorageLocation}</td>
-                <td className="px-4 py-3"><FioriBadge variant={barColor}>{movementLabel}</FioriBadge></td>
                 <td className="px-4 py-3 text-right font-medium tabular-nums">{parseFloat(item.QuantityInBaseUnit || '0').toLocaleString()} {item.MaterialBaseUnit}</td>
               </tr>);
             })}</tbody>
