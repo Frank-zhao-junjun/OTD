@@ -6,6 +6,24 @@ import { Search, RotateCw, ChevronLeft, ChevronRight, Filter, LayoutList, Table2
 import { FioriBadge } from '@/components/fiori';
 import { getSapStatusColor, getSapStatusLabel } from '@/components/fiori';
 
+interface SalesOrderItem {
+  SalesOrderItem: string;
+  Product: string;
+  SalesOrderItemText: string;
+  RequestedQuantity: number | string;
+  OrderQuantitySAPUnit: string;
+  NetAmount: number | string;
+  TransactionCurrency: string;
+  Plant: string;
+  SalesOrderItemCategory: string;
+}
+
+interface SalesOrderPartner {
+  PartnerFunction: string;
+  Customer: string;
+  BusinessPartnerName1: string;
+}
+
 interface SalesOrder {
   SalesOrder: string;
   SalesOrderType: string;
@@ -18,6 +36,8 @@ interface SalesOrder {
   TotalNetAmount: string;
   TransactionCurrency: string;
   OverallSDProcessStatus: string;
+  _Item?: SalesOrderItem[];
+  _Partner?: SalesOrderPartner[];
 }
 
 const PAGE_SIZE = 10;
@@ -31,10 +51,22 @@ function formatDate(dateStr: string): string {
   return dateStr;
 }
 
-function formatAmount(amount: string, currency: string): string {
-  const num = parseFloat(amount);
-  if (isNaN(num)) return amount;
+function formatAmount(amount: string | number, currency: string): string {
+  const num = parseFloat(String(amount));
+  if (isNaN(num)) return String(amount);
   return num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + currency;
+}
+
+/** Extract sold-to customer name from _Partner expand data */
+function getCustomerName(order: SalesOrder): string {
+  if (!order._Partner) return '';
+  const soldTo = order._Partner.find(p => p.PartnerFunction === 'AG');
+  return soldTo?.BusinessPartnerName1 || '';
+}
+
+/** Count line items from _Item expand data */
+function getItemCount(order: SalesOrder): number {
+  return order._Item?.length || 0;
 }
 
 export default function SalesOrdersPage() {
@@ -46,6 +78,7 @@ export default function SalesOrdersPage() {
   const [search, setSearch] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
   const fetchData = useCallback(async () => {
@@ -57,10 +90,14 @@ export default function SalesOrdersPage() {
         top: String(PAGE_SIZE),
         skip: String(skip),
         count: 'true',
+        expand: '_Item,_Partner',
       });
 
       // 构建过滤条件
       const filters: string[] = [];
+      if (typeFilter !== 'all') {
+        filters.push(`SalesOrderType eq '${typeFilter}'`);
+      }
       if (statusFilter !== 'all') {
         filters.push(`OverallSDProcessStatus eq '${statusFilter}'`);
       }
@@ -114,7 +151,7 @@ export default function SalesOrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, statusFilter]);
+  }, [page, search, statusFilter, typeFilter]);
 
   useEffect(() => {
     fetchData();
@@ -186,6 +223,21 @@ export default function SalesOrdersPage() {
         <div className="p-3 rounded-lg border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
           <div className="flex items-center gap-4 flex-wrap">
             <div className="fiori-filterbar-field">
+              <label>订单类型</label>
+              <select
+                className="h-8 px-2 text-sm rounded border outline-none"
+                style={{ background: 'var(--background)', borderColor: 'var(--border)' }}
+                value={typeFilter}
+                onChange={(e) => { setTypeFilter(e.target.value); setPage(0); }}
+              >
+                <option value="all">全部</option>
+                <option value="OR">OR - 标准订单</option>
+                <option value="TA">TA - 现金销售</option>
+                <option value="CR">CR - 退货订单</option>
+                <option value="DR">DR - 借记备忘录</option>
+              </select>
+            </div>
+            <div className="fiori-filterbar-field">
               <label>状态</label>
               <select
                 className="h-8 px-2 text-sm rounded border outline-none"
@@ -237,6 +289,8 @@ export default function SalesOrdersPage() {
           {data.map((order) => {
             const statusColor = getSapStatusColor(order.OverallSDProcessStatus);
             const statusLabel = getSapStatusLabel(order.OverallSDProcessStatus);
+            const customerName = getCustomerName(order);
+            const itemCount = getItemCount(order);
             return (
               <Link key={order.SalesOrder} href={`/sales-orders/${order.SalesOrder}`} className="fiori-oli block">
                 <div className={`fiori-oli-bar fiori-oli-bar--${statusColor}`} />
@@ -245,11 +299,14 @@ export default function SalesOrdersPage() {
                     {order.SalesOrder}
                     <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
                     {order.SoldToParty}
+                    {customerName && <span style={{ color: 'var(--muted-foreground)' }}> {customerName}</span>}
                   </div>
                   <div className="fiori-oli-subtitle">
+                    {order.SalesOrderType}
+                    <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
                     {formatDate(order.SalesOrderDate)}
                     <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
-                    {order.PurchaseOrderByCustomer}
+                    {itemCount}个行项目
                   </div>
                   <div className="flex items-center gap-2">
                     <FioriBadge variant={statusColor as 'success' | 'warning' | 'error' | 'info' | 'neutral'}>{statusLabel}</FioriBadge>
@@ -271,9 +328,10 @@ export default function SalesOrdersPage() {
             <thead>
               <tr style={{ background: 'var(--muted)' }}>
                 <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>订单号</th>
+                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>类型</th>
                 <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>客户</th>
                 <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>日期</th>
-                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>客户采购单</th>
+                <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>行项目</th>
                 <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>金额</th>
                 <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>状态</th>
               </tr>
@@ -282,6 +340,8 @@ export default function SalesOrdersPage() {
               {data.map((order) => {
                 const statusColor = getSapStatusColor(order.OverallSDProcessStatus);
                 const statusLabel = getSapStatusLabel(order.OverallSDProcessStatus);
+                const customerName = getCustomerName(order);
+                const itemCount = getItemCount(order);
                 return (
                   <tr key={order.SalesOrder} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }}>
                     <td className="px-4 py-3">
@@ -289,9 +349,13 @@ export default function SalesOrdersPage() {
                         {order.SalesOrder}
                       </Link>
                     </td>
-                    <td className="px-4 py-3">{order.SoldToParty}</td>
+                    <td className="px-4 py-3">{order.SalesOrderType}</td>
+                    <td className="px-4 py-3">
+                      {order.SoldToParty}
+                      {customerName && <span style={{ color: 'var(--muted-foreground)' }}> {customerName}</span>}
+                    </td>
                     <td className="px-4 py-3 tabular-nums">{formatDate(order.SalesOrderDate)}</td>
-                    <td className="px-4 py-3">{order.PurchaseOrderByCustomer}</td>
+                    <td className="px-4 py-3 text-center">{itemCount}</td>
                     <td className="px-4 py-3 text-right font-medium tabular-nums">{formatAmount(order.TotalNetAmount, order.TransactionCurrency)}</td>
                     <td className="px-4 py-3 text-center">
                       <FioriBadge variant={statusColor as 'success' | 'warning' | 'error' | 'info' | 'neutral'}>{statusLabel}</FioriBadge>
