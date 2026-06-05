@@ -185,7 +185,7 @@ function handleMockRequest(
 
 /**
  * Simple OData $filter parser
- * Supports: eq, ne, gt, lt, ge, le, and, or, substringof
+ * Supports: eq, ne, gt, lt, ge, le, and, or
  */
 function applyODataFilter(
   data: Record<string, unknown>[],
@@ -208,14 +208,6 @@ function applyODataFilter(
 
 function evaluateFilterPart(item: Record<string, unknown>, part: string): boolean {
   const trimmed = part.replace(/^\(/, '').replace(/\)$/, '');
-
-  // substringof('value', Property)
-  const subMatch = trimmed.match(/^substringof\(\s*'([^']*)'\s*,\s*(\w+)\s*\)$/i);
-  if (subMatch) {
-    const [, val, prop] = subMatch;
-    const itemVal = String(item[prop] ?? '');
-    return itemVal.toLowerCase().includes(val.toLowerCase());
-  }
 
   // Comparison operators: eq, ne, gt, lt, ge, le
   const match = trimmed.match(/^(\w+)\s+(eq|ne|gt|lt|ge|le)\s+'?([^']*)'?$/);

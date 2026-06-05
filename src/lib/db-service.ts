@@ -68,8 +68,6 @@ export async function readFromDb(
   options: {
     filter?: Record<string, string>;
     inFilter?: Record<string, string[]>;
-    likeFilter?: Record<string, string>;
-    likeFilterMode?: 'and' | 'or';
     top?: number;
     skip?: number;
     orderBy?: string;
@@ -100,20 +98,6 @@ export async function readFromDb(
       for (const [key, values] of Object.entries(options.inFilter)) {
         if (values.length > 0) {
           countQuery.in(key, values);
-        }
-      }
-    }
-    if (options.likeFilter) {
-      const mode = options.likeFilterMode || 'and';
-      if (mode === 'or') {
-        // Build OR condition: ilike.col1.likeval,ilike.col2.likeval
-        const orParts = Object.entries(options.likeFilter).map(
-          ([key, value]) => `ilike.${key}.${value}`
-        );
-        countQuery.or(orParts.join(','));
-      } else {
-        for (const [key, value] of Object.entries(options.likeFilter)) {
-          countQuery.ilike(key, value);
         }
       }
     }
@@ -151,19 +135,6 @@ export async function readFromDb(
       for (const [key, values] of Object.entries(options.inFilter)) {
         if (values.length > 0) {
           dataQuery = dataQuery.in(key, values);
-        }
-      }
-    }
-    if (options.likeFilter) {
-      const mode = options.likeFilterMode || 'and';
-      if (mode === 'or') {
-        const orParts = Object.entries(options.likeFilter).map(
-          ([key, value]) => `ilike.${key}.${value}`
-        );
-        dataQuery = dataQuery.or(orParts.join(','));
-      } else {
-        for (const [key, value] of Object.entries(options.likeFilter)) {
-          dataQuery = dataQuery.ilike(key, value);
         }
       }
     }
