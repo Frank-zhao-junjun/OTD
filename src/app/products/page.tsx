@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 
 import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab } from '@/components/fiori';
-import { Package, Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
+import { Package, Search, RotateCcw, Inbox, LayoutList, Table2, CloudDownload } from 'lucide-react';
 
 interface ProductDescription {
   Product: string;
@@ -126,22 +126,24 @@ const PROCUREMENT_TYPE_MAP: Record<string, string> = {
 export default function ProductsPage() {
   const [data, setData] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
+  const [sapRefreshing, setSapRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalCount, setTotalCount] = useState(0);
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
+  // 从本地DB查询（默认行为，DB优先）
   const fetchData = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const params = new URLSearchParams({ top: '50', count: 'true', expand: 'to_Description', skip_sap_sync: 'true' });
+      const params = new URLSearchParams({ top: '50', count: 'true' });
       if (searchQuery.trim()) {
         // Step 1: 在本地DB中按名称/编号模糊搜索，获取精确代码
         const searchRes = await fetch(`/api/sap/search?type=product&q=${encodeURIComponent(searchQuery.trim())}`);
         const searchJson = await searchRes.json();
         if (searchJson.success && searchJson.data && searchJson.data.length > 0) {
-          // Step 2: 用精确代码列表过滤SAP数据
+          // Step 2: 用精确代码列表过滤DB数据
           const codes = searchJson.data.map((d: { product: string }) => d.product);
           params.set('filter', codes.map((c: string) => `Product eq '${c}'`).join(' or '));
         } else {
@@ -156,6 +158,20 @@ export default function ProductsPage() {
     } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
     finally { setLoading(false); }
   }, [searchQuery]);
+
+  // 从SAP直接查询并增量保存到DB
+  const fetchFromSap = useCallback(async () => {
+    setSapRefreshing(true); setError(null);
+    try {
+      const params = new URLSearchParams({ top: '200', count: 'true', sap_direct: 'true', expand: 'to_Description' });
+      const res = await fetch(`/api/sap/API_PRODUCT_SRV/A_Product?${params}`);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'SAP查询失败');
+      // SAP数据已自动增量保存到DB，刷新页面数据
+      setData(json.data || []); setTotalCount(json.totalCount || json.count || 0);
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
+    finally { setSapRefreshing(false); }
+  }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -176,6 +192,7 @@ export default function ProductsPage() {
         </div>
         <div className="flex items-center gap-2">
           <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={fetchData} disabled={loading}><Search className="w-3.5 h-3.5 inline mr-1" /> 查询</button>
+          <button className="h-8 px-3 text-sm rounded border flex items-center gap-1" style={{ background: 'var(--card)', borderColor: 'var(--border)', color: '#0A6ED1' }} onClick={fetchFromSap} disabled={sapRefreshing}><CloudDownload className="w-3.5 h-3.5" /> {sapRefreshing ? '同步中...' : '从SAP查询'}</button>
           <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={() => setSearchQuery('')}><RotateCcw className="w-3.5 h-3.5 inline mr-1" /> 清除</button>
         </div>
       </div>

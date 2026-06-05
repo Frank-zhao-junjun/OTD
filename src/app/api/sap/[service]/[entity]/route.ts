@@ -118,11 +118,36 @@ function evaluateFilterPart(item: Record<string, unknown>, part: string): boolea
   }
 }
 
+// ============================================================
+// Service Classification: Master Data vs. Document
+// ============================================================
+
+/** Master data services: DB-first with SAP refresh button support */
+const MASTER_DATA_SERVICES = new Set([
+  'API_PRODUCT_SRV:A_Product',
+  'API_BUSINESS_PARTNER:A_Customer',
+]);
+
+/** Document services: Always query SAP directly, never cache to DB */
+const DOCUMENT_SERVICES = new Set([
+  'CE_SALESORDER_0001:SalesOrder',
+  'CE_PRODUCTIONORDER_0001:ProductionOrder',
+  'API_OUTBOUND_DELIVERY_SRV:A_OutbDeliveryHeader',
+  'API_BILLING_DOCUMENT_SRV:A_BillingDocument',
+  'API_MATERIAL_DOCUMENT_SRV:A_MaterialDocumentItem',
+  'API_MATERIAL_STOCK_SRV:A_MatlStkInAcctMod',
+  // V2 fallback services
+  'API_SALES_ORDER_SRV:SalesOrder',
+  'API_PRODUCTION_ORDER_2_SRV:ProductionOrder',
+]);
+
 /**
- * Generic SAP OData proxy endpoint — DB-first with SAP fallback
- * 1. Try to read from Supabase DB
- * 2. If DB has data, return it (converted to SAP format)
- * 3. If DB is empty, fetch from SAP, auto-sync to DB, then return
+ * Generic SAP OData proxy endpoint
+ *
+ * Architecture:
+ * - Master Data (products, customers): DB-first → SAP fallback.
+ *   Supports `sap_direct=true` to force SAP query + incremental DB save.
+ * - Documents (sales orders, production orders, etc.): Always SAP direct, no DB caching.
  */
 export async function GET(
   request: NextRequest,
@@ -131,15 +156,15 @@ export async function GET(
   const { service, entity } = await params;
   const config = getSapConfig();
   const serviceEntityKey = `${service}:${entity}`;
+  const isMasterData = MASTER_DATA_SERVICES.has(serviceEntityKey);
+  const isDocument = DOCUMENT_SERVICES.has(serviceEntityKey);
 
-  // === MOCK MODE ===
+  // Query parameter: sap_direct=true → bypass DB, query SAP directly & save to DB (master data only)
+  const sapDirect = request.nextUrl.searchParams.get('sap_direct') === 'true';
 
-  // === SKIP DB SYNC (used by /api/sync to prevent infinite loop) ===
-  const skipDbSync = request.nextUrl.searchParams.get('skip_sap_sync') === 'true';
-
-  // === DB-FIRST MODE ===
-  // Try reading from Supabase DB first (unless explicitly skipped)
-  if (!skipDbSync) {
+  // === MASTER DATA: DB-FIRST MODE ===
+  // Only for master data services, and only when NOT requesting SAP direct
+  if (isMasterData && !sapDirect) {
     try {
       const { readFromDb, dbHasData } = await import('@/lib/db-service');
       const { SAP_TABLE_FIELDS } = await import('@/lib/sap-db-sync');
@@ -214,6 +239,9 @@ export async function GET(
       console.warn(`DB not available, falling back to SAP:`, dbErr instanceof Error ? dbErr.message : dbErr);
     }
   }
+
+  // === DOCUMENT SERVICES: Always SAP direct, no DB caching ===
+  // Documents bypass DB entirely — they go straight to SAP
 
   // === LIVE SAP MODE ===
   if (!config.sapHost) {
@@ -371,8 +399,9 @@ export async function GET(
 
     const sanitizedData = sanitizeResults(results);
 
-    // Auto-sync to DB (background, non-blocking)
-    if (!skipDbSync && !isSingleEntity) {
+    // Auto-sync to DB: only for master data services (products, customers)
+    // Document services are never cached to DB
+    if (isMasterData && !isSingleEntity) {
       try {
         const { syncModuleToDb } = await import('@/lib/db-service');
         // Fire and forget - don't await

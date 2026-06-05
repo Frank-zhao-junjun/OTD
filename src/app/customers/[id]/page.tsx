@@ -76,7 +76,7 @@ export default function CustomerDetailPage() {
         }
         // 2. Fetch BP address data for multilingual names
         try {
-          const bpRes = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_BusinessPartner?skip_sap_sync=true&filter=Customer%20eq%20'${encodeURIComponent(id)}'&expand=to_BusinessPartnerAddress`);
+          const bpRes = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_BusinessPartner?sap_direct=true&filter=Customer%20eq%20'${encodeURIComponent(id)}'&expand=to_BusinessPartnerAddress`);
           const bpJson = await bpRes.json();
           if (bpJson.success && bpJson.data && bpJson.data.length > 0) {
             setBpData(bpJson.data[0]);

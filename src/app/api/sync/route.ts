@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       const [service, entity] = moduleKey.split(':');
       const sapUrl = new URL(`/api/sap/${service}/${entity}`, request.url);
       sapUrl.searchParams.set('top', '1000'); // Fetch up to 1000 records per sync
-      sapUrl.searchParams.set('skip_sap_sync', 'true'); // Prevent infinite loop
+      sapUrl.searchParams.set('sap_direct', 'true'); // Bypass DB, fetch from SAP directly
 
       const sapResponse = await fetch(sapUrl.toString());
       const sapData = await sapResponse.json();

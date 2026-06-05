@@ -126,7 +126,7 @@ export default function ProductDetailPage() {
         searchParams.set('filter', `Product eq '${id}'`);
         searchParams.set('top', '1');
         searchParams.set('expand', 'to_Description,to_Plant,to_Valuation');
-        searchParams.set('skip_sap_sync', 'true');
+        searchParams.set('sap_direct', 'true');
         const response = await fetch(`/api/sap/API_PRODUCT_SRV/A_Product?${searchParams.toString()}`);
         const data = await response.json();
         if (!data.success) throw new Error(data.error || 'Failed to fetch');
