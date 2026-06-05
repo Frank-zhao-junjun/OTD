@@ -25,14 +25,28 @@ function readEnvLocal(key: string): string | undefined {
 }
 
 // SAP configuration — dynamically read on each request so settings take effect immediately.
-// Variable names aligned with SAP Communication Scenarios (SAP_COM_xxxx) Postman environment.
+// Supports TWO naming conventions:
+//   1. Lowercase (Settings page): sapHost, sapClient, sapUsername, sapPassword
+//   2. Uppercase (Postman env):    SAP_BASE_URL, SAP_CLIENT, SAP_USERNAME, SAP_PASSWORD
+// Priority: process.env → /tmp/.env.local → workspace .env.local
 function getSapConfig() {
+  const read = (key: string) => process.env[key] || readEnvLocal(key);
+
+  // sapHost: try lowercase first, then uppercase SAP_BASE_URL
+  const sapHost = read('sapHost') || (() => {
+    const baseUrl = read('SAP_BASE_URL');
+    if (baseUrl) {
+      try { return new URL(baseUrl).hostname; } catch { return baseUrl.replace(/^https?:\/\//, ''); }
+    }
+    return '';
+  })();
+
   return {
-    sapScheme: process.env.sapScheme || readEnvLocal('sapScheme') || 'https',
-    sapHost: process.env.sapHost || readEnvLocal('sapHost') || '',
-    sapUsername: process.env.sapUsername || readEnvLocal('sapUsername') || '',
-    sapPassword: readEnvLocal('sapPassword') || process.env.sapPassword || '',
-    sapClient: process.env.sapClient || readEnvLocal('sapClient') || '100',
+    sapScheme: read('sapScheme') || (read('SAP_BASE_URL')?.startsWith('http://') ? 'http' : 'https'),
+    sapHost,
+    sapUsername: read('sapUsername') || read('SAP_USERNAME') || '',
+    sapPassword: read('sapPassword') || read('SAP_PASSWORD') || '',
+    sapClient: read('sapClient') || read('SAP_CLIENT') || '100',
   };
 }
 
@@ -72,51 +86,6 @@ function getODataVersion(servicePath: string): 'v2' | 'v4' {
   return 'v2';
 }
 
-
-
-/**
- * Simple OData $filter parser
- * Supports: eq, ne, gt, lt, ge, le, and, or
- */
-function applyODataFilter(
-  data: Record<string, unknown>[],
-  filter: string
-): Record<string, unknown>[] {
-  // Handle or-separated parts first
-  const orParts = filter.split(/\s+or\s+/i);
-  if (orParts.length > 1) {
-    return data.filter(item => {
-      return orParts.some(part => evaluateFilterPart(item, part.trim()));
-    });
-  }
-
-  // Handle and-separated parts
-  const andParts = filter.split(/\s+and\s+/i);
-  return data.filter(item => {
-    return andParts.every(part => evaluateFilterPart(item, part.trim()));
-  });
-}
-
-function evaluateFilterPart(item: Record<string, unknown>, part: string): boolean {
-  const trimmed = part.replace(/^\(/, '').replace(/\)$/, '');
-
-  // Comparison operators: eq, ne, gt, lt, ge, le
-  const match = trimmed.match(/^(\w+)\s+(eq|ne|gt|lt|ge|le)\s+'?([^']*)'?$/);
-  if (!match) return true;
-
-  const [, prop, op, val] = match;
-  const itemVal = String(item[prop] ?? '');
-
-  switch (op) {
-    case 'eq': return itemVal === val;
-    case 'ne': return itemVal !== val;
-    case 'gt': return itemVal > val;
-    case 'lt': return itemVal < val;
-    case 'ge': return itemVal >= val;
-    case 'le': return itemVal <= val;
-    default: return true;
-  }
-}
 
 // ============================================================
 // Service Classification: Master Data vs. Document

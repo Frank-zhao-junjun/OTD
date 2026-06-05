@@ -91,6 +91,7 @@ export default function SalesOrdersPage() {
       }
 
       // 搜索关键词：先在DB中模糊搜索获取精确编号，再用编号过滤
+      let searchProductCodes: Set<string> | null = null;
       if (search.trim()) {
         const keyword = search.trim();
         const searchRes = await fetch(`/api/sap/search?type=all&q=${encodeURIComponent(keyword)}`);
@@ -105,8 +106,6 @@ export default function SalesOrdersPage() {
             }
           }
           if (searchData.products?.length > 0) {
-            // V2: 行项目用Material字段，需要在header级别用SoldToParty过滤
-            // 产品编号过滤无法在header级别直接应用，后续在客户端过滤
             for (const p of searchData.products) {
               productFilters.push(p.product);
             }
@@ -122,6 +121,11 @@ export default function SalesOrdersPage() {
             // DB中也搜不到，尝试用关键词直接匹配订单号
             filters.push(`SalesOrder eq '${keyword}'`);
           }
+
+          // 保存产品编号集合，用于后续客户端过滤（产品过滤无法在header级别OData实现）
+          if (productFilters.length > 0) {
+            searchProductCodes = new Set(productFilters);
+          }
         }
       }
 
@@ -134,22 +138,10 @@ export default function SalesOrdersPage() {
         setTotalCount(json.totalCount || json.count || 0);
 
         // 如果有产品搜索条件，在客户端过滤包含该产品的订单
-        if (search.trim()) {
-          const keyword = search.trim();
-          const searchRes = await fetch(`/api/sap/search?type=all&q=${encodeURIComponent(keyword)}`);
-          const searchData = await searchRes.json();
-          if (searchData.success && searchData.products?.length > 0) {
-            const productCodes = new Set(searchData.products.map((p: { product: string }) => p.product));
-            const customerCodes = searchData.customers?.length > 0
-              ? new Set(searchData.customers.map((c: { customer: string }) => c.customer))
-              : null;
-            if (!customerCodes) {
-              // 只按产品过滤
-              orders = orders.filter((o: SalesOrder) =>
-                o.to_Item?.some((item: SalesOrderItem) => productCodes.has(item.Material))
-              );
-            }
-          }
+        if (searchProductCodes) {
+          orders = orders.filter((o: SalesOrder) =>
+            o.to_Item?.some((item: SalesOrderItem) => searchProductCodes!.has(item.Material))
+          );
         }
 
         setData(orders);

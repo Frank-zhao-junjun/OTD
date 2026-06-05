@@ -59,8 +59,8 @@ export default function ProductionOrdersPage() {
         const keyword = searchQuery.trim();
         const searchRes = await fetch(`/api/sap/search?type=product&q=${encodeURIComponent(keyword)}`);
         const searchData = await searchRes.json();
-        if (searchData.success && searchData.data?.length > 0) {
-          const productFilters = searchData.data.map((p: { product: string }) => `Product eq '${p.product}'`);
+        if (searchData.success && searchData.products?.length > 0) {
+          const productFilters = searchData.products.map((p: { product: string }) => `Product eq '${p.product}'`);
           filterParts.push(`(ProductionOrder eq '${keyword}' or ${productFilters.join(' or ')})`);
         } else {
           filterParts.push(`(ProductionOrder eq '${keyword}' or Product eq '${keyword}')`);

@@ -64,7 +64,7 @@ export default function MaterialDocumentsPage() {
       if (searchQuery) {
         const searchRes = await fetch(`/api/sap/search?type=product&q=${encodeURIComponent(searchQuery)}`);
         const searchData = await searchRes.json();
-        const productCodes = (searchData.data || []).map((p: { product: string }) => p.product);
+        const productCodes = (searchData.products || []).map((p: { product: string }) => p.product);
         const searchFilters: string[] = [`MaterialDocument eq '${searchQuery}'`];
         if (productCodes.length > 0) searchFilters.push(productCodes.map((m: string) => `Material eq '${m}'`).join(' or '));
         // 搜索时叠加默认过滤

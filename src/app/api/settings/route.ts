@@ -13,7 +13,15 @@ function getConfigPaths(): string[] {
 }
 
 // Sensitive keys - mask in GET response, never use process.env fallback
-const SENSITIVE_KEYS = ['sapPassword'];
+const SENSITIVE_KEYS = ['sapPassword', 'SAP_PASSWORD'];
+
+// Mapping from uppercase (Postman env) to lowercase (Settings page) keys
+const ENV_KEY_MAP: Record<string, string> = {
+  'SAP_BASE_URL': 'sapHost',
+  'SAP_CLIENT': 'sapClient',
+  'SAP_USERNAME': 'sapUsername',
+  'SAP_PASSWORD': 'sapPassword',
+};
 
 // 从配置文件读取值（按优先级）
 function readConfigValues(): Record<string, string> {
@@ -30,13 +38,19 @@ function readConfigValues(): Record<string, string> {
           if (!trimmed || trimmed.startsWith('#')) continue;
           const eqIndex = trimmed.indexOf('=');
           if (eqIndex > 0) {
-            const key = trimmed.substring(0, eqIndex).trim();
+            let key = trimmed.substring(0, eqIndex).trim();
             let val = trimmed.substring(eqIndex + 1).trim();
             // Remove surrounding quotes
             if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
               val = val.slice(1, -1);
             }
-            values[key] = val;
+            // Map uppercase keys to lowercase equivalents (e.g. SAP_BASE_URL → sapHost)
+            const mappedKey = ENV_KEY_MAP[key] || key;
+            // For SAP_BASE_URL, extract hostname from full URL
+            if (key === 'SAP_BASE_URL' && val) {
+              try { val = new URL(val).hostname; } catch { val = val.replace(/^https?:\/\//, ''); }
+            }
+            values[mappedKey] = val;
           }
         }
       }
