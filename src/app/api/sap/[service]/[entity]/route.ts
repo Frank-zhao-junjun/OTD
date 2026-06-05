@@ -33,45 +33,7 @@ function getSapConfig() {
     sapUsername: process.env.sapUsername || readEnvLocal('sapUsername') || '',
     sapPassword: readEnvLocal('sapPassword') || process.env.sapPassword || '',
     sapClient: process.env.sapClient || readEnvLocal('sapClient') || '100',
-    useMock: process.env.USE_MOCK === 'true' || readEnvLocal('USE_MOCK') === 'true',
   };
-}
-
-// Mock data file mapping: service:entity → mock file
-const MOCK_FILE_MAP: Record<string, string> = {
-  // Sales Orders
-  'CE_SALESORDER_0001:SalesOrder': 'sales_orders.json',
-  'API_SALES_ORDER_SRV:A_SalesOrder': 'sales_orders.json',
-  // Production Orders
-  'CE_PRODUCTIONORDER_0001:ProductionOrder': 'production_orders.json',
-  'API_PRODUCTION_ORDER_2_SRV:A_ProductionOrder': 'production_orders.json',
-  // Deliveries
-  'API_OUTBOUND_DELIVERY_SRV:A_OutbDeliveryHeader': 'deliveries.json',
-  'API_OUTBOUND_DELIVERY_SRV:A_OutbDeliveryItem': 'deliveries.json',
-  'API_OUTBOUND_DELIVERY_SRV:A_OutboundDelivery': 'deliveries.json',
-  // Billing
-  'API_BILLING_DOCUMENT_SRV:A_BillingDocument': 'invoices.json',
-  'API_BILLING_DOCUMENT_SRV:A_BillingDocumentItem': 'invoices.json',
-  // Inventory
-  'API_MATERIAL_STOCK_SRV:A_MatlStkInAcctMod': 'inventory.json',
-  // Goods Receipts / Material Documents
-  'API_MATERIAL_DOCUMENT_SRV:A_MaterialDocument': 'goods_receipts.json',
-  'API_MATERIAL_DOCUMENT_SRV:A_MaterialDocumentItem': 'goods_receipts.json',
-  // Products
-  'API_PRODUCT_SRV:A_Product': 'products.json',
-  // Customers
-  'API_BUSINESS_PARTNER:A_Customer': 'customers.json',
-};
-
-function loadMockData(filename: string): unknown[] {
-  try {
-    const filePath = join(process.env.COZE_WORKSPACE_PATH || process.cwd(), 'mock', filename);
-    const raw = readFileSync(filePath, 'utf-8');
-    return JSON.parse(raw);
-  } catch {
-    console.error(`Mock file not found: ${filename}`);
-    return [];
-  }
 }
 
 // Default $select fields per service:entity
@@ -110,78 +72,7 @@ function getODataVersion(servicePath: string): 'v2' | 'v4' {
   return 'v2';
 }
 
-/**
- * Handle Mock mode: load local JSON, apply filter/pagination
- */
-function handleMockRequest(
-  service: string,
-  entity: string,
-  searchParams: URLSearchParams
-): NextResponse {
-  const mockKey = `${service}:${entity}`;
-  const mockFile = MOCK_FILE_MAP[mockKey];
 
-  if (!mockFile) {
-    return NextResponse.json(
-      { success: false, error: `No mock data for ${mockKey}` },
-      { status: 404 }
-    );
-  }
-
-  let data = loadMockData(mockFile);
-  const totalCount = data.length;
-
-  // Single entity lookup by key (e.g. id=100000001 → SalesOrder('100000001'))
-  const id = searchParams.get('id');
-  if (id && Array.isArray(data)) {
-    data = (data as Record<string, unknown>[]).filter(item => {
-      const keyField = Object.keys(item).find(k =>
-        k === entity || k === entity.replace(/^A_/, '') || k === 'SalesOrder' || k === 'ProductionOrder' || k === 'DeliveryDocument' || k === 'BillingDocument' || k === 'MaterialDocument' || k === 'Product' || k === 'Customer'
-      );
-      return keyField ? String(item[keyField]) === id : false;
-    });
-  }
-
-  // Apply simple filter (parse OData filter expressions)
-  const filter = searchParams.get('filter');
-  if (filter && Array.isArray(data) && data.length > 0) {
-    data = applyODataFilter(data as Record<string, unknown>[], filter);
-  }
-
-  // Apply $select (field projection) — keep $expand navigation properties
-  const select = searchParams.get('select');
-  const effectiveSelect = select || DEFAULT_SELECT_MAP[mockKey];
-  const effectiveExpand = searchParams.get('expand') || DEFAULT_EXPAND_MAP[mockKey];
-  const expandFields = effectiveExpand ? effectiveExpand.split(',').map(f => f.trim()) : [];
-  if (effectiveSelect && Array.isArray(data) && data.length > 0) {
-    const fields = effectiveSelect.split(',').map(f => f.trim());
-    const allFields = [...fields, ...expandFields];
-    data = (data as Record<string, unknown>[]).map(item => {
-      const projected: Record<string, unknown> = {};
-      for (const f of allFields) {
-        if (f in item) projected[f] = item[f];
-      }
-      return projected;
-    });
-  }
-
-  // Apply pagination
-  const top = parseInt(searchParams.get('top') || '0', 10);
-  const skip = parseInt(searchParams.get('skip') || '0', 10);
-  if (skip > 0) data = data.slice(skip);
-  if (top > 0) data = data.slice(0, top);
-
-  const sp = SERVICE_PATH_MAP[service];
-  const odataVer = sp ? getODataVersion(sp) : 'v2';
-  return NextResponse.json({
-    success: true,
-    data,
-    count: data.length,
-    totalCount,
-    odataVersion: odataVer,
-    _mock: true,
-  });
-}
 
 /**
  * Simple OData $filter parser
@@ -242,9 +133,6 @@ export async function GET(
   const serviceEntityKey = `${service}:${entity}`;
 
   // === MOCK MODE ===
-  if (config.useMock) {
-    return handleMockRequest(service, entity, request.nextUrl.searchParams);
-  }
 
   // === SKIP DB SYNC (used by /api/sync to prevent infinite loop) ===
   const skipDbSync = request.nextUrl.searchParams.get('skip_sap_sync') === 'true';
