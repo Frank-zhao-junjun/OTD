@@ -130,15 +130,14 @@ const MASTER_DATA_SERVICES = new Set([
 
 /** Document services: Always query SAP directly, never cache to DB */
 const DOCUMENT_SERVICES = new Set([
-  'CE_SALESORDER_0001:SalesOrder',
+  'API_SALES_ORDER_SRV:A_SalesOrder',
+  'CE_SALESORDER_0001:SalesOrder',        // V4 fallback (SalesOrderType returns internal code)
   'CE_PRODUCTIONORDER_0001:ProductionOrder',
+  'API_PRODUCTION_ORDER_2_SRV:ProductionOrder', // V2 fallback
   'API_OUTBOUND_DELIVERY_SRV:A_OutbDeliveryHeader',
   'API_BILLING_DOCUMENT_SRV:A_BillingDocument',
   'API_MATERIAL_DOCUMENT_SRV:A_MaterialDocumentItem',
   'API_MATERIAL_STOCK_SRV:A_MatlStkInAcctMod',
-  // V2 fallback services
-  'API_SALES_ORDER_SRV:SalesOrder',
-  'API_PRODUCTION_ORDER_2_SRV:ProductionOrder',
 ]);
 
 /**
