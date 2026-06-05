@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Search, RotateCw, ChevronLeft, ChevronRight, Filter, LayoutList, Table2 } from 'lucide-react';
 import { FioriBadge } from '@/components/fiori';
@@ -56,6 +57,7 @@ function formatAmount(amount: string | number, currency: string): string {
 }
 
 export default function SalesOrdersPage() {
+  const router = useRouter();
   const [data, setData] = useState<SalesOrder[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -385,11 +387,11 @@ export default function SalesOrdersPage() {
                 const cname = getCustomerName(order.SoldToParty);
                 const itemCount = getItemCount(order);
                 return (
-                  <tr key={order.SalesOrder} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }}>
+                  <tr key={order.SalesOrder} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/sales-orders/${order.SalesOrder}`)}>
                     <td className="px-4 py-3">
-                      <Link href={`/sales-orders/${order.SalesOrder}`} className="font-medium hover:underline" style={{ color: 'var(--primary)' }}>
+                      <span className="font-medium" style={{ color: 'var(--primary)' }}>
                         {order.SalesOrder}
-                      </Link>
+                      </span>
                     </td>
                     <td className="px-4 py-3">{order.SalesOrderType}</td>
                     <td className="px-4 py-3">
