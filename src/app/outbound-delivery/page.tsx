@@ -55,7 +55,19 @@ export default function OutboundDeliveryPage() {
       const params = new URLSearchParams();
       params.set('top', '50');
       params.set('count', 'true');
-      if (searchQuery) params.set('filter', `(DeliveryDocument eq '${searchQuery}' or SoldToParty eq '${searchQuery}')`);
+
+      if (searchQuery.trim()) {
+        const keyword = searchQuery.trim();
+        const searchRes = await fetch(`/api/sap/search?type=customer&q=${encodeURIComponent(keyword)}`);
+        const searchData = await searchRes.json();
+        if (searchData.success && searchData.customers?.length > 0) {
+          const customerFilters = searchData.customers.map((c: { customer: string }) => `SoldToParty eq '${c.customer}'`);
+          const filterStr = `(DeliveryDocument eq '${keyword}' or ${customerFilters.join(' or ')})`;
+          params.set('filter', filterStr);
+        } else {
+          params.set('filter', `(DeliveryDocument eq '${keyword}' or SoldToParty eq '${keyword}')`);
+        }
+      }
 
       const response = await fetch(`/api/sap/API_OUTBOUND_DELIVERY_SRV/A_OutbDeliveryHeader?${params.toString()}`);
       const data = await response.json();
