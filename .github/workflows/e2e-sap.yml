@@ -1,0 +1,124 @@
+# E2E against SAP sandbox (Playwright).
+# Preferred repo secrets (multiline KEY=VALUE, same as .env.e2e.example):
+#   SAP_SECRET  — SAP_USERNAME, SAP_PASSWORD (and optional SAP_* overrides)
+#   E2E_SECRET  — E2E_PHONE, E2E_PASSWORD, E2E_SALES_ORDER (optional)
+# Or individual secrets: SAP_USERNAME, SAP_PASSWORD, E2E_PHONE, E2E_PASSWORD, E2E_SALES_ORDER
+
+name: E2E SAP Sandbox
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: e2e-sap-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-smoke:
+    name: E2E smoke (no SAP)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install chromium --with-deps
+
+      - name: Auth redirect smoke
+        run: pnpm exec playwright test e2e/auth-sap.spec.ts --grep "no SAP"
+        env:
+          CI: 'true'
+
+  e2e-sap:
+    name: E2E full (SAP sandbox)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: e2e-smoke
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install chromium --with-deps
+
+      - name: Create .env.e2e.local from GitHub secrets
+        shell: bash
+        env:
+          SAP_SECRET: ${{ secrets.SAP_SECRET }}
+          E2E_SECRET: ${{ secrets.E2E_SECRET }}
+          SAP_USERNAME: ${{ secrets.SAP_USERNAME }}
+          SAP_PASSWORD: ${{ secrets.SAP_PASSWORD }}
+          E2E_PHONE: ${{ secrets.E2E_PHONE }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          E2E_SALES_ORDER: ${{ secrets.E2E_SALES_ORDER }}
+        run: |
+          set -euo pipefail
+          {
+            echo 'SAP_BASE_URL=https://my200967-api.s4hana.sapcloud.cn'
+            echo 'SAP_CLIENT=100'
+          } > .env.e2e.local
+          if [ -n "${SAP_SECRET:-}" ]; then
+            if [[ "$SAP_SECRET" == *"="* ]]; then
+              printf '%s\n' "$SAP_SECRET" >> .env.e2e.local
+            else
+              echo 'SAP_USERNAME=EPC_USER' >> .env.e2e.local
+              printf 'SAP_PASSWORD=%s\n' "$SAP_SECRET" >> .env.e2e.local
+            fi
+          else
+            [ -n "${SAP_USERNAME:-}" ] && echo "SAP_USERNAME=${SAP_USERNAME}" >> .env.e2e.local
+            [ -n "${SAP_PASSWORD:-}" ] && echo "SAP_PASSWORD=${SAP_PASSWORD}" >> .env.e2e.local
+          fi
+          if [ -n "${E2E_SECRET:-}" ]; then
+            if [[ "$E2E_SECRET" == *"="* ]]; then
+              printf '%s\n' "$E2E_SECRET" >> .env.e2e.local
+            else
+              printf 'E2E_PASSWORD=%s\n' "$E2E_SECRET" >> .env.e2e.local
+            fi
+          else
+            [ -n "${E2E_PHONE:-}" ] && echo "E2E_PHONE=${E2E_PHONE}" >> .env.e2e.local
+            [ -n "${E2E_PASSWORD:-}" ] && echo "E2E_PASSWORD=${E2E_PASSWORD}" >> .env.e2e.local
+            [ -n "${E2E_SALES_ORDER:-}" ] && echo "E2E_SALES_ORDER=${E2E_SALES_ORDER}" >> .env.e2e.local
+          fi
+          if ! grep -q '^SAP_USERNAME=' .env.e2e.local || ! grep -q '^SAP_PASSWORD=' .env.e2e.local; then
+            echo '::error::Missing SAP credentials. Set SAP_SECRET (multiline) or SAP_USERNAME + SAP_PASSWORD secrets.'
+            exit 1
+          fi
+          grep -q '^E2E_PHONE=' .env.e2e.local || echo 'E2E_PHONE=13800000002' >> .env.e2e.local
+          grep -q '^E2E_PASSWORD=' .env.e2e.local || echo 'E2E_PASSWORD=demo123' >> .env.e2e.local
+          grep -q '^E2E_SALES_ORDER=' .env.e2e.local || echo 'E2E_SALES_ORDER=1' >> .env.e2e.local
+
+      - name: Run E2E (SAP)
+        run: pnpm run e2e
+        env:
+          CI: 'true'
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

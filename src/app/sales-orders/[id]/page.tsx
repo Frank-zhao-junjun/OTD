@@ -4,27 +4,14 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FioriBadge, FioriErrorState, getSapStatusColor } from '@/components/fiori';
-import { ArrowLeft, FileText, Package } from 'lucide-react';
+import { FioriBadge, FioriErrorState } from '@/components/fiori';
+import { getSapStatusColor } from '@/components/fiori';
+import { ArrowLeft, FileText } from 'lucide-react';
 import { SALES_ORDER_STATUS_MAP } from '@/lib/sap-service';
-import { formatSapDate } from '@/lib/utils';
-
-interface SalesOrderItem {
-  SalesOrderItem: string;
-  Material: string;
-  SalesOrderItemText: string;
-  RequestedQuantity: string;
-  RequestedQuantityUnit: string;
-  NetAmount: string;
-  TransactionCurrency: string;
-  Plant: string;
-  SalesOrderItemCategory: string;
-}
-
-interface SalesOrderPartner {
-  PartnerFunction: string;
-  Customer: string;
-}
+import {
+  SALES_ORDER_HEADER_SELECT_EXTENDED,
+  withBillingStatusNormalized,
+} from '@/lib/sap-sales-order-v4-fields';
 
 interface SalesOrder {
   SalesOrder: string;
@@ -36,27 +23,15 @@ interface SalesOrder {
   TotalNetAmount?: string | number;
   TransactionCurrency?: string;
   SalesOrderDate?: string;
+  RequestedDeliveryDate?: string;
   OverallSDProcessStatus?: string;
+  OverallDeliveryStatus?: string;
+  OverallBillingStatus?: string;
   PurchaseOrderByCustomer?: string;
-  CreatedByUser?: string;
-  SalesOrderTypeInternalCode?: string;
-  to_Item?: SalesOrderItem[];
-  to_Partner?: SalesOrderPartner[];
-}
-
-// V2 partner function codes
-const PARTNER_FUNCTION_MAP: Record<string, string> = {
-  'SP': '售达方',
-  'SH': '送达方',
-  'BP': '收款方',
-  'PY': '付款方',
-};
-
-function formatAmount(amount: string | number | undefined, currency: string | undefined): string {
-  if (amount === undefined || amount === null) return '-';
-  const num = parseFloat(String(amount));
-  if (isNaN(num)) return String(amount);
-  return num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (currency ? ' ' + currency : '');
+  CreationDate?: string;
+  LastChangeDate?: string;
+  SalesGroup?: string;
+  SalesOffice?: string;
 }
 
 export default function SalesOrderDetailPage() {
@@ -67,7 +42,6 @@ export default function SalesOrderDetailPage() {
   const [order, setOrder] = useState<SalesOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [customerName, setCustomerName] = useState('');
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -76,28 +50,14 @@ export default function SalesOrderDetailPage() {
       try {
         const searchParams = new URLSearchParams();
         searchParams.set('id', id);
-        searchParams.set('expand', 'to_Item,to_Partner');
+        searchParams.set('select', SALES_ORDER_HEADER_SELECT_EXTENDED);
 
-        const response = await fetch(`/api/sap/API_SALES_ORDER_SRV/A_SalesOrder?${searchParams.toString()}`);
+        const response = await fetch(`/api/sap/CE_SALESORDER_0001/SalesOrder?${searchParams.toString()}`);
         const data = await response.json();
 
         if (!data.success) throw new Error(data.error || 'Failed to fetch');
         const results = data.data || [];
-        const orderData = results[0] || null;
-        setOrder(orderData);
-
-        // Fetch customer name from DB
-        if (orderData?.SoldToParty) {
-          try {
-            const cRes = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_Customer?filter=${encodeURIComponent(`Customer eq '${orderData.SoldToParty}'`)}&top=1`);
-            const cData = await cRes.json();
-            if (cData.success && cData.data?.length > 0) {
-              setCustomerName(cData.data[0].CustomerName || cData.data[0].CustomerFullName || '');
-            }
-          } catch {
-            // Customer name fetch failure is non-critical
-          }
-        }
+        setOrder(results[0] ? withBillingStatusNormalized(results[0]) : null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
@@ -119,7 +79,7 @@ export default function SalesOrderDetailPage() {
           <Skeleton className="h-6 w-[180px] mb-2" />
           <Skeleton className="h-4 w-[240px] mb-4" />
           <div className="fiori-objheader-fields">
-            {[...Array(8)].map((_, i) => (
+            {[...Array(9)].map((_, i) => (
               <div key={i} className="fiori-objheader-field">
                 <Skeleton className="h-3 w-[60px] mb-1" />
                 <Skeleton className="h-4 w-[100px]" />
@@ -142,22 +102,34 @@ export default function SalesOrderDetailPage() {
     );
   }
 
-  const processStatus = SALES_ORDER_STATUS_MAP[order.OverallSDProcessStatus || '']?.label || order.OverallSDProcessStatus || '-';
+  const formatDate = (dateStr: string | undefined): string => {
+    if (!dateStr) return '-';
+    const match = dateStr.match(/\/Date\((\d+)\)\//);
+    if (match) {
+      const d = new Date(parseInt(match[1]));
+      return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    }
+    return dateStr;
+  };
 
-  const headerFields = [
+  const processStatus = SALES_ORDER_STATUS_MAP[order.OverallSDProcessStatus || '']?.label || order.OverallSDProcessStatus || '-';
+  const deliveryStatus = SALES_ORDER_STATUS_MAP[order.OverallDeliveryStatus || '']?.label || order.OverallDeliveryStatus || '-';
+  const billingStatus = SALES_ORDER_STATUS_MAP[order.OverallBillingStatus || '']?.label || order.OverallBillingStatus || '-';
+
+  const fields = [
     { label: '订单类型', value: order.SalesOrderType || '-' },
     { label: '客户编号', value: order.SoldToParty || '-' },
-    { label: '客户名称', value: customerName || '-' },
     { label: '客户采购单号', value: order.PurchaseOrderByCustomer || '-' },
     { label: '销售组织', value: order.SalesOrganization || '-' },
     { label: '分销渠道', value: order.DistributionChannel || '-' },
     { label: '产品组', value: order.OrganizationDivision || '-' },
-    { label: '订单金额', value: formatAmount(order.TotalNetAmount, order.TransactionCurrency) },
-    { label: '订单日期', value: formatSapDate(order.SalesOrderDate) },
-    { label: '创建人', value: order.CreatedByUser || '-' },
+    { label: '订单金额', value: order.TotalNetAmount ? `${Number(order.TotalNetAmount).toLocaleString()} ${order.TransactionCurrency || 'CNY'}` : '-' },
+    { label: '订单日期', value: formatDate(order.SalesOrderDate) },
+    { label: '请求交货日期', value: formatDate(order.RequestedDeliveryDate) },
+    { label: '创建日期', value: formatDate(order.CreationDate) },
+    { label: '最后更改', value: formatDate(order.LastChangeDate) },
+    { label: '销售组', value: order.SalesGroup || '-' },
   ];
-
-  const items = order.to_Item || [];
 
   return (
     <div className="space-y-4">
@@ -175,21 +147,27 @@ export default function SalesOrderDetailPage() {
           <div>
             <div className="fiori-objheader-title">{order.SalesOrder}</div>
             <div className="fiori-objheader-subtitle">
-              {order.SoldToParty || '-'}{customerName ? ` ${customerName}` : ''} · {formatSapDate(order.SalesOrderDate)}
+              {order.SoldToParty || '-'} · {formatDate(order.SalesOrderDate)}
             </div>
           </div>
         </div>
 
-        {/* Status badge */}
+        {/* Status badges */}
         <div className="flex items-center gap-2 mb-4">
           <FioriBadge variant={getSapStatusColor(order.OverallSDProcessStatus)}>
-            处理状态: {processStatus}
+            处理: {processStatus}
+          </FioriBadge>
+          <FioriBadge variant={getSapStatusColor(order.OverallDeliveryStatus)}>
+            交货: {deliveryStatus}
+          </FioriBadge>
+          <FioriBadge variant={getSapStatusColor(order.OverallBillingStatus)}>
+            开票: {billingStatus}
           </FioriBadge>
         </div>
 
         {/* Field grid */}
         <div className="fiori-objheader-fields">
-          {headerFields.map((field) => (
+          {fields.map((field) => (
             <div key={field.label} className="fiori-objheader-field">
               <span className="fiori-objheader-field-label">{field.label}</span>
               <span className="fiori-objheader-field-value">{field.value}</span>
@@ -197,92 +175,6 @@ export default function SalesOrderDetailPage() {
           ))}
         </div>
       </div>
-
-      {/* Line Items Section */}
-      <div className="rounded-lg border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
-        <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
-          <div className="flex items-center gap-2">
-            <Package className="w-4 h-4" style={{ color: 'var(--primary)' }} />
-            <span className="font-semibold text-sm">行项目 ({items.length})</span>
-          </div>
-        </div>
-
-        {items.length === 0 ? (
-          <div className="text-center py-6" style={{ color: 'var(--muted-foreground)' }}>
-            <p className="text-sm">暂无行项目数据</p>
-          </div>
-        ) : (
-          <>
-            {/* Desktop table view */}
-            <div className="hidden lg:block overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ background: 'var(--muted)' }}>
-                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>行号</th>
-                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>产品</th>
-                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>描述</th>
-                    <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>数量</th>
-                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>单位</th>
-                    <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>净额</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item) => (
-                    <tr key={item.SalesOrderItem} className="border-t" style={{ borderColor: 'var(--border)' }}>
-                      <td className="px-4 py-3 tabular-nums">{item.SalesOrderItem}</td>
-                      <td className="px-4 py-3 font-medium" style={{ color: 'var(--primary)' }}>{item.Material}</td>
-                      <td className="px-4 py-3">{item.SalesOrderItemText || '-'}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">{item.RequestedQuantity ?? '-'}</td>
-                      <td className="px-4 py-3">{item.RequestedQuantityUnit || '-'}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">{formatAmount(item.NetAmount, item.TransactionCurrency)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile card view */}
-            <div className="lg:hidden divide-y" style={{ borderColor: 'var(--border)' }}>
-              {items.map((item) => (
-                <div key={item.SalesOrderItem} className="px-4 py-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-sm" style={{ color: 'var(--primary)' }}>
-                      {item.Material}
-                    </span>
-                    <span className="text-xs tabular-nums" style={{ color: 'var(--muted-foreground)' }}>
-                      行 {item.SalesOrderItem}
-                    </span>
-                  </div>
-                  <div className="text-sm mb-1">{item.SalesOrderItemText || '-'}</div>
-                  <div className="flex items-center justify-between text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                    <span>数量: {item.RequestedQuantity ?? '-'} {item.RequestedQuantityUnit || ''}</span>
-                    <span className="font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>
-                      {formatAmount(item.NetAmount, item.TransactionCurrency)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Partner Information */}
-      {order.to_Partner && order.to_Partner.length > 0 && (
-        <div className="rounded-lg border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
-          <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
-            <span className="font-semibold text-sm">业务伙伴</span>
-          </div>
-          <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
-            {order.to_Partner.map((partner, idx) => (
-              <div key={idx} className="px-4 py-2 flex items-center justify-between">
-                <span className="text-sm">{PARTNER_FUNCTION_MAP[partner.PartnerFunction] || partner.PartnerFunction}</span>
-                <span className="text-sm font-medium">{partner.Customer}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

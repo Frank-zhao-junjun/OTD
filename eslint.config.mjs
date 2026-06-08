@@ -35,6 +35,12 @@ const eslintConfig = defineConfig([
       'no-restricted-syntax': ['error', ...nextConfigRestrictedSyntaxRules],
     },
   },
+  {
+    files: ['miniprogram/**/*.js'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

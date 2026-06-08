@@ -1,261 +1,337 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { FioriBadge, FioriFab } from '@/components/fiori';
-import { SAP_DEFAULTS } from '@/lib/sap-service';
-import { Search, RotateCcw, Filter, Inbox, LayoutList, Table2 } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PRODUCTION_ORDER_STATUS_MAP, SAP_DEFAULTS } from '@/lib/sap-service';
+import { fetchSapEntity, logQueryAudit, parseSapDate } from '@/lib/sap-api-client';
+import { SAP_NO_PERMISSION_MESSAGE } from '@/lib/sap-errors';
+import { buildProductionOrderListFilter } from '@/lib/sap-production-order-filters';
+import {
+  filterByBusinessStatus,
+  mapProductionOrderListRow,
+  PRODUCTION_ORDER_STATUS_FILTER_OPTIONS,
+  PRODUCTION_ORDER_SUMMARY_SELECT,
+  type ProductionOrderListRow,
+  type ProductionOrderV4Row,
+} from '@/lib/sap-production-order';
+import { OrderDetailPanel } from '@/app/production-orders/order-detail-panel';
+import { Factory, Search, RotateCcw, AlertCircle, Inbox } from 'lucide-react';
 
-interface ProductionOrder {
-  ProductionOrder: string;
-  ProductionOrderType?: string;
-  IsMarkedForDeletion?: boolean;
-  IsCompletelyDelivered?: boolean;
-  Product?: string;
-  ProductionPlant?: string;
-  SalesOrder?: string;
-  SalesOrderItem?: string;
-  OrderScheduledStartDate?: string;
-  OrderScheduledEndDate?: string;
-  OrderActualStartDate?: string;
-  OrderActualEndDate?: string;
-  OrderPlannedTotalQty?: string;
-  ActualDeliveredQuantity?: string;
-}
-
-const getStatusInfo = (order: ProductionOrder): { color: 'success' | 'warning' | 'error' | 'info' | 'neutral'; label: string } => {
-  if (order.IsMarkedForDeletion) return { color: 'error', label: '已删除' };
-  if (order.IsCompletelyDelivered) return { color: 'success', label: '已交货' };
-  if (order.OrderActualStartDate && !order.OrderActualEndDate) return { color: 'warning', label: '生产中' };
-  if (order.OrderActualEndDate) return { color: 'info', label: '已完成' };
-  return { color: 'neutral', label: '已创建' };
+const statusBadge = (code: string, label: string) => {
+  const mapped = PRODUCTION_ORDER_STATUS_MAP[code];
+  if (mapped) return <Badge variant={mapped.variant}>{label}</Badge>;
+  return <Badge variant="outline">{label}</Badge>;
 };
 
 export default function ProductionOrdersPage() {
-  const router = useRouter();
-  const [orders, setOrders] = useState<ProductionOrder[]>([]);
+  const [rows, setRows] = useState<ProductionOrderListRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [plant, setPlant] = useState(SAP_DEFAULTS.plant);
   const [totalCount, setTotalCount] = useState(0);
-  const [showFilter, setShowFilter] = useState(false);
-  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [selectedOrderNo, setSelectedOrderNo] = useState<string | null>(null);
+
+  const [productionOrderNo, setProductionOrderNo] = useState('');
+  const [plant, setPlant] = useState(SAP_DEFAULTS.plant);
+  const [material, setMaterial] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [status, setStatus] = useState<string>('all');
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     setError(null);
+
+    const filters = {
+      productionOrderNo,
+      plant,
+      material,
+      dateFrom,
+      dateTo,
+      status,
+    };
+    const auditPayload = {
+      ...filters,
+      defaultPlant: SAP_DEFAULTS.plant,
+    };
+
     try {
       const params = new URLSearchParams();
       params.set('top', '50');
       params.set('count', 'true');
+      params.set('filter', buildProductionOrderListFilter(filters));
+      params.set('orderby', 'CreationDate desc');
+      params.set('select', PRODUCTION_ORDER_SUMMARY_SELECT);
 
-      const filterParts: string[] = [];
-      if (plant && plant !== 'all') filterParts.push(`ProductionPlant eq '${plant}'`);
+      const data = await fetchSapEntity<ProductionOrderV4Row>(
+        'CE_PRODUCTIONORDER_0001',
+        'ProductionOrder',
+        params
+      );
 
-      // 搜索关键词：先在DB中模糊搜索产品名称获取精确编号，再用编号过滤
-      if (searchQuery.trim()) {
-        const keyword = searchQuery.trim();
-        const searchRes = await fetch(`/api/sap/search?type=product&q=${encodeURIComponent(keyword)}`);
-        const searchData = await searchRes.json();
-        if (searchData.success && searchData.products?.length > 0) {
-          const productFilters = searchData.products.map((p: { product: string }) => `Product eq '${p.product}'`);
-          filterParts.push(`(ProductionOrder eq '${keyword}' or ${productFilters.join(' or ')})`);
-        } else {
-          filterParts.push(`(ProductionOrder eq '${keyword}' or Product eq '${keyword}')`);
-        }
+      let mapped = (data.data ?? []).map(mapProductionOrderListRow);
+      if (status && status !== 'all') {
+        mapped = filterByBusinessStatus(
+          mapped,
+          status as Parameters<typeof filterByBusinessStatus>[1]
+        );
       }
 
-      if (filterParts.length > 0) params.set('filter', filterParts.join(' and '));
+      setRows(mapped);
+      setTotalCount(status !== 'all' ? mapped.length : (data.count ?? mapped.length));
 
-      const response = await fetch(`/api/sap/CE_PRODUCTIONORDER_0001/ProductionOrder?${params.toString()}`);
-      const data = await response.json();
-      if (!data.success) throw new Error(data.error || 'Failed to fetch');
-      setOrders(data.data || []);
-      setTotalCount(data.totalCount || data.count || 0);
+      await logQueryAudit({
+        module: 'production-orders',
+        action: 'list',
+        conditions: auditPayload,
+        resultCount: mapped.length,
+        success: true,
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(message);
+      setRows([]);
+      setTotalCount(0);
+      await logQueryAudit({
+        module: 'production-orders',
+        action: 'list',
+        conditions: auditPayload,
+        success: false,
+        error: message,
+      });
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, plant]);
-
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  }, [productionOrderNo, plant, material, dateFrom, dateTo, status]);
 
   const handleClear = () => {
-    setSearchQuery('');
+    setProductionOrderNo('');
     setPlant(SAP_DEFAULTS.plant);
+    setMaterial('');
+    setDateFrom('');
+    setDateTo('');
+    setStatus('all');
+    setSelectedOrderNo(null);
+    setRows([]);
+    setTotalCount(0);
+    setError(null);
   };
 
+  const isPermissionError = error === SAP_NO_PERMISSION_MESSAGE;
+
   return (
-    <div className="space-y-4">
-      {/* Page Title - mobile */}
-      <div className="lg:hidden">
-        <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>生产订单</h1>
-      </div>
-
-      {/* Filter Bar */}
-      <div className="fiori-filterbar">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--muted-foreground)' }} />
-            <input
-              type="text"
-              placeholder="订单号/物料名..."
-              className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none"
-              style={{ background: 'var(--background)', borderColor: 'var(--border)' }}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && fetchOrders()}
-            />
-          </div>
-          <button
-            className="h-8 px-3 text-sm rounded border flex items-center gap-1.5"
-            style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
-            onClick={() => setShowFilter(!showFilter)}
-          >
-            <Filter className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">筛选</span>
-          </button>
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+          <Factory className="w-5 h-5 text-emerald-600" />
         </div>
-
-        {/* View Toggle - PC only */}
-        <div className="hidden lg:flex items-center border rounded overflow-hidden" style={{ borderColor: 'var(--border)' }}>
-          <button
-            className={`h-8 w-8 flex items-center justify-center ${viewMode === 'card' ? 'text-white' : ''}`}
-            style={viewMode === 'card' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }}
-            onClick={() => setViewMode('card')}
-          >
-            <LayoutList className="w-4 h-4" />
-          </button>
-          <button
-            className={`h-8 w-8 flex items-center justify-center ${viewMode === 'table' ? 'text-white' : ''}`}
-            style={viewMode === 'table' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }}
-            onClick={() => setViewMode('table')}
-          >
-            <Table2 className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={fetchOrders} disabled={loading}>
-            <Search className="w-3.5 h-3.5 inline mr-1" /> 查询
-          </button>
-          <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={handleClear}>
-            <RotateCcw className="w-3.5 h-3.5 inline mr-1" /> 清除
-          </button>
+        <div>
+          <h1 className="text-lg md:text-xl font-bold text-slate-800">生产订单</h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            默认工厂 {SAP_DEFAULTS.plant} · 状态由 V4 字段服务端派生
+          </p>
         </div>
       </div>
 
-      {/* Expandable Filter */}
-      {showFilter && (
-        <div className="p-3 rounded-lg border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="fiori-filterbar-field">
-              <label>工厂</label>
-              <select className="h-8 px-2 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={plant} onChange={(e) => setPlant(e.target.value)}>
-                <option value="all">全部</option>
-                <option value="1010">1010</option>
-                <option value="1020">1020</option>
-              </select>
+      <Card className="border-slate-200">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-wrap gap-3 items-end">
+            <div className="w-full md:w-[160px]">
+              <label className="text-xs font-medium text-slate-500 mb-1.5 block">生产订单号</label>
+              <Input
+                placeholder="订单号"
+                value={productionOrderNo}
+                onChange={(e) => setProductionOrderNo(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && fetchOrders()}
+              />
             </div>
+            <div className="w-full md:w-[140px]">
+              <label className="text-xs font-medium text-slate-500 mb-1.5 block">物料</label>
+              <Input
+                placeholder="成品物料编码"
+                value={material}
+                onChange={(e) => setMaterial(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && fetchOrders()}
+              />
+            </div>
+            <div className="w-[120px]">
+              <label className="text-xs font-medium text-slate-500 mb-1.5 block">工厂</label>
+              <Select value={plant} onValueChange={setPlant}>
+                <SelectTrigger>
+                  <SelectValue placeholder="工厂" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={SAP_DEFAULTS.plant}>{SAP_DEFAULTS.plant} - 主工厂</SelectItem>
+                  <SelectItem value="1020">1020</SelectItem>
+                  <SelectItem value="all">全部工厂</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-[140px]">
+              <label className="text-xs font-medium text-slate-500 mb-1.5 block">创建日期起</label>
+              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+            </div>
+            <div className="w-[140px]">
+              <label className="text-xs font-medium text-slate-500 mb-1.5 block">创建日期止</label>
+              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            </div>
+            <div className="w-[130px]">
+              <label className="text-xs font-medium text-slate-500 mb-1.5 block">业务状态</label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRODUCTION_ORDER_STATUS_FILTER_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button size="sm" onClick={fetchOrders} disabled={loading}>
+              <Search className="w-3.5 h-3.5 mr-1" />
+              查询
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleClear}>
+              <RotateCcw className="w-3.5 h-3.5 mr-1" />
+              清除
+            </Button>
           </div>
-        </div>
-      )}
+        </CardContent>
+      </Card>
 
-      {/* Result Count */}
-      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>共 {totalCount} 条记录</div>
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+        <Card className="border-slate-200 xl:col-span-3">
+          <CardContent className="p-0">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+              <span className="text-sm font-medium text-slate-700">查询结果</span>
+              {!loading && !error && (
+                <Badge variant="secondary" className="font-mono text-xs">
+                  {totalCount} 条
+                </Badge>
+              )}
+            </div>
 
-      {/* Loading */}
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
-        </div>
-      )}
+            {loading ? (
+              <div className="p-4 space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-4 w-full" />
+                ))}
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+                <AlertCircle
+                  className={`w-10 h-10 mb-3 ${isPermissionError ? 'text-amber-500' : 'text-red-400'}`}
+                />
+                <p
+                  className={`text-sm font-medium ${isPermissionError ? 'text-amber-800' : 'text-red-600'}`}
+                >
+                  {isPermissionError ? SAP_NO_PERMISSION_MESSAGE : '查询失败'}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">{error}</p>
+                <Button variant="outline" size="sm" className="mt-4" onClick={fetchOrders}>
+                  重试
+                </Button>
+              </div>
+            ) : rows.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Inbox className="w-10 h-10 text-slate-300 mb-3" />
+                <p className="text-sm text-slate-500">暂无数据</p>
+                <p className="text-xs text-slate-400 mt-1">设置条件后点击查询</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
+                      <TableHead className="font-medium text-slate-600">订单号</TableHead>
+                      <TableHead className="font-medium text-slate-600">类型</TableHead>
+                      <TableHead className="font-medium text-slate-600">工厂</TableHead>
+                      <TableHead className="font-medium text-slate-600">成品物料</TableHead>
+                      <TableHead className="font-medium text-slate-600 text-right">计划数量</TableHead>
+                      <TableHead className="font-medium text-slate-600 text-right">确认/收货</TableHead>
+                      <TableHead className="font-medium text-slate-600">单位</TableHead>
+                      <TableHead className="font-medium text-slate-600">计划开始</TableHead>
+                      <TableHead className="font-medium text-slate-600">计划结束</TableHead>
+                      <TableHead className="font-medium text-slate-600">实际开始</TableHead>
+                      <TableHead className="font-medium text-slate-600">实际结束</TableHead>
+                      <TableHead className="font-medium text-slate-600">系统状态</TableHead>
+                      <TableHead className="font-medium text-slate-600">业务状态</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row) => {
+                      const selected = selectedOrderNo === row.productionOrder;
+                      return (
+                        <TableRow
+                          key={row.productionOrder}
+                          className={`cursor-pointer transition-colors ${
+                            selected ? 'bg-emerald-50/60' : 'hover:bg-slate-50'
+                          }`}
+                          onClick={() => setSelectedOrderNo(row.productionOrder)}
+                        >
+                          <TableCell className="font-mono text-sm text-blue-600 font-medium">
+                            {row.productionOrder}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="font-mono text-xs">
+                              {row.orderType}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm">{row.plant}</TableCell>
+                          <TableCell className="text-sm">
+                            <div className="font-mono text-xs text-slate-500">{row.product}</div>
+                            <div className="text-slate-700 truncate max-w-[140px]" title={row.materialName}>
+                              {row.materialName}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm text-right font-mono tabular-nums">
+                            {row.plannedQty || '-'}
+                          </TableCell>
+                          <TableCell className="text-sm text-right font-mono tabular-nums">
+                            {row.confirmedQty}/{row.completedQty}
+                          </TableCell>
+                          <TableCell className="text-sm font-mono">{row.unit}</TableCell>
+                          <TableCell className="text-sm text-slate-500">
+                            {parseSapDate(row.plannedStartDate)}
+                          </TableCell>
+                          <TableCell className="text-sm text-slate-500">
+                            {parseSapDate(row.plannedEndDate)}
+                          </TableCell>
+                          <TableCell className="text-sm text-slate-500">
+                            {parseSapDate(row.actualStartDate)}
+                          </TableCell>
+                          <TableCell className="text-sm text-slate-500">
+                            {parseSapDate(row.actualEndDate)}
+                          </TableCell>
+                          <TableCell>{statusBadge(row.systemStatus, row.systemStatus)}</TableCell>
+                          <TableCell>
+                            {statusBadge(row.businessStatusCode, row.businessStatus)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Error */}
-      {error && !loading && (
-        <div className="text-center py-12" style={{ color: 'var(--color-fiori-error)' }}>
-          <p className="text-sm">{error}</p>
-          <button className="mt-2 text-sm underline" onClick={fetchOrders}>重试</button>
-        </div>
-      )}
-
-      {/* Empty */}
-      {!loading && !error && orders.length === 0 && (
-        <div className="text-center py-12" style={{ color: 'var(--muted-foreground)' }}>
-          <Inbox className="w-10 h-10 mx-auto mb-2" style={{ color: 'var(--muted-foreground)' }} />
-          <p className="text-sm">暂无数据</p>
-        </div>
-      )}
-
-      {/* ===== Card View (Mobile: always, PC: when selected) ===== */}
-      {!loading && !error && orders.length > 0 && (
-        <div className={`space-y-2 ${viewMode === 'table' ? 'lg:hidden' : ''}`}>
-          {orders.map((order) => {
-            const statusInfo = getStatusInfo(order);
-            return (
-              <Link key={order.ProductionOrder} href={`/production-orders/${order.ProductionOrder}`} className="fiori-oli" style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className={`fiori-oli-bar fiori-oli-bar--${statusInfo.color}`} />
-                <div className="fiori-oli-content">
-                  <div className="fiori-oli-title">
-                    {order.ProductionOrder}
-                    <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
-                    {order.Product || '-'}
-                  </div>
-                  <div className="fiori-oli-subtitle">
-                    工厂: {order.ProductionPlant || '-'}
-                    <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
-                    计划: {order.OrderPlannedTotalQty || '0'}
-                    <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
-                    交货: {order.ActualDeliveredQuantity || '0'}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-
-      {!loading && !error && orders.length > 0 && viewMode === 'table' && (
-        <div className="hidden lg:block rounded-lg border overflow-hidden" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ background: 'var(--muted)' }}>
-                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>订单号</th>
-                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>物料</th>
-                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>工厂</th>
-                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>计划数量</th>
-                <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>交货数量</th>
-                <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>状态</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((order) => {
-                const statusInfo = getStatusInfo(order);
-                return (
-                  <tr key={order.ProductionOrder} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/production-orders/${order.ProductionOrder}`)}>
-                    <td className="px-4 py-3 font-medium text-primary underline">{order.ProductionOrder}</td>
-                    <td className="px-4 py-3">{order.Product || '-'}</td>
-                    <td className="px-4 py-3">{order.ProductionPlant || '-'}</td>
-                    <td className="px-4 py-3 tabular-nums">{order.OrderPlannedTotalQty || '0'}</td>
-                    <td className="px-4 py-3 tabular-nums">{order.ActualDeliveredQuantity || '0'}</td>
-                    <td className="px-4 py-3 text-center">
-                      <FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <FioriFab icon={<Search className="w-5 h-5" />} onClick={fetchOrders} ariaLabel="刷新查询" />
+        <Card className="border-slate-200 xl:col-span-2">
+          <CardContent className="p-4">
+            <h2 className="text-sm font-semibold text-slate-700 mb-3">订单详情与穿透</h2>
+            <OrderDetailPanel productionOrderNo={selectedOrderNo} />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
