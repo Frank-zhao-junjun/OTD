@@ -221,7 +221,6 @@ export async function GET(
   queryParams.push(`sap-client=${SAP_CLIENT}`);
 
 
-
   if (odataVersion === 'v2') {
 
     queryParams.push(`$format=json`);
