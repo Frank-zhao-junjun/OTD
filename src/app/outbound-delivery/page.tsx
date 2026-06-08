@@ -57,8 +57,8 @@ export default function OutboundDeliveryPage() {
         // 先在DB中模糊搜索客户名称获取精确编号
         const searchRes = await fetch(`/api/sap/search?type=customer&q=${encodeURIComponent(keyword)}`);
         const searchData = await searchRes.json();
-        if (searchData.success && searchData.data?.length > 0) {
-          const customerFilters = searchData.data.map((c: { customer: string }) => `SoldToParty eq '${c.customer}'`);
+        if (searchData.success && searchData.customers?.length > 0) {
+          const customerFilters = searchData.customers.map((c: { customer: string }) => `SoldToParty eq '${c.customer}'`);
           const filterStr = `(DeliveryDocument eq '${keyword}' or ${customerFilters.join(' or ')})`;
           params.set('filter', filterStr);
         } else {

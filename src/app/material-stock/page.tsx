@@ -44,7 +44,7 @@ export default function MaterialStockPage() {
       if (searchQuery) {
         const searchRes = await fetch(`/api/sap/search?type=product&q=${encodeURIComponent(searchQuery)}`);
         const searchData = await searchRes.json();
-        const productCodes = (searchData.data || []).map((p: { product: string }) => p.product);
+        const productCodes = (searchData.products || []).map((p: { product: string }) => p.product);
         if (productCodes.length > 0) {
           params.set('filter', productCodes.map((m: string) => `Material eq '${m}'`).join(' or '));
         } else {
