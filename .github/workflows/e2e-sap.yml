@@ -106,6 +106,9 @@ jobs:
             echo '::error::Missing SAP credentials. Set SAP_SECRET (multiline) or SAP_USERNAME + SAP_PASSWORD secrets.'
             exit 1
           fi
+          grep -q '^E2E_PHONE=' .env.e2e.local || echo 'E2E_PHONE=13800000002' >> .env.e2e.local
+          grep -q '^E2E_PASSWORD=' .env.e2e.local || echo 'E2E_PASSWORD=demo123' >> .env.e2e.local
+          grep -q '^E2E_SALES_ORDER=' .env.e2e.local || echo 'E2E_SALES_ORDER=1' >> .env.e2e.local
 
       - name: Run E2E (SAP)
         run: pnpm run e2e
