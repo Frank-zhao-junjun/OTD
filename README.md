@@ -87,6 +87,31 @@ pnpm start
 └── assets/                   # 项目资源与接口文档
 ```
 
+## SAP S/4HANA Public Cloud API 参考项目（联网精选 10 个）
+
+> 侧重：OData、Communication Scenario/Arrangement、SAP Cloud SDK、CAP、Business Partner/Product/Sales API 集成
+
+1. [SAP-samples/btp-extension-s4-material-availability](https://github.com/SAP-samples/btp-extension-s4-material-availability)  
+   CAP 集成 SAP S/4HANA 服务，包含 `API_SALES_ORDER_SRV`、`API_PRODUCT_SRV`、OData 查询与 mashup 示例。
+2. [SAP-samples/btp-s4hana-nocode-extension](https://github.com/SAP-samples/btp-s4hana-nocode-extension)  
+   明确演示 S/4HANA Cloud 通信配置（Communication Management），含 `SAP_COM_0008` 与 Business Partner API 暴露步骤。
+3. [SAP-samples/btp-end-to-end-scenario-use-cases](https://github.com/SAP-samples/btp-end-to-end-scenario-use-cases)  
+   覆盖 Clean Core 扩展场景，提供 Communication System/Arrangement 配置教程。
+4. [SAP-samples/partner-reference-application](https://github.com/SAP-samples/partner-reference-application)  
+   多租户 CAP 参考应用，包含 S/4HANA Cloud Public Edition 集成教程（Sales Order OData v4 + Business Partner OData v2）。
+5. [SAP-samples/cloud-cap-samples-java](https://github.com/SAP-samples/cloud-cap-samples-java)  
+   CAP Java 官方样例，含 `API_BUSINESS_PARTNER` remote service、sandbox/destination/S4 实际系统接入配置。
+6. [SAP-samples/cap-service-integration-codejam](https://github.com/SAP-samples/cap-service-integration-codejam)  
+   CAP 服务消费实战，覆盖 OData 外部服务导入、mock、远端系统委托调用与 SAP Cloud SDK 连接能力。
+7. [SAP-samples/cloud-sdk-js](https://github.com/SAP-samples/cloud-sdk-js)  
+   SAP Cloud SDK JS/TS 样例集合，适合学习 S/4 API 客户端生成、目的地连接与 OData 调用模式。
+8. [SAP-samples/cloud-sdk-team-calendar](https://github.com/SAP-samples/cloud-sdk-team-calendar)  
+   端到端 Cloud SDK 教程，包含 S/4HANA 读写请求与 OData client 生成实践。
+9. [SAP-samples/s4hana-cloud-extension-process-automation](https://github.com/SAP-samples/s4hana-cloud-extension-process-automation)  
+   SAP BTP + CAP + 流程自动化扩展示例，含 Business Partner 集成与端到端扩展架构实践。
+10. [SAP-samples/btp-side-by-side-extension-learning-journey](https://github.com/SAP-samples/btp-side-by-side-extension-learning-journey)  
+    Side-by-side 扩展学习项目，包含 `API_BUSINESS_PARTNER` OData V2 接入与目的地配置练习。
+
 ## License
 
 Private - Internal Use Only
