@@ -18,14 +18,12 @@ describeSapSandbox('UAT-SO-007 risk and sort', () => {
   // Plan A: when results are present and risk sort is active, the page-level note must be visible.
   test('shows page-level sort note when risk sort is active', async ({ page }) => {
     await searchSalesOrderByNo(page, '1');
-    const row = page.locator('table tbody tr').first();
-    const empty = page.getByText('暂无数据');
-    const hasResults = await row.isVisible().catch(() => false);
-    if (!hasResults) {
-      const isEmpty = await empty.isVisible().catch(() => false);
-      test.skip(isEmpty, 'No sandbox data available for this order prefix — skip page-level note assertion');
+    const isEmpty = await page.getByText('暂无数据').isVisible().catch(() => false);
+    if (isEmpty) {
+      test.skip(true, 'No sandbox data available for this order prefix — skip page-level note assertion');
       return;
     }
+    await expect(page.locator('table tbody tr').first()).toBeVisible();
     await expect(page.getByText(/风险排序仅在当前页内生效/)).toBeVisible();
   });
 
@@ -46,6 +44,12 @@ describeSapSandbox('UAT-SO-007 risk and sort', () => {
   // Plan A: after switching to a non-risk sort, the page-level note must disappear.
   test('page-level note disappears after switching to non-risk sort', async ({ page }) => {
     await searchSalesOrderByNo(page, '1');
+    const isEmpty = await page.getByText('暂无数据').isVisible().catch(() => false);
+    if (isEmpty) {
+      test.skip(true, 'No sandbox data available — skip note-disappearance assertion');
+      return;
+    }
+    await expect(page.getByText(/风险排序仅在当前页内生效/)).toBeVisible();
     await page.getByRole('combobox').filter({ hasText: /风险优先级/ }).click();
     await page.getByRole('option', { name: '订单日期' }).click();
     await expect(page.getByText(/风险排序仅在当前页内生效/)).toHaveCount(0);
