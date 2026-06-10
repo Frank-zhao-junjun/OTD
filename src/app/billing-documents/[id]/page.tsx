@@ -8,6 +8,19 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { FioriBadge, FioriErrorState } from '@/components/fiori';
 import { formatSapDate } from '@/lib/utils';
 
+/** Format SAP Edm.Time format (PT14H30M0S) to HH:mm:ss */
+function formatSapTime(timeStr: string | undefined): string {
+  if (!timeStr) return '-';
+  const match = timeStr.match(/PT(\d+)H(\d+)M(\d+)S/);
+  if (match) {
+    const hours = match[1].padStart(2, '0');
+    const minutes = match[2].padStart(2, '0');
+    const seconds = match[3].padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+  }
+  return timeStr;
+}
+
 const BILLING_STATUS_MAP: Record<string, { label: string; color: 'success' | 'warning' | 'error' | 'info' | 'neutral' }> = {
   A: { label: '未处理', color: 'neutral' },
   B: { label: '部分处理', color: 'warning' },
@@ -110,7 +123,7 @@ export default function BillingDocumentDetailPage() {
     { label: '公司代码', value: doc.CompanyCode || '-' },
     { label: '开票日期', value: formatSapDate(doc.BillingDocumentDate) },
     { label: '净金额', value: doc.TotalNetAmount ? `${doc.TotalNetAmount} ${doc.TransactionCurrency || ''}` : '-' },
-    { label: '创建时间', value: formatSapDate(doc.CreationTime) || '-' },
+    { label: '创建时间', value: formatSapTime(doc.CreationTime) },
     { label: '最后更改日期', value: formatSapDate(doc.LastChangeDate) || '-' },
   ];
 
