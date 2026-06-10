@@ -46,6 +46,7 @@ function formatAmount(amount: string | undefined, currency: string | undefined):
 
 export default function BillingDocumentsPage() {
   const [data, setData] = useState<BillingDocument[]>([]);
+  const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,7 +74,29 @@ export default function BillingDocumentsPage() {
     finally { setLoading(false); }
   }, [searchQuery]);
 
+  const fetchCustomerNames = useCallback(async (soldToCodes: string[]) => {
+    if (soldToCodes.length === 0) return;
+    const names: Record<string, string> = {};
+    try {
+      const res = await fetch('/api/sap/API_BUSINESS_PARTNER/A_Customer?top=200');
+      const json = await res.json();
+      const customers = (json.data || []) as { Customer: string; CustomerName: string }[];
+      for (const code of soldToCodes) {
+        const c = customers.find(x => x.Customer === code);
+        if (c) names[code] = c.CustomerName;
+      }
+      setCustomerNames(names);
+    } catch { /* ignore */ }
+  }, []);
+
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    if (data.length > 0) {
+      const codes = [...new Set(data.map(d => d.SoldToParty).filter(Boolean))];
+      fetchCustomerNames(codes);
+    }
+  }, [data, fetchCustomerNames]);
 
   return (
     <div className="space-y-4">
@@ -109,7 +132,7 @@ export default function BillingDocumentsPage() {
                 <div className={`fiori-oli-bar fiori-oli-bar--${statusInfo.color}`} />
                 <div className="fiori-oli-content">
                   <div className="fiori-oli-title">{item.BillingDocument} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.BillingDocumentType}</div>
-                  <div className="fiori-oli-subtitle">{formatSapDate(item.BillingDocumentDate)} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> 客户: {item.SoldToParty}</div>
+                  <div className="fiori-oli-subtitle">{formatSapDate(item.BillingDocumentDate)} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> 客户: {item.SoldToParty}{customerNames[item.SoldToParty] ? ` (${customerNames[item.SoldToParty]})` : ''}</div>
                   <div className="flex items-center gap-2">
                     <FioriBadge variant={statusInfo.color}>开票{statusInfo.label}</FioriBadge>
                     {item.TotalNetAmount && <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>{formatAmount(item.TotalNetAmount, item.TransactionCurrency)}</span>}
@@ -139,7 +162,7 @@ export default function BillingDocumentsPage() {
               return (<tr key={item.BillingDocument} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/billing-documents/${item.BillingDocument}`)}>
                 <td className="px-4 py-3 font-medium text-[#0070F2]">{item.BillingDocument}</td>
                 <td className="px-4 py-3">{item.BillingDocumentType}</td>
-                <td className="px-4 py-3">{item.SoldToParty}</td>
+                <td className="px-4 py-3">{item.SoldToParty}{customerNames[item.SoldToParty] ? ` (${customerNames[item.SoldToParty]})` : ''}</td>
                 <td className="px-4 py-3 tabular-nums">{formatSapDate(item.BillingDocumentDate)}</td>
                 <td className="px-4 py-3 text-right font-medium tabular-nums">{formatAmount(item.TotalNetAmount, item.TransactionCurrency)}</td>
                 <td className="px-4 py-3 text-center"><FioriBadge variant={billingStatus.color}>{billingStatus.label}</FioriBadge></td>

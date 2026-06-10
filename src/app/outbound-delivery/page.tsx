@@ -21,6 +21,11 @@ interface Delivery {
   IncotermsClassification: string;
 }
 
+interface Customer {
+  Customer: string;
+  CustomerName: string;
+}
+
 const MOVEMENT_STATUS: Record<string, { color: 'success' | 'warning' | 'error' | 'info' | 'neutral'; label: string }> = {
   'A': { color: 'info', label: '未处理' },
   'B': { color: 'warning', label: '处理中' },
@@ -37,12 +42,28 @@ const SD_STATUS: Record<string, { color: 'success' | 'warning' | 'error' | 'info
 
 export default function OutboundDeliveryPage() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalCount, setTotalCount] = useState(0);
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('table');
+
+  const fetchCustomerNames = useCallback(async (soldToCodes: string[]) => {
+    if (soldToCodes.length === 0) return;
+    const names: Record<string, string> = {};
+    try {
+      const res = await fetch('/api/sap/API_BUSINESS_PARTNER/A_Customer?top=200');
+      const json = await res.json();
+      const customers = json.data as Customer[];
+      for (const code of soldToCodes) {
+        const c = customers.find(x => x.Customer === code);
+        if (c) names[code] = c.CustomerName;
+      }
+      setCustomerNames(names);
+    } catch { /* ignore */ }
+  }, []);
 
   const fetchDeliveries = useCallback(async () => {
     setLoading(true);
@@ -54,7 +75,6 @@ export default function OutboundDeliveryPage() {
 
       if (searchQuery.trim()) {
         const keyword = searchQuery.trim();
-        // 先在DB中模糊搜索客户名称获取精确编号
         const searchRes = await fetch(`/api/sap/search?type=customer&q=${encodeURIComponent(keyword)}`);
         const searchData = await searchRes.json();
         if (searchData.success && searchData.data?.length > 0) {
@@ -69,16 +89,22 @@ export default function OutboundDeliveryPage() {
       const response = await fetch(`/api/sap/API_OUTBOUND_DELIVERY_SRV/A_OutbDeliveryHeader?${params.toString()}`);
       const data = await response.json();
       if (!data.success) throw new Error(data.error || 'Failed to fetch');
-      setDeliveries(data.data || []);
+      const deliveries = data.data as Delivery[] || [];
+      setDeliveries(deliveries);
       setTotalCount(data.totalCount || data.count || 0);
+
+      const codes = [...new Set(deliveries.map(d => d.SoldToParty).filter(Boolean))];
+      fetchCustomerNames(codes);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
-  }, [searchQuery]);
+  }, [searchQuery, fetchCustomerNames]);
 
-  useEffect(() => { fetchDeliveries(); }, [fetchDeliveries]);
+  useEffect(() => {
+    fetchDeliveries();
+  }, [fetchDeliveries]);
 
   return (
     <div className="space-y-4">
@@ -125,10 +151,9 @@ export default function OutboundDeliveryPage() {
                 <div className={`fiori-oli-bar fiori-oli-bar--${statusInfo.color}`} />
                 <div className="fiori-oli-content">
                   <div className="fiori-oli-title">{d.DeliveryDocument} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {d.DeliveryDocumentType}</div>
-                  <div className="fiori-oli-subtitle">{formatSapDate(d.DeliveryDate)} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> 客户: {d.SoldToParty}</div>
+                  <div className="fiori-oli-subtitle">{formatSapDate(d.DeliveryDate)} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> 客户: {d.SoldToParty}{customerNames[d.SoldToParty] ? ` (${customerNames[d.SoldToParty]})` : ''}</div>
                   <div className="flex items-center gap-2">
                     <FioriBadge variant={statusInfo.color}>{statusInfo.label}</FioriBadge>
-
                   </div>
                 </div>
               </div>
@@ -159,7 +184,7 @@ export default function OutboundDeliveryPage() {
                   <tr key={d.DeliveryDocument} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/outbound-delivery/${d.DeliveryDocument}`)}>
                     <td className="px-4 py-3 font-medium text-[#0070F2]">{d.DeliveryDocument}</td>
                     <td className="px-4 py-3">{d.DeliveryDocumentType}</td>
-                    <td className="px-4 py-3">{d.SoldToParty}</td>
+                    <td className="px-4 py-3">{d.SoldToParty}{customerNames[d.SoldToParty] ? ` (${customerNames[d.SoldToParty]})` : ''}</td>
                     <td className="px-4 py-3 tabular-nums">{formatSapDate(d.DeliveryDate)}</td>
                     <td className="px-4 py-3 text-center"><FioriBadge variant={movementStatus.color}>{movementStatus.label}</FioriBadge></td>
                     <td className="px-4 py-3 text-center"><FioriBadge variant={sdStatus.color}>{sdStatus.label}</FioriBadge></td>
