@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FioriBadge, FioriErrorState, getSapStatusColor } from '@/components/fiori';
-import { ArrowLeft, FileText, Package, Truck, Receipt, ChevronRight, ExternalLink } from 'lucide-react';
+import { ArrowLeft, FileText, Package, Truck, Receipt, ChevronRight, ExternalLink, Factory } from 'lucide-react';
 import { SALES_ORDER_STATUS_MAP } from '@/lib/sap-service';
 import { formatSapDate } from '@/lib/utils';
 
@@ -42,6 +42,19 @@ interface BillingItem {
   TransactionCurrency: string;
   BillingDocumentDate: string;
   BillingDocumentStatus: string;
+}
+
+interface ProductionOrderItem {
+  ProductionOrder: string;
+  ProductionOrderItem: string;
+  Material?: string;
+  Product?: string;
+  MaterialName?: string;
+  ProductionPlant: string;
+  ProductionOrderType?: string;
+  ProductionOrderStatus?: string;
+  OrderPlannedTotalQty?: string | number;
+  ActualDeliveredQuantity?: string | number;
 }
 
 interface SalesOrder {
@@ -89,6 +102,7 @@ export default function SalesOrderDetailPage() {
   const [materialNames, setMaterialNames] = useState<Record<string, string>>({});
   const [deliveryByItem, setDeliveryByItem] = useState<Record<string, unknown[]>>({});
   const [billingByItem, setBillingByItem] = useState<Record<string, unknown[]>>({});
+  const [productionByItem, setProductionByItem] = useState<Record<string, unknown[]>>({});
   const [selectedItem, setSelectedItem] = useState<SalesOrderItem | null>(null);
 
   useEffect(() => {
@@ -142,6 +156,7 @@ export default function SalesOrderDetailPage() {
           if (relJson.success && relJson.data) {
             setDeliveryByItem(relJson.data.deliveryByItem || {});
             setBillingByItem(relJson.data.billingByItem || {});
+            setProductionByItem(relJson.data.productionByItem || {});
           }
         } catch { /* ignore */ }
       } catch (err) {
@@ -482,6 +497,55 @@ export default function SalesOrderDetailPage() {
                     )}
                   </div>
                 );
+              })()}
+              {/* Production Orders - show only when ItemCategory != 'TAN' */}
+              {(() => {
+                const prods = (productionByItem[selectedItem.SalesOrderItem] || []) as ProductionOrderItem[];
+                if (selectedItem.SalesOrderItemCategory !== 'TAN') {
+                  return (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Factory className="w-4 h-4 text-orange-600" />
+                        <span className="font-medium text-sm">生产订单 ({prods.length})</span>
+                      </div>
+                      {prods.length === 0 ? (
+                        <div className="text-sm text-muted-foreground py-2">暂无生产订单</div>
+                      ) : (
+                        <div className="space-y-2">
+                          {prods.map((p, idx) => (
+                            <div key={idx} className="rounded-lg border p-3" style={{ borderColor: 'var(--border)' }}>
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2">
+                                  <span 
+                                    className="text-sm font-medium cursor-pointer hover:underline" 
+                                    style={{ color: 'var(--primary)' }}
+                                    onClick={() => {
+                                      setSelectedItem(null);
+                                      router.push(`/production-orders/${p.ProductionOrder}`);
+                                    }}
+                                  >
+                                    {p.ProductionOrder} <ExternalLink className="w-3 h-3 inline" />
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">行 {p.ProductionOrderItem}</span>
+                                </div>
+                                <FioriBadge variant={getSapStatusColor(p.ProductionOrderStatus)}>
+                                  {p.ProductionOrderStatus || '-'}
+                                </FioriBadge>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div>物料: <span className="font-medium tabular-nums">{p.Material || p.Product || '-'}</span></div>
+                                <div>工厂: <span className="font-medium tabular-nums">{p.ProductionPlant || '-'}</span></div>
+                                <div>计划数量: <span className="font-medium tabular-nums">{p.OrderPlannedTotalQty || '-'}</span></div>
+                                <div>已交货: <span className="font-medium tabular-nums">{p.ActualDeliveredQuantity || '0'}</span></div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                return null;
               })()}
             </div>
           )}
