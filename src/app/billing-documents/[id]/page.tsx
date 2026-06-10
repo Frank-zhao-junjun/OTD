@@ -44,6 +44,7 @@ export default function BillingDocumentDetailPage() {
   const id = params.id as string;
 
   const [doc, setDoc] = useState<BillingDocument | null>(null);
+  const [customerName, setCustomerName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,6 +55,14 @@ export default function BillingDocumentDetailPage() {
         const data = await res.json();
         if (data.success && data.data && data.data.length > 0) {
           setDoc(data.data[0]);
+          const soldTo = data.data[0].SoldToParty;
+          if (soldTo) {
+            const cRes = await fetch('/api/sap/API_BUSINESS_PARTNER/A_Customer?top=200');
+            const cJson = await cRes.json();
+            const customers = cJson.data as Array<{Customer: string; CustomerName: string}>;
+            const c = customers.find(x => x.Customer === soldTo);
+            if (c) setCustomerName(c.CustomerName);
+          }
         } else {
           setError(data.error || '未找到开票单据');
         }
@@ -94,7 +103,7 @@ export default function BillingDocumentDetailPage() {
 
   const fields = [
     { label: '开票类型', value: doc.BillingDocumentType || '-' },
-    { label: '客户编号', value: doc.SoldToParty || '-' },
+    { label: '客户', value: doc.SoldToParty ? `${doc.SoldToParty} ${customerName ? `(${customerName})` : ''}` : '-' },
     { label: '销售组织', value: doc.SalesOrganization || '-' },
     { label: '分销渠道', value: doc.DistributionChannel || '-' },
     { label: '部门', value: doc.Division || '-' },

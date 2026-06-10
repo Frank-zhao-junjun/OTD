@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -41,6 +41,7 @@ export default function OutboundDeliveryDetailPage() {
   const id = params.id as string;
 
   const [order, setOrder] = useState<OutboundDelivery | null>(null);
+  const [customerName, setCustomerName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,6 +52,15 @@ export default function OutboundDeliveryDetailPage() {
         const data = await res.json();
         if (data.success && data.data && data.data.length > 0) {
           setOrder(data.data[0]);
+          // Fetch customer name
+          const soldTo = data.data[0].SoldToParty;
+          if (soldTo) {
+            const cRes = await fetch('/api/sap/API_BUSINESS_PARTNER/A_Customer?top=200');
+            const cJson = await cRes.json();
+            const customers = cJson.data as Array<{Customer: string; CustomerName: string}>;
+            const c = customers.find(x => x.Customer === soldTo);
+            if (c) setCustomerName(c.CustomerName);
+          }
         } else {
           setError(data.error || '未找到发货单');
         }
@@ -91,7 +101,7 @@ export default function OutboundDeliveryDetailPage() {
 
   const fields = [
     { label: '交货单类型', value: order.DeliveryDocumentType || '-' },
-    { label: '客户编号', value: order.SoldToParty || '-' },
+    { label: '客户', value: order.SoldToParty ? `${order.SoldToParty} ${customerName ? `(${customerName})` : ''}` : '-' },
     { label: '收货方', value: order.ShipToParty || '-' },
     { label: '销售组织', value: order.SalesOrganization || '-' },
     { label: '交货日期', value: formatSapDate(order.DeliveryDate) },
@@ -114,7 +124,7 @@ export default function OutboundDeliveryDetailPage() {
           <div>
             <div className="fiori-objheader-title">{order.DeliveryDocument}</div>
             <div className="fiori-objheader-subtitle">
-              {order.SoldToParty || '-'} · {formatSapDate(order.DeliveryDate)}
+              {order.SoldToParty || '-'} {customerName ? `(${customerName})` : ''} · {formatSapDate(order.DeliveryDate)}
             </div>
           </div>
         </div>

@@ -41,7 +41,26 @@ export default function ProductionOrdersPage() {
   const [plant, setPlant] = useState(SAP_DEFAULTS.plant);
   const [totalCount, setTotalCount] = useState(0);
   const [showFilter, setShowFilter] = useState(false);
-  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('table');
+  const [productNames, setProductNames] = useState<Record<string, string>>({});
+
+  // 获取产品名称映射
+  useEffect(() => {
+    const fetchProductNames = async () => {
+      try {
+        const res = await fetch('/api/sap/search?type=product&q=');
+        const data = await res.json();
+        if (data.success && data.data) {
+          const map: Record<string, string> = {};
+          for (const p of data.data) {
+            map[p.product] = p.description || p.description_zh || p.description_en || p.product;
+          }
+          setProductNames(map);
+        }
+      } catch { /* ignore */ }
+    };
+    fetchProductNames();
+  }, []);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -203,6 +222,11 @@ export default function ProductionOrdersPage() {
                     {order.ProductionOrder}
                     <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
                     {order.Product || '-'}
+                    {order.Product && productNames[order.Product] && (
+                      <span className="ml-1 text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                        ({productNames[order.Product]})
+                      </span>
+                    )}
                   </div>
                   <div className="fiori-oli-subtitle">
                     工厂: {order.ProductionPlant || '-'}
@@ -240,7 +264,14 @@ export default function ProductionOrdersPage() {
                 return (
                   <tr key={order.ProductionOrder} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/production-orders/${order.ProductionOrder}`)}>
                     <td className="px-4 py-3 font-medium text-primary underline">{order.ProductionOrder}</td>
-                    <td className="px-4 py-3">{order.Product || '-'}</td>
+                    <td className="px-4 py-3">
+                      <span className="font-medium">{order.Product || '-'}</span>
+                      {order.Product && productNames[order.Product] && (
+                        <span className="ml-1" style={{ color: 'var(--muted-foreground)' }}>
+                          {productNames[order.Product]}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">{order.ProductionPlant || '-'}</td>
                     <td className="px-4 py-3 tabular-nums">{order.OrderPlannedTotalQty || '0'}</td>
                     <td className="px-4 py-3 tabular-nums">{order.ActualDeliveredQuantity || '0'}</td>
