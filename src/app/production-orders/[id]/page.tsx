@@ -33,6 +33,7 @@ export default function ProductionOrderDetailPage() {
   const id = params.id as string;
 
   const [order, setOrder] = useState<ProductionOrder | null>(null);
+  const [productName, setProductName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +43,19 @@ export default function ProductionOrderDetailPage() {
         const res = await fetch(`/api/sap/CE_PRODUCTIONORDER_0001/ProductionOrder?id=${encodeURIComponent(id)}`);
         const data = await res.json();
         if (data.success && data.data && data.data.length > 0) {
-          setOrder(data.data[0]);
+          const orderData = data.data[0];
+          setOrder(orderData);
+          // Fetch product name
+          const product = orderData.Product;
+          if (product) {
+            try {
+              const pRes = await fetch('/api/sap/API_PRODUCT_SRV/A_Product?top=200');
+              const pJson = await pRes.json();
+              const products = (pJson.data || []) as { Product: string; ProductDescription: string }[];
+              const p = products.find(x => x.Product === product);
+              if (p) setProductName(p.ProductDescription);
+            } catch { /* ignore */ }
+          }
         } else {
           setError(data.error || '未找到生产订单');
         }
@@ -80,7 +93,7 @@ export default function ProductionOrderDetailPage() {
 
   const fields = [
     { label: '订单类型', value: order.ProductionOrderType || '-' },
-    { label: '产品', value: order.Product || '-' },
+    { label: '产品', value: order.Product ? `${order.Product} ${productName ? `(${productName})` : ''}` : '-' },
     { label: '生产工厂', value: order.ProductionPlant || '-' },
     { label: '计划数量', value: order.OrderPlannedTotalQty ? String(order.OrderPlannedTotalQty) : '-' },
     { label: '实际交付数量', value: order.ActualDeliveredQuantity ? String(order.ActualDeliveredQuantity) : '-' },
@@ -108,7 +121,7 @@ export default function ProductionOrderDetailPage() {
           <div>
             <div className="fiori-objheader-title">{order.ProductionOrder}</div>
             <div className="fiori-objheader-subtitle">
-              {order.Product || '-'} · {order.ProductionPlant || '-'}
+              {order.Product || '-'}{productName ? ` (${productName})` : ''} · {order.ProductionPlant || '-'}
             </div>
           </div>
         </div>

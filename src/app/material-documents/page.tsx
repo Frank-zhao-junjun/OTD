@@ -47,6 +47,7 @@ function getMovementLabel(type: string): string {
 
 export default function MaterialDocumentsPage() {
   const [data, setData] = useState<MaterialDocument[]>([]);
+  const [materialNames, setMaterialNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,6 +57,21 @@ export default function MaterialDocumentsPage() {
 
   // 默认过滤：凭证号5开头 + 移动类型101 + 生产订单号不为空
   const DEFAULT_FILTER = "startswith(MaterialDocument,'5') eq true and GoodsMovementType eq '101' and ManufacturingOrder ne ''";
+
+  const fetchMaterialNames = useCallback(async (materialCodes: string[]) => {
+    if (materialCodes.length === 0) return;
+    const names: Record<string, string> = {};
+    try {
+      const res = await fetch('/api/sap/API_PRODUCT_SRV/A_Product?top=200');
+      const json = await res.json();
+      const products = (json.data || []) as { Product: string; ProductDescription: string }[];
+      for (const code of materialCodes) {
+        const p = products.find(x => x.Product === code);
+        if (p) names[code] = p.ProductDescription;
+      }
+      setMaterialNames(names);
+    } catch { /* ignore */ }
+  }, []);
 
   const fetchData = useCallback(async () => {
     setLoading(true); setError(null);
@@ -75,10 +91,13 @@ export default function MaterialDocumentsPage() {
       const res = await fetch(`/api/sap/API_MATERIAL_DOCUMENT_SRV/A_MaterialDocumentItem?${params}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Failed');
-      setData(json.data || []); setTotalCount(json.totalCount || json.count || 0);
+      const docData = json.data as MaterialDocument[] || [];
+      setData(docData); setTotalCount(json.totalCount || json.count || 0);
+      const codes = [...new Set(docData.map(d => d.Material).filter(Boolean))];
+      fetchMaterialNames(codes);
     } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
     finally { setLoading(false); }
-  }, [searchQuery]);
+  }, [searchQuery, fetchMaterialNames]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -117,7 +136,7 @@ export default function MaterialDocumentsPage() {
               <div key={`${item.MaterialDocument}-${item.MaterialDocumentItem}-${idx}`} className="fiori-oli cursor-pointer" onClick={() => router.push(`/material-documents/${item.MaterialDocument}`)}>
                 <div className={`fiori-oli-bar fiori-oli-bar--${barColor}`} />
                 <div className="fiori-oli-content">
-                  <div className="fiori-oli-title">{item.MaterialDocument} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.Material}</div>
+                  <div className="fiori-oli-title">{item.MaterialDocument} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.Material}{materialNames[item.Material] ? ` (${materialNames[item.Material]})` : ''}</div>
                   <div className="fiori-oli-subtitle">生产订单: {item.ManufacturingOrder} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.Plant} / {item.StorageLocation}</div>
                   <div className="flex items-center gap-2">
                     <FioriBadge variant={barColor}>{movementLabel}</FioriBadge>
@@ -143,7 +162,7 @@ export default function MaterialDocumentsPage() {
             <tbody>{data.map((item, idx) => {
               return (<tr key={`${item.MaterialDocument}-${item.MaterialDocumentItem}-${idx}`} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/material-documents/${item.MaterialDocument}`)}>
                 <td className="px-4 py-3 font-medium text-[#0070F2]">{item.MaterialDocument}</td>
-                <td className="px-4 py-3">{item.Material}</td>
+                <td className="px-4 py-3">{item.Material}{materialNames[item.Material] ? ` (${materialNames[item.Material]})` : ''}</td>
                 <td className="px-4 py-3">{item.ManufacturingOrder}</td>
                 <td className="px-4 py-3 tabular-nums">{item.Plant} / {item.StorageLocation}</td>
                 <td className="px-4 py-3 text-right font-medium tabular-nums">{parseFloat(item.QuantityInBaseUnit || '0').toLocaleString()} {item.MaterialBaseUnit}</td>
