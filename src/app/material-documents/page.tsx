@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 
 import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab } from '@/components/fiori';
-import { FileSpreadsheet, Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
+import { Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
 
 interface MaterialDocument {
   MaterialDocument: string;
@@ -141,7 +141,6 @@ export default function MaterialDocumentsPage() {
               <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>数量</th>
             </tr></thead>
             <tbody>{data.map((item, idx) => {
-              const barColor = MOVEMENT_COLORS[item.GoodsMovementType] || 'neutral';
               return (<tr key={`${item.MaterialDocument}-${item.MaterialDocumentItem}-${idx}`} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/material-documents/${item.MaterialDocument}`)}>
                 <td className="px-4 py-3 font-medium text-[#0070F2]">{item.MaterialDocument}</td>
                 <td className="px-4 py-3">{item.Material}</td>

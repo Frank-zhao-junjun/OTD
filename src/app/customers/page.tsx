@@ -3,8 +3,7 @@ import { useRouter } from 'next/navigation';
 
 import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab } from '@/components/fiori';
-import { Users, Search, RotateCcw, Inbox, LayoutList, Table2, CloudDownload } from 'lucide-react';
-import { formatSapDate } from '@/lib/utils';
+import { Search, RotateCcw, Inbox, LayoutList, Table2, CloudDownload } from 'lucide-react';
 
 interface Customer {
   Customer: string;

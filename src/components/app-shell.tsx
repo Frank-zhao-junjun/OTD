@@ -65,7 +65,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -74,7 +73,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Close sidebar on route change
   useEffect(() => {
     setSidebarOpen(false);
-    setMobileMoreOpen(false);
   }, [pathname]);
 
   if (!mounted) {
