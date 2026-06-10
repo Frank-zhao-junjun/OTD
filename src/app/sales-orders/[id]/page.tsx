@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FioriBadge, FioriErrorState, getSapStatusColor } from '@/components/fiori';
-import { ArrowLeft, FileText, Package } from 'lucide-react';
+import { ArrowLeft, FileText, Package, Truck, Receipt } from 'lucide-react';
 import { SALES_ORDER_STATUS_MAP } from '@/lib/sap-service';
 import { formatSapDate } from '@/lib/utils';
 
@@ -69,6 +69,8 @@ export default function SalesOrderDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState('');
   const [materialNames, setMaterialNames] = useState<Record<string, string>>({});
+  const [deliveryByItem, setDeliveryByItem] = useState<Record<string, unknown[]>>({});
+  const [billingByItem, setBillingByItem] = useState<Record<string, unknown[]>>({});
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -114,6 +116,15 @@ export default function SalesOrderDetailPage() {
             setMaterialNames(nameMap);
           } catch { /* ignore */ }
         }
+        // Fetch delivery and billing items for this sales order
+        try {
+          const relRes = await fetch(`/api/sap/sales-order/${id}/related`);
+          const relJson = await relRes.json();
+          if (relJson.success && relJson.data) {
+            setDeliveryByItem(relJson.data.deliveryByItem || {});
+            setBillingByItem(relJson.data.billingByItem || {});
+          }
+        } catch { /* ignore */ }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
@@ -237,29 +248,50 @@ export default function SalesOrderDetailPage() {
                     <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>行号</th>
                     <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>产品</th>
                     <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>描述</th>
-                    <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>数量</th>
-                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>单位</th>
+                    <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>订单数量</th>
+                    <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>已交货</th>
+                    <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>已开票金额</th>
                     <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>净额</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((item) => (
+                  {items.map((item) => {
+                    const deliveries = (deliveryByItem[item.SalesOrderItem] || []) as Array<Record<string, unknown>>;
+                    const billings = (billingByItem[item.SalesOrderItem] || []) as Array<Record<string, unknown>>;
+                    const deliveredQty = deliveries.reduce((sum, d) => sum + (parseFloat(String(d.ActualDeliveryQuantity || '0')) || 0), 0);
+                    const billedAmt = billings.reduce((sum, b) => sum + (parseFloat(String(b.NetAmount || '0')) || 0), 0);
+                    return (
                     <tr key={item.SalesOrderItem} className="border-t" style={{ borderColor: 'var(--border)' }}>
                       <td className="px-4 py-3 tabular-nums">{item.SalesOrderItem}</td>
                       <td className="px-4 py-3 font-medium" style={{ color: 'var(--primary)' }}>{item.Material}{materialNames[item.Material] ? ` (${materialNames[item.Material]})` : ''}</td>
                       <td className="px-4 py-3">{item.SalesOrderItemText || '-'}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{item.RequestedQuantity ?? '-'}</td>
-                      <td className="px-4 py-3">{item.RequestedQuantityUnit || '-'}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">
+                        {deliveredQty > 0 ? (
+                          <span className="text-green-600 font-medium">{deliveredQty} {item.RequestedQuantityUnit}</span>
+                        ) : <span className="text-muted-foreground">-</span>}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums">
+                        {billedAmt > 0 ? (
+                          <span className="text-blue-600 font-medium">{formatAmount(billedAmt, item.TransactionCurrency)}</span>
+                        ) : <span className="text-muted-foreground">-</span>}
+                      </td>
                       <td className="px-4 py-3 text-right tabular-nums">{formatAmount(item.NetAmount, item.TransactionCurrency)}</td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
             {/* Mobile card view */}
             <div className="lg:hidden divide-y" style={{ borderColor: 'var(--border)' }}>
-              {items.map((item) => (
+              {items.map((item) => {
+                const deliveries = (deliveryByItem[item.SalesOrderItem] || []) as Array<Record<string, unknown>>;
+                const billings = (billingByItem[item.SalesOrderItem] || []) as Array<Record<string, unknown>>;
+                const deliveredQty = deliveries.reduce((sum, d) => sum + (parseFloat(String(d.ActualDeliveryQuantity || '0')) || 0), 0);
+                const billedAmt = billings.reduce((sum, b) => sum + (parseFloat(String(b.NetAmount || '0')) || 0), 0);
+                return (
                 <div key={item.SalesOrderItem} className="px-4 py-3">
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-medium text-sm" style={{ color: 'var(--primary)' }}>
@@ -270,14 +302,30 @@ export default function SalesOrderDetailPage() {
                     </span>
                   </div>
                   <div className="text-sm mb-1">{item.SalesOrderItemText || '-'}</div>
-                  <div className="flex items-center justify-between text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                    <span>数量: {item.RequestedQuantity ?? '-'} {item.RequestedQuantityUnit || ''}</span>
+                  <div className="flex items-center justify-between text-xs mb-1" style={{ color: 'var(--muted-foreground)' }}>
+                    <span>订单: {item.RequestedQuantity ?? '-'} {item.RequestedQuantityUnit || ''}</span>
+                    {deliveredQty > 0 && (
+                      <span className="text-green-600">已交货: {deliveredQty}</span>
+                    )}
+                  </div>
+                  {deliveredQty > 0 || billedAmt > 0 ? (
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      {deliveredQty > 0 && (
+                        <span className="flex items-center gap-1"><Truck className="w-3 h-3" />{deliveredQty} {item.RequestedQuantityUnit}</span>
+                      )}
+                      {billedAmt > 0 && (
+                        <span className="flex items-center gap-1 text-blue-600"><Receipt className="w-3 h-3" />{formatAmount(billedAmt, item.TransactionCurrency)}</span>
+                      )}
+                    </div>
+                  ) : null}
+                  <div className="flex items-center justify-end text-xs" style={{ color: 'var(--muted-foreground)' }}>
                     <span className="font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>
                       {formatAmount(item.NetAmount, item.TransactionCurrency)}
                     </span>
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           </>
         )}
