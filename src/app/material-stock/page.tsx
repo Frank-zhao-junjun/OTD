@@ -35,8 +35,10 @@ export default function MaterialStockPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(0);
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const PAGE_SIZE = 20;
 
   const fetchMaterialNames = useCallback(async (materialCodes: string[]) => {
     if (materialCodes.length === 0) return;
@@ -56,7 +58,7 @@ export default function MaterialStockPage() {
   const fetchData = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const params = new URLSearchParams({ top: '50', count: 'true' });
+      const params = new URLSearchParams({ top: String(PAGE_SIZE), skip: String(page * PAGE_SIZE), count: 'true' });
       if (searchQuery) {
         const searchRes = await fetch(`/api/sap/search?type=product&q=${encodeURIComponent(searchQuery)}`);
         const searchData = await searchRes.json();
@@ -71,7 +73,8 @@ export default function MaterialStockPage() {
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Failed');
       const stockData = json.data as StockItem[] || [];
-      setData(stockData); setTotalCount(json.totalCount || json.count || 0);
+      setData(prev => page === 0 ? stockData : [...prev, ...stockData]);
+      setTotalCount(json.totalCount || json.count || 0);
       const codes = [...new Set(stockData.map(d => d.Material).filter(Boolean))];
       fetchMaterialNames(codes);
     } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
@@ -96,12 +99,24 @@ export default function MaterialStockPage() {
           <button className={`h-8 w-8 flex items-center justify-center ${viewMode === 'table' ? 'text-white' : ''}`} style={viewMode === 'table' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }} onClick={() => setViewMode('table')}><Table2 className="w-4 h-4" /></button>
         </div>
         <div className="flex items-center gap-2">
-          <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={fetchData} disabled={loading}><Search className="w-3.5 h-3.5 inline mr-1" /> 查询</button>
-          <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={() => setSearchQuery('')}><RotateCcw className="w-3.5 h-3.5 inline mr-1" /> 清除</button>
+          <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={() => { setPage(0); fetchData(); }} disabled={loading}><Search className="w-3.5 h-3.5 inline mr-1" /> 查询</button>
+          <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={() => { setSearchQuery(''); setPage(0); }}><RotateCcw className="w-3.5 h-3.5 inline mr-1" /> 清除</button>
         </div>
       </div>
 
       <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>共 {totalCount} 条记录</div>
+
+      {/* Load More */}
+      {!loading && !error && data.length < totalCount && (
+        <button
+          className="w-full h-10 rounded border text-sm font-medium transition-colors"
+          style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--primary)' }}
+          onClick={() => setPage(p => p + 1)}
+        >
+          加载更多 ({data.length}/{totalCount})
+        </button>
+      )}
+
       {loading && <div className="flex items-center justify-center py-12"><div className="h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} /></div>}
       {error && !loading && <div className="text-center py-12" style={{ color: 'var(--color-fiori-error)' }}><p className="text-sm">{error}</p><button className="mt-2 text-sm underline" onClick={fetchData}>重试</button></div>}
       {!loading && !error && data.length === 0 && <div className="text-center py-12" style={{ color: 'var(--muted-foreground)' }}><Inbox className="w-10 h-10 mx-auto mb-2" /><p className="text-sm">暂无数据</p></div>}

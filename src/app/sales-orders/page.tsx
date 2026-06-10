@@ -138,6 +138,9 @@ export default function SalesOrdersPage() {
       if (json.success) {
         let orders = json.data || [];
         setTotalCount(json.totalCount || json.count || 0);
+        
+        // Load More: 追加数据而非替换
+        setData(prev => page === 0 ? orders : [...prev, ...orders]);
 
         // 如果有产品搜索条件，在客户端过滤包含该产品的订单
         if (search.trim()) {
@@ -418,31 +421,19 @@ export default function SalesOrdersPage() {
         </div>
       )}
 
-      {/* ===== Pagination ===== */}
-      {!loading && !error && totalPages > 1 && (
-        <div className="flex items-center justify-between pt-2">
-          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-            第 {page + 1}/{totalPages} 页
-          </span>
-          <div className="flex items-center gap-1">
-            <button
-              className="h-8 w-8 flex items-center justify-center rounded border"
-              style={{ background: 'var(--card)', borderColor: 'var(--border)', color: page === 0 ? 'var(--muted-foreground)' : 'var(--foreground)' }}
-              disabled={page === 0}
-              onClick={() => setPage(p => Math.max(0, p - 1))}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              className="h-8 w-8 flex items-center justify-center rounded border"
-              style={{ background: 'var(--card)', borderColor: 'var(--border)', color: page >= totalPages - 1 ? 'var(--muted-foreground)' : 'var(--foreground)' }}
-              disabled={page >= totalPages - 1}
-              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+      {/* ===== Load More ===== */}
+      {!loading && !error && data.length < totalCount && (
+        <button
+          className="w-full h-10 rounded border text-sm font-medium transition-colors"
+          style={{ 
+            background: 'var(--card)', 
+            borderColor: 'var(--border)', 
+            color: 'var(--primary)',
+          }}
+          onClick={() => setPage(p => p + 1)}
+        >
+          加载更多 ({data.length}/{totalCount})
+        </button>
       )}
     </div>
   );
