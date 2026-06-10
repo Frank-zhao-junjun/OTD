@@ -34,20 +34,23 @@ export async function GET(
 
   try {
     // 1. Fetch outbound delivery items referencing this sales order
+    // Use ReferenceSDDocument to link delivery items to sales order
     let deliveryItems: Array<Record<string, unknown>> = [];
     try {
       deliveryItems = await callProxyApi(
-        `/api/sap/API_OUTBOUND_DELIVERY_SRV/A_OutbDeliveryItem?$filter=ReferenceSDDocument eq '${salesOrderId}'&$select=DeliveryDocument,DeliveryDocumentItem,ReferenceSDDocument,ReferenceSDDocumentItem,ActualDeliveryQuantity,DeliveryQuantityUnit,DeliveryDocumentItemText,DeliveryDocumentItemCategory,CreationDate,GoodsMovementStatus`
+        `/api/sap/API_OUTBOUND_DELIVERY_SRV/A_OutbDeliveryItem?filter=ReferenceSDDocument eq '${salesOrderId}'&select=DeliveryDocument,DeliveryDocumentItem,ReferenceSDDocument,ReferenceSDDocumentItem,ActualDeliveryQuantity,DeliveryQuantityUnit,Material`
       );
     } catch (e) {
       console.warn('Delivery items fetch failed (non-critical):', e instanceof Error ? e.message : e);
     }
 
     // 2. Fetch billing document items referencing this sales order
+    // Billing items use SalesDocument (not ReferenceSDDocument) to link to SO
+    // ReferenceSDDocument in billing = delivery document, not sales order
     let billingItems: Array<Record<string, unknown>> = [];
     try {
       billingItems = await callProxyApi(
-        `/api/sap/API_BILLING_DOCUMENT_SRV/A_BillingDocumentItem?$filter=ReferenceSDDocument eq '${salesOrderId}'&$select=BillingDocument,BillingDocumentItem,ReferenceSDDocument,ReferenceSDDocumentItem,BillingDocumentItemText,NetAmount,TransactionCurrency,BillingDocumentDate,BillingDocumentItemCategory`
+        `/api/sap/API_BILLING_DOCUMENT_SRV/A_BillingDocumentItem?filter=SalesDocument eq '${salesOrderId}'&select=BillingDocument,BillingDocumentItem,SalesDocument,SalesDocumentItem,NetAmount,TransactionCurrency,ReferenceSDDocument,ReferenceSDDocumentItem,Material`
       );
     } catch (e) {
       console.warn('Billing items fetch failed (non-critical):', e instanceof Error ? e.message : e);
@@ -57,17 +60,17 @@ export async function GET(
     let productionOrders: Array<Record<string, unknown>> = [];
     try {
       productionOrders = await callProxyApi(
-        `/api/sap/CE_PRODUCTIONORDER_0001/ProductionOrder?$filter=SalesOrder eq '${salesOrderId}'&$select=ProductionOrder,ProductionOrderItem,SalesOrder,SalesOrderItem,Material,MaterialName,ProductionPlant,ProductionOrderType,ProductionOrderStatus,OrderPlannedTotalQty,ActualDeliveredQuantity`
+        `/api/sap/CE_PRODUCTIONORDER_0001/ProductionOrder?filter=SalesOrder eq '${salesOrderId}'&select=ProductionOrder,ProductionOrderItem,SalesOrder,SalesOrderItem,Material,MaterialName,ProductionPlant,ProductionOrderType,OrderPlannedTotalQty`
       );
     } catch (e) {
       console.warn('Production orders V4 fetch failed:', e instanceof Error ? e.message : e);
     }
 
-    // Fallback to V2
+    // Fallback to V2 (note: V2 uses $filter/$select with $ prefix)
     if (productionOrders.length === 0) {
       try {
         productionOrders = await callProxyApi(
-          `/api/sap/API_PRODUCTION_ORDER_2_SRV/A_ProductionOrder?$filter=SalesOrder eq '${salesOrderId}'&$select=ProductionOrder,ProductionOrderItem,SalesOrder,SalesOrderItem,Product,ProductionPlant,ProductionOrderType,ProductionOrderStatus,OrderPlannedTotalQty,ActualDeliveredQuantity`
+          `/api/sap/API_PRODUCTION_ORDER_2_SRV/A_ProductionOrder?filter=SalesOrder eq '${salesOrderId}'&select=ProductionOrder,ProductionOrderItem,SalesOrder,SalesOrderItem,Product,ProductionPlant,ProductionOrderType,OrderPlannedTotalQty`
         );
       } catch (e) {
         console.warn('Production orders V2 fetch failed:', e instanceof Error ? e.message : e);
@@ -84,7 +87,8 @@ export async function GET(
 
     const billingByItem: Record<string, unknown[]> = {};
     for (const item of billingItems) {
-      const soItem = normalizeItem(item.ReferenceSDDocumentItem);
+      // Billing items use SalesDocumentItem (not ReferenceSDDocumentItem) to link to SO item
+      const soItem = normalizeItem(item.SalesDocumentItem);
       if (!billingByItem[soItem]) billingByItem[soItem] = [];
       billingByItem[soItem].push(item);
     }
