@@ -141,11 +141,57 @@ export async function GET(
       billingByItem[soItem].push(item);
     }
 
+    // 3. Fetch production orders linked to this sales order
+    //    CE_PRODUCTIONORDER_0001 (V4) - ProductionOrder has SalesOrder + SalesOrderItem
+    let productionOrders: Array<Record<string, unknown>> = [];
+    try {
+      // Try V4 API first
+      const v4BaseUrl = `${config.sapScheme}://${config.sapHost}/sap/opu/odata4/sap/api_productionorder/srvd_a2x/sap/productionorder/0001/`;
+      const v4Response = await fetch(
+        `${v4BaseUrl}ProductionOrder?$filter=SalesOrder eq '${salesOrderId}'&$select=ProductionOrder,ProductionOrderItem,SalesOrder,SalesOrderItem,Material,MaterialName,ProductionPlant,ProductionOrderType,ProductionOrderStatus,OrderPlannedTotalQty,ActualDeliveredQuantity&$format=json`,
+        { headers: { Authorization: auth, Accept: 'application/json' } }
+      );
+      if (v4Response.ok) {
+        const v4Data = await v4Response.json();
+        productionOrders = v4Data.value || [];
+      }
+    } catch (e) {
+      console.warn('Production orders V4 fetch failed:', e instanceof Error ? e.message : e);
+    }
+
+    // Fallback to V2 API
+    if (productionOrders.length === 0) {
+      try {
+        productionOrders = await fetchSapV2(
+          baseUrl,
+          'API_PRODUCTION_ORDER_2_SRV/A_ProductionOrder',
+          {
+            '$format': 'json',
+            'sap-client': client,
+            '$filter': `SalesOrder eq '${salesOrderId}'`,
+            '$select': 'ProductionOrder,ProductionOrderItem,SalesOrder,SalesOrderItem,Product,ProductionPlant,ProductionOrderType,ProductionOrderStatus,OrderPlannedTotalQty,ActualDeliveredQuantity',
+          },
+          auth
+        ) as Array<Record<string, unknown>>;
+      } catch (e) {
+        console.warn('Production orders V2 fetch failed:', e instanceof Error ? e.message : e);
+      }
+    }
+
+    // Group production orders by SalesOrderItem
+    const productionByItem: Record<string, unknown[]> = {};
+    for (const po of productionOrders) {
+      const soItem = String(po.SalesOrderItem || '');
+      if (!productionByItem[soItem]) productionByItem[soItem] = [];
+      productionByItem[soItem].push(po);
+    }
+
     return NextResponse.json({
       success: true,
       data: {
         deliveryByItem,
         billingByItem,
+        productionByItem,
       },
     });
   } catch (error) {
@@ -156,6 +202,7 @@ export async function GET(
       data: {
         deliveryByItem: {},
         billingByItem: {},
+        productionByItem: {},
       },
     });
   }
