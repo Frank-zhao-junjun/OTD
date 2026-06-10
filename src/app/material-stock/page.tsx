@@ -30,12 +30,28 @@ function formatNumber(num: string | undefined): string {
 
 export default function MaterialStockPage() {
   const [data, setData] = useState<StockItem[]>([]);
+  const [materialNames, setMaterialNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalCount, setTotalCount] = useState(0);
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+
+  const fetchMaterialNames = useCallback(async (materialCodes: string[]) => {
+    if (materialCodes.length === 0) return;
+    const names: Record<string, string> = {};
+    try {
+      const res = await fetch('/api/sap/API_PRODUCT_SRV/A_Product?top=200');
+      const json = await res.json();
+      const products = (json.data || []) as { Product: string; ProductDescription: string }[];
+      for (const code of materialCodes) {
+        const p = products.find(x => x.Product === code);
+        if (p) names[code] = p.ProductDescription;
+      }
+      setMaterialNames(names);
+    } catch { /* ignore */ }
+  }, []);
 
   const fetchData = useCallback(async () => {
     setLoading(true); setError(null);
@@ -54,10 +70,13 @@ export default function MaterialStockPage() {
       const res = await fetch(`/api/sap/API_MATERIAL_STOCK_SRV/A_MatlStkInAcctMod?${params}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Failed');
-      setData(json.data || []); setTotalCount(json.totalCount || json.count || 0);
+      const stockData = json.data as StockItem[] || [];
+      setData(stockData); setTotalCount(json.totalCount || json.count || 0);
+      const codes = [...new Set(stockData.map(d => d.Material).filter(Boolean))];
+      fetchMaterialNames(codes);
     } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
     finally { setLoading(false); }
-  }, [searchQuery]);
+  }, [searchQuery, fetchMaterialNames]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -99,7 +118,7 @@ export default function MaterialStockPage() {
               <div key={`${item.Material}-${item.Batch}-${idx}`} className="fiori-oli cursor-pointer" onClick={() => router.push(`/material-stock/${encodeURIComponent(item.Material)}`)}>
                 <div className={`fiori-oli-bar fiori-oli-bar--${barColor}`} />
                 <div className="fiori-oli-content">
-                  <div className="fiori-oli-title">{item.Material} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {STOCK_TYPE_MAP[item.InventoryStockType] || item.InventoryStockType}</div>
+                  <div className="fiori-oli-title">{item.Material}{materialNames[item.Material] ? ` (${materialNames[item.Material]})` : ''} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {STOCK_TYPE_MAP[item.InventoryStockType] || item.InventoryStockType}</div>
                   <div className="fiori-oli-subtitle">{item.Plant} / {item.StorageLocation} / {item.Batch || '-'}</div>
                   <div className="flex items-center gap-2">
                     <FioriBadge variant={isNoStock ? 'error' : isLowStock ? 'warning' : 'success'}>
@@ -137,7 +156,7 @@ export default function MaterialStockPage() {
                 const isNoStock = qty === 0;
                 return (
                   <tr key={`${item.Material}-${item.Batch}-${idx}`} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/material-stock/${encodeURIComponent(item.Material)}`)}>
-                    <td className="px-4 py-3 font-medium text-[#0070F2]">{item.Material}</td>
+                    <td className="px-4 py-3 font-medium text-[#0070F2]">{item.Material}{materialNames[item.Material] ? ` (${materialNames[item.Material]})` : ''}</td>
                     <td className="px-4 py-3">{item.Plant}</td>
                     <td className="px-4 py-3">{item.StorageLocation}</td>
                     <td className="px-4 py-3">{item.Batch || '-'}</td>

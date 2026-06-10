@@ -36,6 +36,7 @@ export default function MaterialStockDetailPage() {
   const id = decodeURIComponent(params.id as string);
 
   const [items, setItems] = useState<StockItem[]>([]);
+  const [materialName, setMaterialName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,6 +52,14 @@ export default function MaterialStockDetailPage() {
         if (!data.success) throw new Error(data.error || 'Failed to fetch');
         const results = data.data || [];
         setItems(results);
+        // Fetch material name
+        try {
+          const pRes = await fetch('/api/sap/API_PRODUCT_SRV/A_Product?top=200');
+          const pJson = await pRes.json();
+          const products = (pJson.data || []) as { Product: string; ProductDescription: string }[];
+          const p = products.find(x => x.Product === id);
+          if (p) setMaterialName(p.ProductDescription);
+        } catch { /* ignore */ }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
@@ -95,7 +104,7 @@ export default function MaterialStockDetailPage() {
       : { color: 'success' as const, label: '正常' };
 
   const primaryFields = [
-    { label: '物料编号', value: primaryItem.Material },
+    { label: '物料', value: primaryItem.Material ? `${primaryItem.Material} ${materialName ? `(${materialName})` : ''}` : '-' },
     { label: '工厂', value: primaryItem.Plant },
     { label: '总库存', value: `${formatNumber(totalQty.toString())} ${primaryItem.MaterialBaseUnit}` },
   ];
@@ -111,7 +120,7 @@ export default function MaterialStockDetailPage() {
             <BarChart3 className="w-5 h-5" />
           </div>
           <div>
-            <div className="fiori-objheader-title">{primaryItem.Material}</div>
+            <div className="fiori-objheader-title">{primaryItem.Material}{materialName ? ` (${materialName})` : ''}</div>
             <div className="fiori-objheader-subtitle">
               工厂 {primaryItem.Plant} · {items.length} 条库存记录
             </div>

@@ -68,6 +68,7 @@ export default function SalesOrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState('');
+  const [materialNames, setMaterialNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -97,6 +98,21 @@ export default function SalesOrderDetailPage() {
           } catch {
             // Customer name fetch failure is non-critical
           }
+        }
+        // Fetch material names
+        const items = orderData?.to_Item || [];
+        if (items.length > 0) {
+          try {
+            const pRes = await fetch('/api/sap/API_PRODUCT_SRV/A_Product?top=200');
+            const pJson = await pRes.json();
+            const products = (pJson.data || []) as { Product: string; ProductDescription: string }[];
+            const nameMap: Record<string, string> = {};
+            for (const item of items) {
+              const p = products.find(x => x.Product === item.Material);
+              if (p) nameMap[item.Material] = p.ProductDescription;
+            }
+            setMaterialNames(nameMap);
+          } catch { /* ignore */ }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -230,7 +246,7 @@ export default function SalesOrderDetailPage() {
                   {items.map((item) => (
                     <tr key={item.SalesOrderItem} className="border-t" style={{ borderColor: 'var(--border)' }}>
                       <td className="px-4 py-3 tabular-nums">{item.SalesOrderItem}</td>
-                      <td className="px-4 py-3 font-medium" style={{ color: 'var(--primary)' }}>{item.Material}</td>
+                      <td className="px-4 py-3 font-medium" style={{ color: 'var(--primary)' }}>{item.Material}{materialNames[item.Material] ? ` (${materialNames[item.Material]})` : ''}</td>
                       <td className="px-4 py-3">{item.SalesOrderItemText || '-'}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{item.RequestedQuantity ?? '-'}</td>
                       <td className="px-4 py-3">{item.RequestedQuantityUnit || '-'}</td>
@@ -247,7 +263,7 @@ export default function SalesOrderDetailPage() {
                 <div key={item.SalesOrderItem} className="px-4 py-3">
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-medium text-sm" style={{ color: 'var(--primary)' }}>
-                      {item.Material}
+                      {item.Material}{materialNames[item.Material] ? ` (${materialNames[item.Material]})` : ''}
                     </span>
                     <span className="text-xs tabular-nums" style={{ color: 'var(--muted-foreground)' }}>
                       行 {item.SalesOrderItem}

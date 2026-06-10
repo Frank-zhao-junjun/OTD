@@ -32,6 +32,7 @@ export default function MaterialDocumentDetailPage() {
   const id = params.id as string;
 
   const [items, setItems] = useState<MaterialDocumentItem[]>([]);
+  const [materialName, setMaterialName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,6 +43,17 @@ export default function MaterialDocumentDetailPage() {
         const data = await res.json();
         if (data.success && data.data && data.data.length > 0) {
           setItems(data.data);
+          // Fetch material name for first item
+          const firstMaterial = data.data[0]?.Material;
+          if (firstMaterial) {
+            try {
+              const pRes = await fetch('/api/sap/API_PRODUCT_SRV/A_Product?top=200');
+              const pJson = await pRes.json();
+              const products = (pJson.data || []) as { Product: string; ProductDescription: string }[];
+              const p = products.find(x => x.Product === firstMaterial);
+              if (p) setMaterialName(p.ProductDescription);
+            } catch { /* ignore */ }
+          }
         } else {
           setError(data.error || '未找到入库单');
         }
@@ -101,7 +113,7 @@ export default function MaterialDocumentDetailPage() {
             <div className="text-xs font-semibold text-gray-500 mb-2">行项目 {item.MaterialDocumentItem || idx + 1}</div>
             <div className="fiori-objheader-fields">
               {[
-                { label: '物料', value: item.Material || '-' },
+                { label: '物料', value: item.Material ? `${item.Material} ${item === firstItem && materialName ? `(${materialName})` : ''}` : '-' },
                 { label: '工厂', value: item.Plant || '-' },
                 { label: '库存地点', value: item.StorageLocation || '-' },
                 { label: '批次', value: item.Batch || '-' },
