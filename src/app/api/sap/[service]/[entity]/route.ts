@@ -56,7 +56,7 @@ const SERVICE_PATH_MAP: Record<string, string> = {
   'API_PRODUCT_SRV': '/sap/opu/odata/sap/API_PRODUCT_SRV/',
   'API_BUSINESS_PARTNER': '/sap/opu/odata/sap/API_BUSINESS_PARTNER/',
   'API_SALES_ORDER_SRV': '/sap/opu/odata/sap/API_SALES_ORDER_SRV/',
-  'API_PRODUCTION_ORDER_2_SRV': '/sap/opu/odata/sap/API_PRODUCTION_ORDER_2_SRV/',
+  'API_PRODUCTION_ORDER_2_SRV': '/sap/opu/odata4/sap/api_productionorder/srvd_a2x/sap/productionorder/0001/',
   'API_MATERIAL_STOCK_SRV': '/sap/opu/odata/sap/API_MATERIAL_STOCK_SRV/',
   'API_OUTBOUND_DELIVERY_SRV': '/sap/opu/odata/sap/API_OUTBOUND_DELIVERY_SRV;v=0002/',
   'API_BILLING_DOCUMENT_SRV': '/sap/opu/odata/sap/API_BILLING_DOCUMENT_SRV/',
