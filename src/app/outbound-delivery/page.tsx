@@ -47,8 +47,10 @@ export default function OutboundDeliveryPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(0);
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'card' | 'table'>('table');
+  const PAGE_SIZE = 20;
 
   const fetchCustomerNames = useCallback(async (soldToCodes: string[]) => {
     if (soldToCodes.length === 0) return;
@@ -70,7 +72,8 @@ export default function OutboundDeliveryPage() {
     setError(null);
     try {
       const params = new URLSearchParams();
-      params.set('top', '50');
+      params.set('top', String(PAGE_SIZE));
+      params.set('skip', String(page * PAGE_SIZE));
       params.set('count', 'true');
 
       if (searchQuery.trim()) {
@@ -89,11 +92,11 @@ export default function OutboundDeliveryPage() {
       const response = await fetch(`/api/sap/API_OUTBOUND_DELIVERY_SRV/A_OutbDeliveryHeader?${params.toString()}`);
       const data = await response.json();
       if (!data.success) throw new Error(data.error || 'Failed to fetch');
-      const deliveries = data.data as Delivery[] || [];
-      setDeliveries(deliveries);
+      const deliveryData = data.data as Delivery[] || [];
+      setDeliveries(prev => page === 0 ? deliveryData : [...prev, ...deliveryData]);
       setTotalCount(data.totalCount || data.count || 0);
 
-      const codes = [...new Set(deliveries.map(d => d.SoldToParty).filter(Boolean))];
+      const codes = [...new Set(deliveryData.map(d => d.SoldToParty).filter(Boolean))];
       fetchCustomerNames(codes);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -124,12 +127,23 @@ export default function OutboundDeliveryPage() {
           <button className={`h-8 w-8 flex items-center justify-center ${viewMode === 'table' ? 'text-white' : ''}`} style={viewMode === 'table' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }} onClick={() => setViewMode('table')}><Table2 className="w-4 h-4" /></button>
         </div>
         <div className="flex items-center gap-2">
-          <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={fetchDeliveries} disabled={loading}><Search className="w-3.5 h-3.5 inline mr-1" /> 查询</button>
-          <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={() => setSearchQuery('')}><RotateCcw className="w-3.5 h-3.5 inline mr-1" /> 清除</button>
+          <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={() => { setPage(0); fetchDeliveries(); }} disabled={loading}><Search className="w-3.5 h-3.5 inline mr-1" /> 查询</button>
+          <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={() => { setSearchQuery(''); setPage(0); }}><RotateCcw className="w-3.5 h-3.5 inline mr-1" /> 清除</button>
         </div>
       </div>
 
       <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>共 {totalCount} 条记录</div>
+
+      {/* Load More */}
+      {!loading && !error && deliveries.length < totalCount && (
+        <button
+          className="w-full h-10 rounded border text-sm font-medium transition-colors"
+          style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--primary)' }}
+          onClick={() => setPage(p => p + 1)}
+        >
+          加载更多 ({deliveries.length}/{totalCount})
+        </button>
+      )}
 
       {loading && (
         <div className="flex items-center justify-center py-12"><div className="h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} /></div>

@@ -43,6 +43,8 @@ export default function ProductionOrdersPage() {
   const [showFilter, setShowFilter] = useState(false);
   const [viewMode, setViewMode] = useState<'card' | 'table'>('table');
   const [productNames, setProductNames] = useState<Record<string, string>>({});
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 20;
 
   // 获取产品名称映射
   useEffect(() => {
@@ -67,7 +69,8 @@ export default function ProductionOrdersPage() {
     setError(null);
     try {
       const params = new URLSearchParams();
-      params.set('top', '50');
+      params.set('top', String(PAGE_SIZE));
+      params.set('skip', String(page * PAGE_SIZE));
       params.set('count', 'true');
 
       const filterParts: string[] = [];
@@ -91,7 +94,7 @@ export default function ProductionOrdersPage() {
       const response = await fetch(`/api/sap/CE_PRODUCTIONORDER_0001/ProductionOrder?${params.toString()}`);
       const data = await response.json();
       if (!data.success) throw new Error(data.error || 'Failed to fetch');
-      setOrders(data.data || []);
+      setOrders(prev => page === 0 ? (data.data || []) : [...prev, ...(data.data || [])]);
       setTotalCount(data.totalCount || data.count || 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -105,6 +108,7 @@ export default function ProductionOrdersPage() {
   const handleClear = () => {
     setSearchQuery('');
     setPlant(SAP_DEFAULTS.plant);
+    setPage(0);
   };
 
   return (
@@ -158,7 +162,7 @@ export default function ProductionOrdersPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={fetchOrders} disabled={loading}>
+          <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={() => { setPage(0); fetchOrders(); }} disabled={loading}>
             <Search className="w-3.5 h-3.5 inline mr-1" /> 查询
           </button>
           <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={handleClear}>
@@ -173,7 +177,7 @@ export default function ProductionOrdersPage() {
           <div className="flex items-center gap-4 flex-wrap">
             <div className="fiori-filterbar-field">
               <label>工厂</label>
-              <select className="h-8 px-2 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={plant} onChange={(e) => setPlant(e.target.value)}>
+              <select className="h-8 px-2 text-sm rounded border outline-none" style={{ background: 'var(--background)', borderColor: 'var(--border)' }} value={plant} onChange={(e) => { setPlant(e.target.value); setPage(0); }}>
                 <option value="all">全部</option>
                 <option value="1010">1010</option>
                 <option value="1020">1020</option>
@@ -185,6 +189,17 @@ export default function ProductionOrdersPage() {
 
       {/* Result Count */}
       <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>共 {totalCount} 条记录</div>
+
+      {/* Load More */}
+      {!loading && !error && orders.length < totalCount && (
+        <button
+          className="w-full h-10 rounded border text-sm font-medium transition-colors"
+          style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--primary)' }}
+          onClick={() => setPage(p => p + 1)}
+        >
+          加载更多 ({orders.length}/{totalCount})
+        </button>
+      )}
 
       {/* Loading */}
       {loading && (
