@@ -20,6 +20,7 @@ interface SalesOrderItem {
   TransactionCurrency: string;
   Plant: string;
   SalesOrderItemCategory: string;
+  SpecialStockIndicator?: string;
 }
 
 interface SalesOrderPartner {
@@ -498,10 +499,10 @@ export default function SalesOrderDetailPage() {
                   </div>
                 );
               })()}
-              {/* Production Orders - show only when ItemCategory != 'TAN' */}
+              {/* Production Orders - show when ItemCategory != 'TAN' or SpecialStockIndicator == 'E' */}
               {(() => {
                 const prods = (productionByItem[selectedItem.SalesOrderItem] || []) as ProductionOrderItem[];
-                if (selectedItem.SalesOrderItemCategory !== 'TAN') {
+                if (selectedItem.SalesOrderItemCategory !== 'TAN' || selectedItem.SpecialStockIndicator === 'E') {
                   return (
                     <div>
                       <div className="flex items-center gap-2 mb-2">
