@@ -499,10 +499,10 @@ export default function SalesOrderDetailPage() {
                   </div>
                 );
               })()}
-              {/* Production Orders - show when ItemCategory != 'TAN' or SpecialStockIndicator == 'E' */}
+              {/* Production Orders - show when ItemCategory != 'TAN' AND SpecialStockIndicator == 'E' */}
               {(() => {
                 const prods = (productionByItem[selectedItem.SalesOrderItem] || []) as ProductionOrderItem[];
-                if (selectedItem.SalesOrderItemCategory !== 'TAN' || selectedItem.SpecialStockIndicator === 'E') {
+                if (selectedItem.SalesOrderItemCategory !== 'TAN' && selectedItem.SpecialStockIndicator === 'E') {
                   return (
                     <div>
                       <div className="flex items-center gap-2 mb-2">
