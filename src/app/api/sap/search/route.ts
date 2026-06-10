@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 处理客户搜索结果
-    let customers: Array<{ customer: string; customerName: string; customerFullName: string }> = [];
+    const customers: Array<{ customer: string; customerName: string; customerFullName: string }> = [];
     if (searchCustomer && customerResult) {
       const [byCode, byName, byFullName] = customerResult;
       if (byCode?.error) console.error('[Search] Customer by code error:', byCode.error.message);

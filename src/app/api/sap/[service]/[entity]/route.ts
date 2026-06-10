@@ -74,50 +74,6 @@ function getODataVersion(servicePath: string): 'v2' | 'v4' {
 
 
 
-/**
- * Simple OData $filter parser
- * Supports: eq, ne, gt, lt, ge, le, and, or
- */
-function applyODataFilter(
-  data: Record<string, unknown>[],
-  filter: string
-): Record<string, unknown>[] {
-  // Handle or-separated parts first
-  const orParts = filter.split(/\s+or\s+/i);
-  if (orParts.length > 1) {
-    return data.filter(item => {
-      return orParts.some(part => evaluateFilterPart(item, part.trim()));
-    });
-  }
-
-  // Handle and-separated parts
-  const andParts = filter.split(/\s+and\s+/i);
-  return data.filter(item => {
-    return andParts.every(part => evaluateFilterPart(item, part.trim()));
-  });
-}
-
-function evaluateFilterPart(item: Record<string, unknown>, part: string): boolean {
-  const trimmed = part.replace(/^\(/, '').replace(/\)$/, '');
-
-  // Comparison operators: eq, ne, gt, lt, ge, le
-  const match = trimmed.match(/^(\w+)\s+(eq|ne|gt|lt|ge|le)\s+'?([^']*)'?$/);
-  if (!match) return true;
-
-  const [, prop, op, val] = match;
-  const itemVal = String(item[prop] ?? '');
-
-  switch (op) {
-    case 'eq': return itemVal === val;
-    case 'ne': return itemVal !== val;
-    case 'gt': return itemVal > val;
-    case 'lt': return itemVal < val;
-    case 'ge': return itemVal >= val;
-    case 'le': return itemVal <= val;
-    default: return true;
-  }
-}
-
 // ============================================================
 // Service Classification: Master Data vs. Document
 // ============================================================
@@ -128,18 +84,6 @@ const MASTER_DATA_SERVICES = new Set([
   'API_BUSINESS_PARTNER:A_Customer',
 ]);
 
-/** Document services: Always query SAP directly, never cache to DB */
-const DOCUMENT_SERVICES = new Set([
-  'API_SALES_ORDER_SRV:A_SalesOrder',
-  'CE_SALESORDER_0001:SalesOrder',        // V4 fallback (SalesOrderType returns internal code)
-  'CE_PRODUCTIONORDER_0001:ProductionOrder',
-  'API_PRODUCTION_ORDER_2_SRV:ProductionOrder', // V2 fallback
-  'API_OUTBOUND_DELIVERY_SRV:A_OutbDeliveryHeader',
-  'API_BILLING_DOCUMENT_SRV:A_BillingDocument',
-  'API_MATERIAL_DOCUMENT_SRV:A_MaterialDocumentItem',
-  'API_MATERIAL_STOCK_SRV:A_MatlStkInAcctMod',
-]);
-
 /**
  * Generic SAP OData proxy endpoint
  *
@@ -147,6 +91,14 @@ const DOCUMENT_SERVICES = new Set([
  * - Master Data (products, customers): DB-first → SAP fallback.
  *   Supports `sap_direct=true` to force SAP query + incremental DB save.
  * - Documents (sales orders, production orders, etc.): Always SAP direct, no DB caching.
+ *
+ * Document services: API_SALES_ORDER_SRV:A_SalesOrder,
+ *   CE_SALESORDER_0001:SalesOrder (V4, returns internal code for SalesOrderType),
+ *   CE_PRODUCTIONORDER_0001:ProductionOrder, API_PRODUCTION_ORDER_2_SRV:ProductionOrder (V2 fallback),
+ *   API_OUTBOUND_DELIVERY_SRV:A_OutbDeliveryHeader,
+ *   API_BILLING_DOCUMENT_SRV:A_BillingDocument,
+ *   API_MATERIAL_DOCUMENT_SRV:A_MaterialDocumentItem,
+ *   API_MATERIAL_STOCK_SRV:A_MatlStkInAcctMod
  */
 export async function GET(
   request: NextRequest,
@@ -156,7 +108,6 @@ export async function GET(
   const config = getSapConfig();
   const serviceEntityKey = `${service}:${entity}`;
   const isMasterData = MASTER_DATA_SERVICES.has(serviceEntityKey);
-  const isDocument = DOCUMENT_SERVICES.has(serviceEntityKey);
 
   // Query parameter: sap_direct=true → bypass DB, query SAP directly & save to DB (master data only)
   const sapDirect = request.nextUrl.searchParams.get('sap_direct') === 'true';
@@ -381,7 +332,8 @@ export async function GET(
                 cleaned[key] = sanitizeResults((value as Record<string, unknown>).results as unknown[]);
               } else if (!key.startsWith('@')) {
                 // Single expanded entity (e.g. to_Description with one result)
-                const { __metadata: _, ...rest } = value as Record<string, unknown>;
+                const { __metadata, ...rest } = value as Record<string, unknown>;
+                void __metadata;
                 cleaned[key] = Object.keys(rest).length > 0 ? rest : value;
               } else {
                 cleaned[key] = value;

@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 
 import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab } from '@/components/fiori';
-import { Package, Search, RotateCcw, Inbox, LayoutList, Table2, CloudDownload } from 'lucide-react';
+import { Search, RotateCcw, Inbox, LayoutList, Table2, CloudDownload } from 'lucide-react';
 
 interface ProductDescription {
   Product: string;
@@ -84,12 +84,6 @@ function getEnDescription(product: Product): string | null {
   return en?.ProductDescription || null;
 }
 
-// Helper: extract first plant info
-function getPlant(product: Product): ProductPlant | null {
-  const plants = normalizeExpand(product.to_Plant);
-  return plants.length > 0 ? plants[0] : null;
-}
-
 // Helper: extract first valuation
 function getValuation(product: Product): ProductValuation | null {
   const vals = normalizeExpand(product.to_Valuation);
@@ -116,11 +110,6 @@ const PRODUCT_GROUP_MAP: Record<string, string> = {
   'L002': '原材料-包装',
   'L003': '半成品',
   'L004': '成品',
-};
-
-const PROCUREMENT_TYPE_MAP: Record<string, string> = {
-  'E': '自制',
-  'F': '外购',
 };
 
 export default function ProductsPage() {
@@ -207,7 +196,6 @@ export default function ProductsPage() {
         <div className={`space-y-2 ${viewMode === 'table' ? 'lg:hidden' : ''}`}>
           {data.map((item) => {
             const typeInfo = PRODUCT_TYPE_MAP[item.ProductType] || { label: item.ProductType, variant: 'neutral' as const };
-            const plant = getPlant(item);
             const desc = getDescription(item);
             const price = getPrice(item);
             return (
@@ -244,7 +232,6 @@ export default function ProductsPage() {
             </tr></thead>
             <tbody>{data.map((item) => {
               const typeInfo = PRODUCT_TYPE_MAP[item.ProductType] || { label: item.ProductType, variant: 'neutral' as const };
-              const plant = getPlant(item);
               const desc = getDescription(item);
               const val = getValuation(item);
               const enDesc = getEnDescription(item);

@@ -47,6 +47,8 @@ const eslintConfig = defineConfig([
     'dist/**',
     // Script files (CommonJS):
     'scripts/**/*.js',
+    // WeChat mini-program (uses require() and native JS, not Next.js)
+    'miniprogram/**',
   ]),
 ]);
 

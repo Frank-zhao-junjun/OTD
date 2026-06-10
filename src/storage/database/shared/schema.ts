@@ -1,5 +1,4 @@
-import { pgTable, serial, varchar, text, boolean, numeric, integer, timestamp, index, uniqueIndex } from "drizzle-orm/pg-core"
-import { sql } from "drizzle-orm"
+import { pgTable, serial, varchar, text, boolean, numeric, timestamp, index, uniqueIndex } from "drizzle-orm/pg-core"
 
 // System table - DO NOT DELETE
 export const healthCheck = pgTable("health_check", {

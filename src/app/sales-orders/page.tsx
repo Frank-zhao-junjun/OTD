@@ -162,12 +162,12 @@ export default function SalesOrdersPage() {
       } else {
         setError(json.error || '查询失败');
       }
-    } catch (err) {
+    } catch {
       setError('网络错误，请稍后重试');
     } finally {
       setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [page, search, statusFilter, typeFilter]);
 
   const fetchCustomerNames = async (codes: string[]) => {

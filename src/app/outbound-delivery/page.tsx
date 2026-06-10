@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { FioriBadge, FioriFab, getSapStatusColor } from '@/components/fiori';
-import { Truck, Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
+import { Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
 import { formatSapDate } from '@/lib/utils';
 
 interface Delivery {

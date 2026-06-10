@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 
 import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab } from '@/components/fiori';
-import { BarChart3, Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
+import { Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
 
 interface StockItem {
   Material: string;
