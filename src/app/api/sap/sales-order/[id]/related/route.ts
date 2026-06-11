@@ -34,7 +34,6 @@ export async function GET(
 
   try {
     // 1. Fetch outbound delivery items referencing this sales order
-    // Use ReferenceSDDocument to link delivery items to sales order
     let deliveryItems: Array<Record<string, unknown>> = [];
     try {
       deliveryItems = await callProxyApi(
@@ -45,8 +44,6 @@ export async function GET(
     }
 
     // 2. Fetch billing document items referencing this sales order
-    // Billing items use SalesDocument (not ReferenceSDDocument) to link to SO
-    // ReferenceSDDocument in billing = delivery document, not sales order
     let billingItems: Array<Record<string, unknown>> = [];
     try {
       billingItems = await callProxyApi(
@@ -60,13 +57,13 @@ export async function GET(
     let productionOrders: Array<Record<string, unknown>> = [];
     try {
       productionOrders = await callProxyApi(
-        `/api/sap/CE_PRODUCTIONORDER_0001/ProductionOrder?filter=SalesOrder eq '${salesOrderId}'&select=ProductionOrder,ProductionOrderItem,SalesOrder,SalesOrderItem,Material,MaterialName,ProductionPlant,ProductionOrderType,OrderPlannedTotalQty`
+        `/api/sap/CE_PRODUCTIONORDER_0001/ProductionOrder?filter=SalesOrder eq '${salesOrderId}'&select=ProductionOrder,SalesOrder,SalesOrderItem,Product,ProductionPlant,ProductionOrderType,OrderPlannedTotalQty`
       );
     } catch (e) {
       console.warn('Production orders V4 fetch failed:', e instanceof Error ? e.message : e);
     }
 
-    // Fallback to V2 (note: V2 uses $filter/$select with $ prefix)
+    // Fallback to V2
     if (productionOrders.length === 0) {
       try {
         productionOrders = await callProxyApi(
@@ -74,6 +71,57 @@ export async function GET(
         );
       } catch (e) {
         console.warn('Production orders V2 fetch failed:', e instanceof Error ? e.message : e);
+      }
+    }
+
+    // 4. Fetch delivery header dates (DeliveryDate is on header, not item)
+    const deliveryDocNumbers = [...new Set(deliveryItems.map(i => String(i.DeliveryDocument)))];
+    const deliveryHeaders: Record<string, Record<string, unknown>> = {};
+    if (deliveryDocNumbers.length > 0) {
+      try {
+        const filterExpr = deliveryDocNumbers.map(d => `DeliveryDocument eq '${d}'`).join(' or ');
+        const headers = await callProxyApi(
+          `/api/sap/API_OUTBOUND_DELIVERY_SRV/A_OutbDeliveryHeader?filter=${encodeURIComponent(filterExpr)}&select=DeliveryDocument,DeliveryDate,ActualGoodsMovementDate`
+        );
+        for (const h of headers) {
+          deliveryHeaders[String(h.DeliveryDocument)] = h;
+        }
+      } catch (e) {
+        console.warn('Delivery headers fetch failed (non-critical):', e instanceof Error ? e.message : e);
+      }
+    }
+
+    // 5. Fetch billing document header dates (BillingDocumentDate is on header, not item)
+    const billingDocNumbers = [...new Set(billingItems.map(i => String(i.BillingDocument)))];
+    const billingHeaders: Record<string, Record<string, unknown>> = {};
+    if (billingDocNumbers.length > 0) {
+      try {
+        const filterExpr = billingDocNumbers.map(d => `BillingDocument eq '${d}'`).join(' or ');
+        const headers = await callProxyApi(
+          `/api/sap/API_BILLING_DOCUMENT_SRV/A_BillingDocument?filter=${encodeURIComponent(filterExpr)}&select=BillingDocument,BillingDocumentDate`
+        );
+        for (const h of headers) {
+          billingHeaders[String(h.BillingDocument)] = h;
+        }
+      } catch (e) {
+        console.warn('Billing headers fetch failed (non-critical):', e instanceof Error ? e.message : e);
+      }
+    }
+
+    // Enrich delivery items with header dates
+    for (const item of deliveryItems) {
+      const header = deliveryHeaders[String(item.DeliveryDocument)];
+      if (header) {
+        item.DeliveryDate = header.DeliveryDate;
+        item.ActualGoodsMovementDate = header.ActualGoodsMovementDate;
+      }
+    }
+
+    // Enrich billing items with header dates
+    for (const item of billingItems) {
+      const header = billingHeaders[String(item.BillingDocument)];
+      if (header) {
+        item.BillingDocumentDate = header.BillingDocumentDate;
       }
     }
 
@@ -87,7 +135,6 @@ export async function GET(
 
     const billingByItem: Record<string, unknown[]> = {};
     for (const item of billingItems) {
-      // Billing items use SalesDocumentItem (not ReferenceSDDocumentItem) to link to SO item
       const soItem = normalizeItem(item.SalesDocumentItem);
       if (!billingByItem[soItem]) billingByItem[soItem] = [];
       billingByItem[soItem].push(item);
