@@ -32,7 +32,7 @@ interface DeliveryItem {
   DeliveryDocument: string;
   DeliveryDocumentItem: string;
   ActualDeliveryQuantity: string;
-  ActualDeliveryDate: string;
+  DeliveryDate: string;
   DeliveryDocumentStatus: string;
 }
 
@@ -47,15 +47,14 @@ interface BillingItem {
 
 interface ProductionOrderItem {
   ProductionOrder: string;
-  ProductionOrderItem: string;
-  Material?: string;
+  SalesOrder: string;
+  SalesOrderItem: string;
   Product?: string;
   MaterialName?: string;
   ProductionPlant: string;
   ProductionOrderType?: string;
   ProductionOrderStatus?: string;
   OrderPlannedTotalQty?: string | number;
-  ActualDeliveredQuantity?: string | number;
 }
 
 interface SalesOrder {
@@ -445,7 +444,7 @@ export default function SalesOrderDetailPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-2 text-sm">
                               <div>交货数量: <span className="font-medium tabular-nums">{d.ActualDeliveryQuantity ?? '-'} {selectedItem.RequestedQuantityUnit}</span></div>
-                              <div>交货日期: <span className="font-medium tabular-nums">{formatSapDate(d.ActualDeliveryDate as string)}</span></div>
+                              <div>交货日期: <span className="font-medium tabular-nums">{formatSapDate(d.DeliveryDate as string)}</span></div>
                             </div>
                           </div>
                         ))}
@@ -502,7 +501,7 @@ export default function SalesOrderDetailPage() {
               {/* Production Orders - show when ItemCategory != 'TAN' AND SpecialStockIndicator == 'E' */}
               {(() => {
                 const prods = (productionByItem[selectedItem.SalesOrderItem] || []) as ProductionOrderItem[];
-                if (selectedItem.SalesOrderItemCategory !== 'TAN' && selectedItem.SpecialStockIndicator === 'E') {
+                if (selectedItem.SalesOrderItemCategory !== 'TAN') {
                   return (
                     <div>
                       <div className="flex items-center gap-2 mb-2">
@@ -527,17 +526,16 @@ export default function SalesOrderDetailPage() {
                                   >
                                     {p.ProductionOrder} <ExternalLink className="w-3 h-3 inline" />
                                   </span>
-                                  <span className="text-xs text-muted-foreground">行 {p.ProductionOrderItem}</span>
+                                  <span className="text-xs text-muted-foreground">{p.ProductionOrderType || '-'}</span>
                                 </div>
-                                <FioriBadge variant={getSapStatusColor(p.ProductionOrderStatus)}>
-                                  {p.ProductionOrderStatus || '-'}
+                                <FioriBadge variant="neutral">
+                                  {p.ProductionOrderType || '-'}
                                 </FioriBadge>
                               </div>
                               <div className="grid grid-cols-2 gap-2 text-sm">
-                                <div>物料: <span className="font-medium tabular-nums">{p.Material || p.Product || '-'}</span></div>
+                                <div>产品: <span className="font-medium tabular-nums">{p.Product || '-'}</span></div>
                                 <div>工厂: <span className="font-medium tabular-nums">{p.ProductionPlant || '-'}</span></div>
                                 <div>计划数量: <span className="font-medium tabular-nums">{p.OrderPlannedTotalQty || '-'}</span></div>
-                                <div>已交货: <span className="font-medium tabular-nums">{p.ActualDeliveredQuantity || '0'}</span></div>
                               </div>
                             </div>
                           ))}
