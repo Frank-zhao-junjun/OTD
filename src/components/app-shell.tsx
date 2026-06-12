@@ -1,8 +1,8 @@
 'use client';
 
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   FileText,
   Factory,
@@ -20,7 +20,15 @@ import {
   X,
   ChevronRight,
   Settings,
+  LogOut,
 } from 'lucide-react';
+
+interface UserInfo {
+  id: string;
+  username: string;
+  displayName?: string;
+  email?: string;
+}
 
 const BUSINESS_ITEMS = [
   { id: 'sales-orders', label: '销售订单', icon: FileText, path: '/sales-orders' },
@@ -61,19 +69,53 @@ const MOBILE_TAB_ITEMS = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
+    // Fetch current user
+    fetch('/api/auth/me')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setUser(data.user);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   // Close sidebar on route change
   useEffect(() => {
     setSidebarOpen(false);
   }, [pathname]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+      router.refresh();
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
 
   if (!mounted) {
     return (
@@ -150,10 +192,50 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Bell className="w-5 h-5" />
         </button>
 
-        {/* User */}
-        <button className="fiori-shellbar-btn" aria-label="User menu">
-          <User className="w-5 h-5" />
-        </button>
+        {/* User Menu */}
+        <div className="relative" ref={userMenuRef}>
+          <button 
+            className="fiori-shellbar-btn" 
+            aria-label="User menu"
+            onClick={() => setUserMenuOpen(!userMenuOpen)}
+          >
+            <User className="w-5 h-5" />
+          </button>
+          
+          {userMenuOpen && (
+            <div className="absolute right-0 top-full mt-2 w-56 rounded-lg shadow-lg border z-50" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+              <div className="p-3 border-b" style={{ borderColor: 'var(--border)' }}>
+                <p className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>
+                  {user?.displayName || user?.username || '用户'}
+                </p>
+                {user?.email && (
+                  <p className="text-xs truncate mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
+                    {user.email}
+                  </p>
+                )}
+              </div>
+              <div className="p-1">
+                <Link
+                  href="/settings"
+                  className="flex items-center gap-2 px-3 py-2 rounded-md text-sm hover:bg-[var(--accent)] transition-colors"
+                  style={{ color: 'var(--foreground)' }}
+                  onClick={() => setUserMenuOpen(false)}
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>设置</span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-3 py-2 rounded-md text-sm w-full text-left hover:bg-[var(--accent)] transition-colors"
+                  style={{ color: '#BB0000' }}
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>退出登录</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </header>
 
       {/* ===== Body: Sidebar + Content ===== */}
