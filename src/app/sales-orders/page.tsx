@@ -2,10 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Search, RotateCw, ChevronLeft, ChevronRight, Filter, LayoutList, Table2 } from 'lucide-react';
-import { FioriBadge } from '@/components/fiori';
-import { getSapStatusColor, getSapStatusLabel } from '@/components/fiori';
+import { Search, RotateCw, Filter, LayoutList, Table2, FileText } from 'lucide-react';
+import { FioriOli, FioriBadge, FioriPageHeader, FioriSection, getSapStatusColor, getSapStatusLabel } from '@/components/fiori';
 
 interface SalesOrderItem {
   SalesOrderItem: string;
@@ -39,7 +37,7 @@ interface SalesOrder {
   to_Partner?: SalesOrderPartner[];
 }
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 20;
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return '-';
@@ -48,7 +46,6 @@ function formatDate(dateStr: string): string {
     const d = new Date(parseInt(match[1]));
     return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
   }
-  // V4 format: YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
     const d = new Date(dateStr);
     return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -59,7 +56,7 @@ function formatDate(dateStr: string): string {
 function formatAmount(amount: string | number, currency: string): string {
   const num = parseFloat(String(amount));
   if (isNaN(num)) return String(amount);
-  return num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + currency;
+  return num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + (currency || '');
 }
 
 export default function SalesOrdersPage() {
@@ -87,7 +84,6 @@ export default function SalesOrdersPage() {
         expand: 'to_Item,to_Partner',
       });
 
-      // 构建过滤条件
       const filters: string[] = [];
       if (typeFilter !== 'all') {
         filters.push(`SalesOrderType eq '${typeFilter}'`);
@@ -96,7 +92,6 @@ export default function SalesOrdersPage() {
         filters.push(`OverallSDProcessStatus eq '${statusFilter}'`);
       }
 
-      // 搜索关键词：先在DB中模糊搜索获取精确编号，再用编号过滤
       if (search.trim()) {
         const keyword = search.trim();
         const searchRes = await fetch(`/api/sap/search?type=all&q=${encodeURIComponent(keyword)}`);
@@ -111,21 +106,17 @@ export default function SalesOrdersPage() {
             }
           }
           if (searchData.products?.length > 0) {
-            // V2: 行项目用Material字段，需要在header级别用SoldToParty过滤
-            // 产品编号过滤无法在header级别直接应用，后续在客户端过滤
             for (const p of searchData.products) {
               productFilters.push(p.product);
             }
           }
 
-          // 客户编号匹配
           const codeFilters: string[] = [];
           if (customerFilters.length > 0) codeFilters.push(customerFilters.join(' or '));
 
           if (codeFilters.length > 0) {
             filters.push(`(${codeFilters.join(' or ')})`);
           } else if (productFilters.length === 0) {
-            // DB中也搜不到，尝试用关键词直接匹配订单号
             filters.push(`SalesOrder eq '${keyword}'`);
           }
         }
@@ -138,11 +129,9 @@ export default function SalesOrdersPage() {
       if (json.success) {
         let orders = json.data || [];
         setTotalCount(json.totalCount || json.count || 0);
-        
-        // Load More: 追加数据而非替换
+
         setData(prev => page === 0 ? orders : [...prev, ...orders]);
 
-        // 如果有产品搜索条件，在客户端过滤包含该产品的订单
         if (search.trim()) {
           const keyword = search.trim();
           const searchRes = await fetch(`/api/sap/search?type=all&q=${encodeURIComponent(keyword)}`);
@@ -153,7 +142,6 @@ export default function SalesOrdersPage() {
               ? new Set(searchData.customers.map((c: { customer: string }) => c.customer))
               : null;
             if (!customerCodes) {
-              // 只按产品过滤
               orders = orders.filter((o: SalesOrder) =>
                 o.to_Item?.some((item: SalesOrderItem) => productCodes.has(item.Material))
               );
@@ -163,7 +151,6 @@ export default function SalesOrdersPage() {
 
         setData(orders);
 
-        // 获取客户名称（从DB查询）
         const customerCodes = [...new Set(orders.map((o: SalesOrder) => o.SoldToParty).filter(Boolean))] as string[];
         if (customerCodes.length > 0) {
           fetchCustomerNames(customerCodes);
@@ -176,7 +163,7 @@ export default function SalesOrdersPage() {
     } finally {
       setLoading(false);
     }
-   
+
   }, [page, search, statusFilter, typeFilter]);
 
   const fetchCustomerNames = async (codes: string[]) => {
@@ -192,7 +179,7 @@ export default function SalesOrdersPage() {
         setCustomerMap(prev => ({ ...prev, ...map }));
       }
     } catch {
-      // 客户名称获取失败不影响主流程
+      // ignore
     }
   };
 
@@ -200,24 +187,32 @@ export default function SalesOrdersPage() {
     fetchData();
   }, [fetchData]);
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-
-  /** Get customer name from lookup map */
   function getCustomerName(soldToParty: string): string {
     return customerMap[soldToParty] || '';
   }
 
-  /** Count line items from to_Item expand data */
   function getItemCount(order: SalesOrder): number {
     return order.to_Item?.length || 0;
   }
 
   return (
-    <div className="space-y-4">
-      {/* Page Title */}
-      <div className="lg:hidden">
-        <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>销售订单</h1>
-      </div>
+    <div>
+      <FioriPageHeader
+        title="销售订单"
+        subtitle="按 BD9 Sell from Stock 默认过滤"
+        icon={FileText}
+        breadcrumbs={[{ label: '工作台', href: '/' }, { label: '业务交易' }, { label: '销售订单' }]}
+        actions={
+          <button
+            className="h-9 px-4 text-sm rounded font-medium text-white"
+            style={{ background: 'var(--primary)' }}
+            onClick={fetchData}
+          >
+            <RotateCw className="w-3.5 h-3.5 inline mr-1" />
+            查询
+          </button>
+        }
+      />
 
       {/* Filter Bar */}
       <div className="fiori-filterbar">
@@ -260,20 +255,11 @@ export default function SalesOrdersPage() {
             <Table2 className="w-4 h-4" />
           </button>
         </div>
-
-        <button
-          className="h-8 px-4 text-sm rounded font-medium text-white"
-          style={{ background: 'var(--primary)' }}
-          onClick={fetchData}
-        >
-          <RotateCw className="w-3.5 h-3.5 inline mr-1" />
-          查询
-        </button>
       </div>
 
       {/* Expandable Filter Area */}
       {filterOpen && (
-        <div className="p-3 rounded-lg border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+        <div className="p-3 rounded-lg border mb-3" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
           <div className="flex items-center gap-4 flex-wrap">
             <div className="fiori-filterbar-field">
               <label>订单类型</label>
@@ -310,8 +296,8 @@ export default function SalesOrdersPage() {
       )}
 
       {/* Result Count */}
-      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-        共 {totalCount} 条记录
+      <div className="text-xs mb-3 flex items-center justify-between" style={{ color: 'var(--muted-foreground)' }}>
+        <span>共 <strong style={{ color: 'var(--foreground)' }}>{totalCount}</strong> 条记录 · 已加载 {data.length} 条</span>
       </div>
 
       {/* ===== Loading ===== */}
@@ -336,7 +322,7 @@ export default function SalesOrdersPage() {
         </div>
       )}
 
-      {/* ===== Card View (Mobile: always, PC: when selected) ===== */}
+      {/* ===== Card View ===== */}
       {!loading && !error && data.length > 0 && (
         <div className={`space-y-2 ${viewMode === 'table' ? 'lg:hidden' : ''}`}>
           {data.map((order) => {
@@ -345,30 +331,36 @@ export default function SalesOrdersPage() {
             const cname = getCustomerName(order.SoldToParty);
             const itemCount = getItemCount(order);
             return (
-              <Link key={order.SalesOrder} href={`/sales-orders/${order.SalesOrder}`} className="fiori-oli block">
-                <div className={`fiori-oli-bar fiori-oli-bar--${statusColor}`} />
-                <div className="fiori-oli-content">
-                  <div className="fiori-oli-title">
-                    {order.SalesOrder}
-                    <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
-                    {order.SoldToParty}
-                    {cname && <span style={{ color: 'var(--muted-foreground)' }}> {cname}</span>}
-                  </div>
-                  <div className="fiori-oli-subtitle">
-                    {order.SalesOrderType}
-                    <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
-                    {formatDate(order.SalesOrderDate)}
-                    <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span>
-                    {itemCount}个行项目
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FioriBadge variant={statusColor as 'success' | 'warning' | 'error' | 'info' | 'neutral'}>{statusLabel}</FioriBadge>
-                    <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>
-                      {formatAmount(order.TotalNetAmount, order.TransactionCurrency)}
-                    </span>
-                  </div>
-                </div>
-              </Link>
+              <FioriOli
+                key={order.SalesOrder}
+                href={`/sales-orders/${order.SalesOrder}`}
+                barColor={statusColor}
+                title={
+                  <span>
+                    <span style={{ color: 'var(--primary)' }}>{order.SalesOrder}</span>
+                    {cname ? (
+                      <span className="ml-2" style={{ color: 'var(--muted-foreground)' }}>{cname}</span>
+                    ) : (
+                      <span className="ml-2" style={{ color: 'var(--muted-foreground)' }}>{order.SoldToParty}</span>
+                    )}
+                  </span>
+                }
+                subtitle={
+                  <span className="flex items-center gap-2">
+                    <span>{order.SalesOrderType}</span>
+                    <span style={{ color: 'var(--border)' }}>·</span>
+                    <span>{formatDate(order.SalesOrderDate)}</span>
+                  </span>
+                }
+                statusVariant={statusColor}
+                status={statusLabel}
+                numeric={formatAmount(order.TotalNetAmount, order.TransactionCurrency)}
+                attributes={[
+                  { label: '客户编号', value: order.SoldToParty },
+                  { label: '行项目', value: `${itemCount} 个` },
+                  { label: '类型', value: order.SalesOrderType },
+                ]}
+              />
             );
           })}
         </div>
@@ -411,7 +403,7 @@ export default function SalesOrdersPage() {
                     <td className="px-4 py-3 text-center">{itemCount}</td>
                     <td className="px-4 py-3 text-right font-medium tabular-nums">{formatAmount(order.TotalNetAmount, order.TransactionCurrency)}</td>
                     <td className="px-4 py-3 text-center">
-                      <FioriBadge variant={statusColor as 'success' | 'warning' | 'error' | 'info' | 'neutral'}>{statusLabel}</FioriBadge>
+                      <FioriBadge variant={statusColor}>{statusLabel}</FioriBadge>
                     </td>
                   </tr>
                 );
@@ -424,10 +416,10 @@ export default function SalesOrdersPage() {
       {/* ===== Load More ===== */}
       {!loading && !error && data.length < totalCount && (
         <button
-          className="w-full h-10 rounded border text-sm font-medium transition-colors"
-          style={{ 
-            background: 'var(--card)', 
-            borderColor: 'var(--border)', 
+          className="w-full h-10 rounded border text-sm font-medium transition-colors mt-3"
+          style={{
+            background: 'var(--card)',
+            borderColor: 'var(--border)',
             color: 'var(--primary)',
           }}
           onClick={() => setPage(p => p + 1)}
