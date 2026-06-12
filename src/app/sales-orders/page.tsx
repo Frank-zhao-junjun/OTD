@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, RotateCw, Filter, LayoutList, Table2, FileText } from 'lucide-react';
 import { FioriOli, FioriBadge, FioriPageHeader, FioriSection, getSapStatusColor, getSapStatusLabel } from '@/components/fiori';
+import { useViewMode } from '@/hooks/useViewMode';
 
 interface SalesOrderItem {
   SalesOrderItem: string;
@@ -70,7 +71,7 @@ export default function SalesOrdersPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [viewMode, setViewMode] = useViewMode();
   const [customerMap, setCustomerMap] = useState<Record<string, string>>({});
 
   const fetchData = useCallback(async () => {

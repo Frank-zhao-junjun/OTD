@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { FioriBadge, FioriFab, getSapStatusColor } from '@/components/fiori';
 import { Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
 import { formatSapDate } from '@/lib/utils';
+import { useViewMode } from '@/hooks/useViewMode';
 
 interface Delivery {
   DeliveryDocument: string;
@@ -49,7 +50,7 @@ export default function OutboundDeliveryPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<'card' | 'table'>('table');
+  const [viewMode, setViewMode] = useViewMode();
   const PAGE_SIZE = 20;
 
   const fetchCustomerNames = useCallback(async (soldToCodes: string[]) => {
