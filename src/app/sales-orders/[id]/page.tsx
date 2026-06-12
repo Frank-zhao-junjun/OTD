@@ -55,6 +55,7 @@ interface ProductionOrderItem {
   ProductionOrderType?: string;
   ProductionOrderStatus?: string;
   OrderPlannedTotalQty?: string | number;
+  ActualDeliveredQuantity?: string | number;
 }
 
 interface SalesOrder {
@@ -535,7 +536,8 @@ export default function SalesOrderDetailPage() {
                               <div className="grid grid-cols-2 gap-2 text-sm">
                                 <div>产品: <span className="font-medium tabular-nums">{p.Product || '-'}</span></div>
                                 <div>工厂: <span className="font-medium tabular-nums">{p.ProductionPlant || '-'}</span></div>
-                                <div>计划数量: <span className="font-medium tabular-nums">{p.OrderPlannedTotalQty || '-'}</span></div>
+                                <div>计划数量: <span className="font-medium tabular-nums">{p.OrderPlannedTotalQty ?? '-'}</span></div>
+                                <div>实际产出: <span className="font-medium tabular-nums">{p.ActualDeliveredQuantity ?? '-'}</span></div>
                               </div>
                             </div>
                           ))}
