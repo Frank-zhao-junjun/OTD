@@ -57,7 +57,7 @@ export async function GET(
     let productionOrders: Array<Record<string, unknown>> = [];
     try {
       productionOrders = await callProxyApi(
-        `/api/sap/CE_PRODUCTIONORDER_0001/ProductionOrder?filter=SalesOrder eq '${salesOrderId}'&select=ProductionOrder,SalesOrder,SalesOrderItem,Product,ProductionPlant,ProductionOrderType,OrderPlannedTotalQty`
+        `/api/sap/CE_PRODUCTIONORDER_0001/ProductionOrder?filter=SalesOrder eq '${salesOrderId}'&select=ProductionOrder,SalesOrder,SalesOrderItem,Product,ProductionPlant,ProductionOrderType,OrderPlannedTotalQty,ActualDeliveredQuantity`
       );
     } catch (e) {
       console.warn('Production orders V4 fetch failed:', e instanceof Error ? e.message : e);
@@ -67,7 +67,7 @@ export async function GET(
     if (productionOrders.length === 0) {
       try {
         productionOrders = await callProxyApi(
-          `/api/sap/API_PRODUCTION_ORDER_2_SRV/A_ProductionOrder?filter=SalesOrder eq '${salesOrderId}'&select=ProductionOrder,ProductionOrderItem,SalesOrder,SalesOrderItem,Product,ProductionPlant,ProductionOrderType,OrderPlannedTotalQty`
+          `/api/sap/API_PRODUCTION_ORDER_2_SRV/A_ProductionOrder?filter=SalesOrder eq '${salesOrderId}'&select=ProductionOrder,ProductionOrderItem,SalesOrder,SalesOrderItem,Product,ProductionPlant,ProductionOrderType,OrderPlannedTotalQty,ActualDeliveredQuantity`
         );
       } catch (e) {
         console.warn('Production orders V2 fetch failed:', e instanceof Error ? e.message : e);
