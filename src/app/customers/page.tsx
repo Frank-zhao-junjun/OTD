@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab } from '@/components/fiori';
 import { Search, RotateCcw, Inbox, LayoutList, Table2, CloudDownload } from 'lucide-react';
+import { useViewMode } from '@/hooks/useViewMode';
 
 interface Customer {
   Customer: string;
@@ -33,7 +34,7 @@ export default function CustomersPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [viewMode, setViewMode] = useViewMode();
   const PAGE_SIZE = 20;
 
   // 从本地DB查询（默认行为，DB优先）

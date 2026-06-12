@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { FioriBadge, FioriFab } from '@/components/fiori';
 import { SAP_DEFAULTS } from '@/lib/sap-service';
 import { Search, RotateCcw, Filter, Inbox, LayoutList, Table2 } from 'lucide-react';
+import { useViewMode } from '@/hooks/useViewMode';
 
 interface ProductionOrder {
   ProductionOrder: string;
@@ -41,7 +42,7 @@ export default function ProductionOrdersPage() {
   const [plant, setPlant] = useState(SAP_DEFAULTS.plant);
   const [totalCount, setTotalCount] = useState(0);
   const [showFilter, setShowFilter] = useState(false);
-  const [viewMode, setViewMode] = useState<'card' | 'table'>('table');
+  const [viewMode, setViewMode] = useViewMode();
   const [productNames, setProductNames] = useState<Record<string, string>>({});
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 20;

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab } from '@/components/fiori';
 import { Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
+import { useViewMode } from '@/hooks/useViewMode';
 
 interface StockItem {
   Material: string;
@@ -37,7 +38,7 @@ export default function MaterialStockPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [viewMode, setViewMode] = useViewMode();
   const PAGE_SIZE = 20;
 
   const fetchMaterialNames = useCallback(async (materialCodes: string[]) => {
