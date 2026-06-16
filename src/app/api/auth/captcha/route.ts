@@ -20,6 +20,7 @@ export async function GET() {
       success: true,
       captchaId: id,
       svg,
+      ...(process.env.NODE_ENV !== 'production' ? { codeHint: code } : {}),
     });
 
     // Set cookie with captcha ID
