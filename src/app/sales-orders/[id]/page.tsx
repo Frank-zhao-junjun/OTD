@@ -9,7 +9,7 @@ import { FioriBadge, FioriErrorState, getSapStatusColor } from '@/components/fio
 import {
   ArrowLeft, FileText, Package, Truck, Receipt, ChevronRight,
   ExternalLink, Factory, DollarSign, Hash, Calendar, CheckCircle2,
-  AlertCircle, Clock
+  AlertCircle, Clock, Users, MapPin, Globe, Phone, Mail, GitBranch
 } from 'lucide-react';
 import { SALES_ORDER_STATUS_MAP } from '@/lib/sap-service';
 import { formatSapDate } from '@/lib/utils';
@@ -44,6 +44,16 @@ interface SalesOrderPartner {
   Customer: string;
   Supplier: string;
   Personnel: string;
+  BusinessPartnerName1?: string;
+  BusinessPartnerName2?: string;
+  CityName?: string;
+  Country?: string;
+  StreetName?: string;
+  HouseNumber?: string;
+  PostalCode?: string;
+  PhoneNumber?: string;
+  EmailAddress?: string;
+  CorrespondenceLanguage?: string;
 }
 
 interface PricingElement {
@@ -582,16 +592,171 @@ export default function SalesOrderDetailPage() {
       {/* ── Partner Information ── */}
       {partners.length > 0 && (
         <div className="rounded-lg border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
-          <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
+          <div className="px-4 py-3 border-b flex items-center gap-2" style={{ borderColor: 'var(--border)' }}>
+            <Users className="w-4 h-4" style={{ color: 'var(--primary)' }} />
             <span className="font-semibold text-sm">业务伙伴</span>
           </div>
-          <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
-            {partners.map((partner, idx) => (
-              <div key={idx} className="px-4 py-2 flex items-center justify-between">
-                <span className="text-sm">{PARTNER_FUNCTION_MAP[partner.PartnerFunction] || partner.PartnerFunction}</span>
-                <span className="text-sm font-medium">{partner.Customer || partner.Supplier || partner.Personnel || '-'}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+            {partners.map((partner, idx) => {
+              const hasAddress = partner.CityName || partner.StreetName || partner.Country;
+              return (
+                <div key={idx} className="px-4 py-3 border-b md:border-r last:border-r-0" style={{ borderColor: 'var(--border)' }}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>
+                      {PARTNER_FUNCTION_MAP[partner.PartnerFunction] || partner.PartnerFunction}
+                    </span>
+                    <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--muted)', color: 'var(--muted-foreground)' }}>
+                      {partner.PartnerFunction}
+                    </span>
+                  </div>
+                  <div className="text-sm font-medium mb-1">
+                    {partner.BusinessPartnerName1 || partner.Customer || partner.Supplier || partner.Personnel || '-'}
+                  </div>
+                  {partner.BusinessPartnerName2 && (
+                    <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{partner.BusinessPartnerName2}</div>
+                  )}
+                  {hasAddress && (
+                    <div className="mt-2 text-xs space-y-0.5" style={{ color: 'var(--muted-foreground)' }}>
+                      {partner.StreetName && (
+                        <div className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          <span>{[partner.StreetName, partner.HouseNumber].filter(Boolean).join(' ')}</span>
+                        </div>
+                      )}
+                      {(partner.CityName || partner.PostalCode || partner.Country) && (
+                        <div className="flex items-center gap-1">
+                          <Globe className="w-3 h-3" />
+                          <span>{[partner.PostalCode, partner.CityName, partner.Country].filter(Boolean).join(', ')}</span>
+                        </div>
+                      )}
+                      {partner.PhoneNumber && (
+                        <div className="flex items-center gap-1">
+                          <Phone className="w-3 h-3" />
+                          <span>{partner.PhoneNumber}</span>
+                        </div>
+                      )}
+                      {partner.EmailAddress && (
+                        <div className="flex items-center gap-1">
+                          <Mail className="w-3 h-3" />
+                          <span>{partner.EmailAddress}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Document Flow Timeline ── */}
+      {items.length > 0 && (
+        <div className="rounded-lg border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+          <div className="px-4 py-3 border-b flex items-center gap-2" style={{ borderColor: 'var(--border)' }}>
+            <GitBranch className="w-4 h-4" style={{ color: 'var(--primary)' }} />
+            <span className="font-semibold text-sm">单据流</span>
+          </div>
+          <div className="p-4">
+            <div className="relative">
+              {/* Vertical line */}
+              <div className="absolute left-[19px] top-2 bottom-2 w-0.5" style={{ background: 'var(--border)' }} />
+              <div className="space-y-4">
+                {/* Sales Order Node */}
+                <div className="flex items-start gap-3 relative">
+                  <div className="relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(0,112,242,0.1)', border: '2px solid var(--primary)' }}>
+                    <FileText className="w-5 h-5" style={{ color: 'var(--primary)' }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold">销售订单 {order.SalesOrder}</div>
+                    <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                      {fmtAmount(order.TotalNetAmount, order.TransactionCurrency)} · {formatSapDate(order.SalesOrderDate)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Delivery Nodes */}
+                {(() => {
+                  const allDeliveries = Object.values(deliveryByItem).flat();
+                  const uniqueDeliveries = Array.from(new Map(allDeliveries.map(d => [d.DeliveryDocument, d])).values());
+                  return uniqueDeliveries.map((d) => (
+                    <div key={d.DeliveryDocument} className="flex items-start gap-3 relative">
+                      <div className="relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(16,126,62,0.1)', border: '2px solid #107E3E' }}>
+                        <Truck className="w-5 h-5" style={{ color: '#107E3E' }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold">
+                          <span
+                            className="cursor-pointer hover:underline"
+                            style={{ color: '#107E3E' }}
+                            onClick={() => router.push(`/outbound-delivery/${d.DeliveryDocument}`)}
+                          >
+                            交货单 {d.DeliveryDocument}
+                          </span>
+                        </div>
+                        <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                          数量: {d.ActualDeliveryQuantity ?? '-'} · {formatSapDate(d.DeliveryDate)}
+                        </div>
+                      </div>
+                    </div>
+                  ));
+                })()}
+
+                {/* Billing Nodes */}
+                {(() => {
+                  const allBillings = Object.values(billingByItem).flat();
+                  const uniqueBillings = Array.from(new Map(allBillings.map(b => [b.BillingDocument, b])).values());
+                  return uniqueBillings.map((b) => (
+                    <div key={b.BillingDocument} className="flex items-start gap-3 relative">
+                      <div className="relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(10,110,209,0.1)', border: '2px solid #0A6ED1' }}>
+                        <Receipt className="w-5 h-5" style={{ color: '#0A6ED1' }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold">
+                          <span
+                            className="cursor-pointer hover:underline"
+                            style={{ color: '#0A6ED1' }}
+                            onClick={() => router.push(`/billing-documents/${b.BillingDocument}`)}
+                          >
+                            开票单据 {b.BillingDocument}
+                          </span>
+                        </div>
+                        <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                          金额: {fmtAmount(b.NetAmount, b.TransactionCurrency)} · {formatSapDate(b.BillingDocumentDate)}
+                        </div>
+                      </div>
+                    </div>
+                  ));
+                })()}
+
+                {/* Production Order Nodes */}
+                {(() => {
+                  const allProds = Object.values(productionByItem).flat();
+                  const uniqueProds = Array.from(new Map(allProds.map(p => [p.ProductionOrder, p])).values());
+                  return uniqueProds.map((p) => (
+                    <div key={p.ProductionOrder} className="flex items-start gap-3 relative">
+                      <div className="relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(233,115,12,0.1)', border: '2px solid #E9730C' }}>
+                        <Factory className="w-5 h-5" style={{ color: '#E9730C' }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold">
+                          <span
+                            className="cursor-pointer hover:underline"
+                            style={{ color: '#E9730C' }}
+                            onClick={() => router.push(`/production-orders/${p.ProductionOrder}`)}
+                          >
+                            生产订单 {p.ProductionOrder}
+                          </span>
+                        </div>
+                        <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                          计划: {num(p.OrderPlannedTotalQty) || '-'} · 产出: {num(p.ActualDeliveredQuantity) || '-'}
+                        </div>
+                      </div>
+                    </div>
+                  ));
+                })()}
               </div>
-            ))}
+            </div>
           </div>
         </div>
       )}
