@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   FileText,
@@ -17,95 +18,161 @@ import {
   CheckCircle2,
   AlertCircle,
   PackageOpen,
+  Loader2,
 } from 'lucide-react';
 import { FioriKpiCard, FioriSection, FioriActivity } from '@/components/fiori';
 
 type BandColor = 'blue' | 'green' | 'orange' | 'red' | 'cyan' | 'purple' | 'pink' | 'teal';
 
+interface KpiData {
+  label: string;
+  value: string;
+  unit: string;
+  trend: 'up' | 'down' | 'flat';
+  trendValue: string;
+  trendLabel: string;
+  color: 'blue' | 'green' | 'orange' | 'purple';
+  icon: string;
+}
+
+interface ActivityData {
+  color: 'success' | 'info' | 'warning' | 'neutral';
+  text: string;
+  meta: string;
+}
+
+interface DashboardData {
+  kpis: KpiData[];
+  activities: ActivityData[];
+  tileCounts: Record<string, number>;
+  error?: string;
+}
+
+const ICON_MAP: Record<string, typeof FileText> = {
+  FileText,
+  Factory,
+  Truck,
+  PackageOpen,
+};
+
 const BUSINESS_TILES: Array<{
   title: string;
   subtitle: string;
-  kpi: string;
-  delta: string;
-  direction: 'up' | 'down' | 'flat';
   icon: typeof FileText;
   path: string;
   color: BandColor;
+  countKey: string;
 }> = [
-  { title: '销售订单', subtitle: '本月新订单', kpi: '23', delta: '+12%', direction: 'up', icon: FileText, path: '/sales-orders', color: 'blue' },
-  { title: '生产订单', subtitle: '进行中', kpi: '15', delta: '+5%', direction: 'up', icon: Factory, path: '/production-orders', color: 'cyan' },
-  { title: '发货单', subtitle: '今日待发货', kpi: '8', delta: '-2', direction: 'down', icon: Truck, path: '/outbound-delivery', color: 'green' },
-  { title: '开票单据', subtitle: '本月已开票', kpi: '42', delta: '+8%', direction: 'up', icon: Receipt, path: '/billing-documents', color: 'purple' },
-  { title: '库存查询', subtitle: '低库存物料', kpi: '7', delta: '!', direction: 'flat', icon: BarChart3, path: '/material-stock', color: 'orange' },
-  { title: '入库单', subtitle: '今日入库', kpi: '5', delta: '+3', direction: 'up', icon: FileSpreadsheet, path: '/material-documents', color: 'teal' },
+  { title: '销售订单', subtitle: '全部订单', icon: FileText, path: '/sales-orders', color: 'blue', countKey: 'salesOrders' },
+  { title: '生产订单', subtitle: '进行中', icon: Factory, path: '/production-orders', color: 'cyan', countKey: 'productionOrders' },
+  { title: '发货单', subtitle: '全部发货', icon: Truck, path: '/outbound-delivery', color: 'green', countKey: 'deliveries' },
+  { title: '开票单据', subtitle: '全部开票', icon: Receipt, path: '/billing-documents', color: 'purple', countKey: 'billingDocs' },
+  { title: '库存查询', subtitle: '库存条目', icon: BarChart3, path: '/material-stock', color: 'orange', countKey: 'materialStock' },
+  { title: '入库单', subtitle: '物料凭证', icon: FileSpreadsheet, path: '/material-documents', color: 'teal', countKey: 'materialDocs' },
 ];
 
-const MASTER_TILES = [
-  { title: '产品管理', subtitle: '产品总数', kpi: '1,286', icon: Package, path: '/products', color: 'pink' as BandColor },
-  { title: '客户管理', subtitle: '活跃客户', kpi: '384', icon: Users, path: '/customers', color: 'blue' as BandColor },
+const MASTER_TILES: Array<{
+  title: string;
+  subtitle: string;
+  icon: typeof FileText;
+  path: string;
+  color: BandColor;
+  countKey: string;
+}> = [
+  { title: '产品管理', subtitle: '产品总数', icon: Package, path: '/products', color: 'pink', countKey: 'products' },
+  { title: '客户管理', subtitle: '客户总数', icon: Users, path: '/customers', color: 'blue', countKey: 'customers' },
 ];
+
+function formatNum(n: number): string {
+  if (n >= 10000) return `${(n / 10000).toFixed(1)}万`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(n);
+}
 
 export default function HomePage() {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/dashboard')
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) {
+          setData(json.data);
+        } else {
+          setError('获取数据失败');
+        }
+      })
+      .catch(() => setError('网络错误'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const tileCounts = data?.tileCounts || {};
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-[#0070F2]" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {/* ===== Hero KPI Row ===== */}
-      <FioriSection title="业务概览" meta="实时数据">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <FioriKpiCard
-            label="本月订单总额"
-            value="¥ 2,847,600"
-            delta={{ value: '+12.5%', direction: 'up', label: '较上月' }}
-            color="blue"
-          />
-          <FioriKpiCard
-            label="订单完成率"
-            value="87.5"
-            unit="%"
-            delta={{ value: '+2.3%', direction: 'up', label: '较上周' }}
-            color="green"
-          />
-          <FioriKpiCard
-            label="平均交付天数"
-            value="5.2"
-            unit="天"
-            delta={{ value: '-0.4天', direction: 'up', label: '较上月' }}
-            color="cyan"
-          />
-          <FioriKpiCard
-            label="低库存预警"
-            value="7"
-            unit="项"
-            delta={{ value: '+2', direction: 'down', label: '需补货' }}
-            color="orange"
-          />
-        </div>
+      <FioriSection title="业务概览" meta={data?.error ? '离线' : '实时数据'}>
+        {data?.error ? (
+          <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-sm">
+            <AlertCircle className="w-4 h-4 inline mr-1" />
+            {data.error}
+          </div>
+        ) : data?.kpis && data.kpis.length > 0 ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {data.kpis.map((kpi) => (
+              <FioriKpiCard
+                key={kpi.label}
+                label={kpi.label}
+                value={kpi.value}
+                unit={kpi.unit}
+                delta={{
+                  value: kpi.trendValue,
+                  direction: kpi.trend,
+                  label: kpi.trendLabel,
+                }}
+                color={kpi.color}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <FioriKpiCard label="销售订单" value="—" delta={{ value: '—', direction: 'flat', label: '等待数据' }} color="blue" />
+            <FioriKpiCard label="生产订单" value="—" delta={{ value: '—', direction: 'flat', label: '等待数据' }} color="green" />
+            <FioriKpiCard label="待发货" value="—" delta={{ value: '—', direction: 'flat', label: '等待数据' }} color="orange" />
+            <FioriKpiCard label="库存条目" value="—" delta={{ value: '—', direction: 'flat', label: '等待数据' }} color="purple" />
+          </div>
+        )}
       </FioriSection>
 
       {/* ===== Business Tiles ===== */}
-      <FioriSection title="业务交易" meta="6 项">
+      <FioriSection title="业务交易" meta={`${BUSINESS_TILES.length} 项`}>
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
           {BUSINESS_TILES.map((tile) => {
             const Icon = tile.icon;
+            const count = tileCounts[tile.countKey];
             return (
               <Link key={tile.path} href={tile.path} className="fiori-tile">
                 <div className={`fiori-tile-band fiori-tile-band--${tile.color}`} />
                 <div className="fiori-tile-body">
                   <div className="flex items-center justify-between">
                     <Icon className={`w-5 h-5 lg:w-6 lg:h-6 fiori-tile-icon--${tile.color}`} />
-                    <span className={`fiori-tile-delta fiori-tile-delta--${tile.direction === 'up' ? 'up' : tile.direction === 'down' ? 'down' : 'flat'}`}>
-                      {tile.direction === 'up' && <TrendingUp className="w-3 h-3" />}
-                      {tile.direction === 'down' && <TrendingUp className="w-3 h-3 rotate-180" />}
-                      {tile.direction === 'flat' && <span>—</span>}
-                      {tile.delta}
-                    </span>
+                    <ArrowRight className="w-4 h-4 text-[#6A6D70] opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
-                  <div>
-                    <div className={`fiori-tile-kpi fiori-tile-kpi--${tile.color} tabular-nums`}>
-                      {tile.kpi}
-                    </div>
-                    <div className="fiori-tile-title mt-1">{tile.title}</div>
-                    <div className="fiori-tile-subtitle">{tile.subtitle}</div>
+                  <div className="fiori-tile-kpi">
+                    {count !== undefined ? formatNum(count) : '—'}
                   </div>
+                  <div className="fiori-tile-title">{tile.title}</div>
+                  <div className="fiori-tile-subtitle">{tile.subtitle}</div>
                 </div>
               </Link>
             );
@@ -114,25 +181,24 @@ export default function HomePage() {
       </FioriSection>
 
       {/* ===== Master Data Tiles ===== */}
-      <FioriSection title="主数据" meta="2 项">
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+      <FioriSection title="主数据" meta={`${MASTER_TILES.length} 项`}>
+        <div className="grid grid-cols-2 gap-3">
           {MASTER_TILES.map((tile) => {
             const Icon = tile.icon;
+            const count = tileCounts[tile.countKey];
             return (
               <Link key={tile.path} href={tile.path} className="fiori-tile">
                 <div className={`fiori-tile-band fiori-tile-band--${tile.color}`} />
                 <div className="fiori-tile-body">
                   <div className="flex items-center justify-between">
                     <Icon className={`w-5 h-5 lg:w-6 lg:h-6 fiori-tile-icon--${tile.color}`} />
-                    <ArrowRight className="w-4 h-4" style={{ color: 'var(--muted-foreground)' }} />
+                    <ArrowRight className="w-4 h-4 text-[#6A6D70] opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
-                  <div>
-                    <div className={`fiori-tile-kpi fiori-tile-kpi--${tile.color} tabular-nums`}>
-                      {tile.kpi}
-                    </div>
-                    <div className="fiori-tile-title mt-1">{tile.title}</div>
-                    <div className="fiori-tile-subtitle">{tile.subtitle}</div>
+                  <div className="fiori-tile-kpi">
+                    {count !== undefined ? formatNum(count) : '—'}
                   </div>
+                  <div className="fiori-tile-title">{tile.title}</div>
+                  <div className="fiori-tile-subtitle">{tile.subtitle}</div>
                 </div>
               </Link>
             );
@@ -140,90 +206,21 @@ export default function HomePage() {
         </div>
       </FioriSection>
 
-      {/* ===== Activity Stream + Quick Actions ===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <div className="lg:col-span-2">
-          <FioriSection title="最近活动" meta="今日">
-            <div className="fiori-facets">
-              <FioriActivity
-                color="success"
-                text={<><strong>销售订单 #1,247</strong> 已确认，数量 50 PCS</>}
-                meta={<><Clock className="w-3 h-3 inline mr-1" />10 分钟前 · 王经理</>}
-              />
-              <FioriActivity
-                color="info"
-                text={<><strong>生产订单 #PO-2024-0389</strong> 已释放，工厂 1010</>}
-                meta={<><Clock className="w-3 h-3 inline mr-1" />1 小时前 · 张主管</>}
-              />
-              <FioriActivity
-                color="warning"
-                text={<><strong>库存预警</strong>：物料 TG-142-B 库存低于安全水位</>}
-                meta={<><Clock className="w-3 h-3 inline mr-1" />2 小时前 · 系统</>}
-              />
-              <FioriActivity
-                color="success"
-                text={<><strong>发货单 #8800001245</strong> 已完成拣货，待出库</>}
-                meta={<><Clock className="w-3 h-3 inline mr-1" />3 小时前 · 李仓管</>}
-              />
-              <FioriActivity
-                color="neutral"
-                text={<><strong>开票单 #900001234</strong> 已生成，金额 ¥ 24,500.00</>}
-                meta={<><Clock className="w-3 h-3 inline mr-1" />昨天 17:30 · 财务部</>}
-              />
+      {/* ===== Activity Stream ===== */}
+      <FioriSection title="最近动态" meta={data?.activities ? `${data.activities.length} 条` : undefined}>
+        <div className="space-y-1">
+          {data?.activities && data.activities.length > 0 ? (
+            data.activities.map((item, i) => (
+              <FioriActivity key={i} color={item.color} text={item.text} meta={item.meta} />
+            ))
+          ) : (
+            <div className="p-4 text-sm text-[#6A6D70] text-center">
+              <Clock className="w-4 h-4 inline mr-1" />
+              暂无动态
             </div>
-          </FioriSection>
+          )}
         </div>
-
-        <div>
-          <FioriSection title="快速入口" meta="常用">
-            <div className="fiori-facets" style={{ padding: 8 }}>
-              <Link href="/sales-orders" className="fiori-sidebar-item">
-                <FileText className="w-4 h-4" />
-                <span className="flex-1">新建销售订单</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-              <Link href="/production-orders" className="fiori-sidebar-item">
-                <Factory className="w-4 h-4" />
-                <span className="flex-1">生产订单跟踪</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-              <Link href="/outbound-delivery" className="fiori-sidebar-item">
-                <Truck className="w-4 h-4" />
-                <span className="flex-1">发货管理</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-              <Link href="/material-stock" className="fiori-sidebar-item">
-                <PackageOpen className="w-4 h-4" />
-                <span className="flex-1">库存查询</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          </FioriSection>
-
-          <FioriSection title="系统状态" meta="正常">
-            <div className="fiori-facets" style={{ padding: 12 }}>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>SAP 接口</span>
-                <span className="flex items-center gap-1.5 text-xs" style={{ color: '#107E3E' }}>
-                  <CheckCircle2 className="w-3.5 h-3.5" /> 在线
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>数据同步</span>
-                <span className="flex items-center gap-1.5 text-xs" style={{ color: '#107E3E' }}>
-                  <CheckCircle2 className="w-3.5 h-3.5" /> 正常
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>响应时间</span>
-                <span className="flex items-center gap-1.5 text-xs" style={{ color: '#107E3E' }}>
-                  <Activity className="w-3.5 h-3.5" /> 125ms
-                </span>
-              </div>
-            </div>
-          </FioriSection>
-        </div>
-      </div>
+      </FioriSection>
     </div>
   );
 }

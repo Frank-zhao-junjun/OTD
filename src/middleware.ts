@@ -10,7 +10,7 @@ const JWT_SECRET = new TextEncoder().encode(
 const publicPaths = ['/login', '/register', '/api/auth'];
 
 // Static files and assets
-const staticPaths = ['/_next', '/favicon', '/api/sap', '/api/settings', '/api/sync', '/api/search'];
+const staticPaths = ['/_next', '/favicon', '/api/sap', '/api/settings', '/api/sync', '/api/search', '/api/dashboard'];
 
 function isPublicPath(pathname: string): boolean {
   return publicPaths.some(path => pathname.startsWith(path));
