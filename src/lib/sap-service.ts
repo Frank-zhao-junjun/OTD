@@ -274,7 +274,7 @@ export const SAP_FIELD_LABELS = {
 export const SAP_DEFAULT_SELECTS: Record<string, string> = {
   // Production Order (V4) — user-specified field set + UI-needed fields
   'CE_PRODUCTIONORDER_0001:ProductionOrder':
-    'ProductionOrder,IsMarkedForDeletion,IsCompletelyDelivered,Product,ProductionPlant,SalesOrder,SalesOrderItem,OrderPlannedTotalQty,ActualDeliveredQuantity,ProductionOrderType,OrderScheduledStartDate,OrderScheduledEndDate,OrderActualStartDate,OrderActualEndDate,OrderActualReleaseDate,TechnicalCompletionDate',
+    'ProductionOrder,IsMarkedForDeletion,IsCompletelyDelivered,Product,ProductionPlant,SalesOrder,SalesOrderItem,OrderPlannedTotalQty,ActualDeliveredQuantity,ProductionOrderType,OrderScheduledStartDate,OrderScheduledEndDate,OrderActualStartDate,OrderActualEndDate,OrderActualReleaseDate,TechnicalCompletionDate,_Component,_Operation,_Sequence,_PostingRule',
   'API_SALES_ORDER_SRV:A_SalesOrder':
     'SalesOrder,SalesOrderType,SalesOrganization,DistributionChannel,OrganizationDivision,SoldToParty,PurchaseOrderByCustomer,SalesOrderDate,TotalNetAmount,TransactionCurrency,OverallSDProcessStatus,CreatedByUser',
   // Sales Order (V4) — DEPRECATED: SalesOrderType returns internal code instead of business type
@@ -304,6 +304,8 @@ export const SAP_DEFAULT_SELECTS: Record<string, string> = {
 export const SAP_DEFAULT_EXPANDS: Record<string, string> = {
   // Products (V2) — expand description (ZH name) and plant (MRP/production info)
   'API_PRODUCT_SRV:A_Product': 'to_Description,to_Plant,to_SalesDelivery,to_Valuation',
+  // Production Order (V4) — expand components, operations, sequences, posting rules
+  'CE_PRODUCTIONORDER_0001:ProductionOrder': '_Component,_Operation,_Sequence,_PostingRule',
 };
 
 // Status display helpers
