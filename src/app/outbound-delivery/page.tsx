@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { FioriBadge, FioriFab, getSapStatusColor } from '@/components/fiori';
-import { Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
+import { Search, RotateCcw, Inbox, LayoutList, Table2, Download } from 'lucide-react';
+import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { formatSapDate } from '@/lib/utils';
 import { useViewMode } from '@/hooks/useViewMode';
 
@@ -40,6 +41,15 @@ const SD_STATUS: Record<string, { color: 'success' | 'warning' | 'error' | 'info
   'C': { color: 'success', label: '已完成' },
   'D': { color: 'error', label: '已取消' },
 };
+
+const deliveryColumns: ExportColumn<Delivery>[] = [
+  { header: '交货单号', key: 'DeliveryDocument', width: 14 },
+  { header: '类型', key: 'DeliveryDocumentType', width: 10 },
+  { header: '客户', key: 'SoldToParty', width: 12 },
+  { header: '交货日期', key: 'DeliveryDate', width: 14, render: (d) => formatSapDate(d.DeliveryDate) },
+  { header: '库存状态', key: 'OverallGoodsMovementStatus', width: 12, render: (d) => MOVEMENT_STATUS[d.OverallGoodsMovementStatus]?.label || d.OverallGoodsMovementStatus || '-' },
+  { header: 'SD状态', key: 'OverallSDProcessStatus', width: 12, render: (d) => SD_STATUS[d.OverallSDProcessStatus]?.label || d.OverallSDProcessStatus || '-' },
+];
 
 export default function OutboundDeliveryPage() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
@@ -128,6 +138,9 @@ export default function OutboundDeliveryPage() {
           <button className={`h-8 w-8 flex items-center justify-center ${viewMode === 'table' ? 'text-white' : ''}`} style={viewMode === 'table' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }} onClick={() => setViewMode('table')}><Table2 className="w-4 h-4" /></button>
         </div>
         <div className="flex items-center gap-2">
+          <button className="h-8 px-3 text-sm rounded border font-medium" style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--primary)' }} onClick={() => exportToExcel(deliveries, deliveryColumns, '交货单')}>
+            <Download className="w-3.5 h-3.5 inline mr-1" /> 导出
+          </button>
           <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={() => { setPage(0); fetchDeliveries(); }} disabled={loading}><Search className="w-3.5 h-3.5 inline mr-1" /> 查询</button>
           <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={() => { setSearchQuery(''); setPage(0); }}><RotateCcw className="w-3.5 h-3.5 inline mr-1" /> 清除</button>
         </div>

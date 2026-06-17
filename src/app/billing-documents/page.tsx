@@ -3,7 +3,8 @@ import { useRouter } from 'next/navigation';
 
 import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab, getSapStatusColor } from '@/components/fiori';
-import { Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
+import { Search, RotateCcw, Inbox, LayoutList, Table2, Download } from 'lucide-react';
+import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { formatSapDate } from '@/lib/utils';
 import { useViewMode } from '@/hooks/useViewMode';
 
@@ -44,6 +45,16 @@ function formatAmount(amount: string | undefined, currency: string | undefined):
   if (isNaN(num)) return amount;
   return num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (currency ? ' ' + currency : '');
 }
+
+const billingColumns: ExportColumn<BillingDocument>[] = [
+  { header: '单据号', key: 'BillingDocument', width: 14 },
+  { header: '类型', key: 'BillingDocumentType', width: 10 },
+  { header: '客户', key: 'SoldToParty', width: 12 },
+  { header: '开票日期', key: 'BillingDocumentDate', width: 14, render: (d) => formatSapDate(d.BillingDocumentDate) },
+  { header: '金额', key: 'TotalNetAmount', width: 14, render: (d) => formatAmount(d.TotalNetAmount, d.TransactionCurrency) },
+  { header: '开票状态', key: 'OverallBillingStatus', width: 12, render: (d) => BILLING_STATUS[d.OverallBillingStatus]?.label || d.OverallBillingStatus || '-' },
+  { header: '过账状态', key: 'AccountingPostingStatus', width: 12, render: (d) => ACCOUNTING_STATUS[d.AccountingPostingStatus]?.label || d.AccountingPostingStatus || '-' },
+];
 
 export default function BillingDocumentsPage() {
   const [data, setData] = useState<BillingDocument[]>([]);
@@ -117,6 +128,9 @@ export default function BillingDocumentsPage() {
           <button className={`h-8 w-8 flex items-center justify-center ${viewMode === 'table' ? 'text-white' : ''}`} style={viewMode === 'table' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }} onClick={() => setViewMode('table')}><Table2 className="w-4 h-4" /></button>
         </div>
         <div className="flex items-center gap-2">
+          <button className="h-8 px-3 text-sm rounded border font-medium" style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--primary)' }} onClick={() => exportToExcel(data, billingColumns, '开票单据')}>
+            <Download className="w-3.5 h-3.5 inline mr-1" /> 导出
+          </button>
           <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={() => { setPage(0); fetchData(); }} disabled={loading}><Search className="w-3.5 h-3.5 inline mr-1" /> 查询</button>
           <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={() => { setSearchQuery(''); setPage(0); }}><RotateCcw className="w-3.5 h-3.5 inline mr-1" /> 清除</button>
         </div>

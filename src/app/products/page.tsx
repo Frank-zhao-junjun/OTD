@@ -3,7 +3,8 @@ import { useRouter } from 'next/navigation';
 
 import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab } from '@/components/fiori';
-import { Search, RotateCcw, Inbox, LayoutList, Table2, CloudDownload } from 'lucide-react';
+import { Search, RotateCcw, Inbox, LayoutList, Table2, Download, CloudDownload } from 'lucide-react';
+import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { useViewMode } from '@/hooks/useViewMode';
 
 interface ProductDescription {
@@ -113,6 +114,15 @@ const PRODUCT_GROUP_MAP: Record<string, string> = {
   'L004': '成品',
 };
 
+const productColumns: ExportColumn<Product>[] = [
+  { header: '产品编号', key: 'Product', width: 14 },
+  { header: '中文描述', key: 'Product', width: 24, render: (d) => getDescription(d) },
+  { header: '英文描述', key: 'Product', width: 24, render: (d) => getEnDescription(d) || '-' },
+  { header: '类型', key: 'ProductType', width: 10, render: (d) => PRODUCT_TYPE_MAP[d.ProductType]?.label || d.ProductType },
+  { header: '产品组', key: 'ProductGroup', width: 14, render: (d) => PRODUCT_GROUP_MAP[d.ProductGroup] || d.ProductGroup },
+  { header: '价格', key: 'Product', width: 14, render: (d) => { const v = getValuation(d); return v ? `${v.StandardPrice !== '0.00' ? v.StandardPrice : v.MovingAveragePrice} ${v.Currency}` : '-'; } },
+];
+
 export default function ProductsPage() {
   const [data, setData] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
@@ -184,6 +194,9 @@ export default function ProductsPage() {
         </div>
         <div className="flex items-center gap-2">
           <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={() => { setPage(0); fetchData(); }} disabled={loading}><Search className="w-3.5 h-3.5 inline mr-1" /> 查询</button>
+          <button className="h-8 px-3 text-sm rounded border font-medium" style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--primary)' }} onClick={() => exportToExcel(data, productColumns, '产品')}>
+            <Download className="w-3.5 h-3.5 inline mr-1" /> 导出
+          </button>
           <button className="h-8 px-3 text-sm rounded border flex items-center gap-1" style={{ background: 'var(--card)', borderColor: 'var(--border)', color: '#0A6ED1' }} onClick={fetchFromSap} disabled={sapRefreshing}><CloudDownload className="w-3.5 h-3.5" /> {sapRefreshing ? '同步中...' : '从SAP查询'}</button>
           <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={() => { setSearchQuery(''); setPage(0); }}><RotateCcw className="w-3.5 h-3.5 inline mr-1" /> 清除</button>
         </div>

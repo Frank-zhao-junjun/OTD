@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FioriBadge, FioriFab } from '@/components/fiori';
 import { SAP_DEFAULTS } from '@/lib/sap-service';
-import { Search, RotateCcw, Filter, Inbox, LayoutList, Table2 } from 'lucide-react';
+import { Search, RotateCcw, Filter, Inbox, LayoutList, Table2, Download } from 'lucide-react';
+import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { useViewMode } from '@/hooks/useViewMode';
 
 interface ProductionOrder {
@@ -33,9 +34,19 @@ const getStatusInfo = (order: ProductionOrder): { color: 'success' | 'warning' |
   return { color: 'neutral', label: '已创建' };
 };
 
+const productionColumns: ExportColumn<ProductionOrder>[] = [
+  { header: '订单号', key: 'ProductionOrder', width: 14 },
+  { header: '物料', key: 'Product', width: 14 },
+  { header: '工厂', key: 'ProductionPlant', width: 10 },
+  { header: '计划数量', key: 'OrderPlannedTotalQty', width: 12 },
+  { header: '交货数量', key: 'ActualDeliveredQuantity', width: 12 },
+  { header: '状态', key: 'ProductionOrder', width: 10, render: (o) => getStatusInfo(o).label },
+];
+
 export default function ProductionOrdersPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<ProductionOrder[]>([]);
+  const [allOrders, setAllOrders] = useState<ProductionOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -96,6 +107,7 @@ export default function ProductionOrdersPage() {
       const data = await response.json();
       if (!data.success) throw new Error(data.error || 'Failed to fetch');
       setOrders(prev => page === 0 ? (data.data || []) : [...prev, ...(data.data || [])]);
+      setAllOrders(data.data || []);
       setTotalCount(data.totalCount || data.count || 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -163,6 +175,9 @@ export default function ProductionOrdersPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button className="h-8 px-3 text-sm rounded border font-medium" style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--primary)' }} onClick={() => exportToExcel(allOrders, productionColumns, '生产订单')}>
+            <Download className="w-3.5 h-3.5 inline mr-1" /> 导出
+          </button>
           <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={() => { setPage(0); fetchOrders(); }} disabled={loading}>
             <Search className="w-3.5 h-3.5 inline mr-1" /> 查询
           </button>

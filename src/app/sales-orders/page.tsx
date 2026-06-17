@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, RotateCw, Filter, LayoutList, Table2, FileText } from 'lucide-react';
+import { Search, RotateCw, Filter, LayoutList, Table2, FileText, Download } from 'lucide-react';
+import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { FioriOli, FioriBadge, FioriPageHeader, FioriSection, getSapStatusColor, getSapStatusLabel } from '@/components/fiori';
 import { useViewMode } from '@/hooks/useViewMode';
 
@@ -59,6 +60,16 @@ function formatAmount(amount: string | number, currency: string): string {
   if (isNaN(num)) return String(amount);
   return num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + (currency || '');
 }
+
+const salesColumns: ExportColumn<SalesOrder>[] = [
+  { header: '销售订单号', key: 'SalesOrder', width: 14 },
+  { header: '订单类型', key: 'SalesOrderType', width: 10 },
+  { header: '客户', key: 'SoldToParty', width: 12 },
+  { header: '订单日期', key: 'SalesOrderDate', width: 14, render: (o) => formatDate(o.SalesOrderDate) },
+  { header: '金额', key: 'TotalNetAmount', width: 14, render: (o) => formatAmount(o.TotalNetAmount, o.TransactionCurrency) },
+  { header: '状态', key: 'OverallSDProcessStatus', width: 12, render: (o) => getSapStatusLabel(o.OverallSDProcessStatus) },
+  { header: '行项目数', key: 'SalesOrder', width: 10, render: (o) => String(o.to_Item?.length || 0) },
+];
 
 export default function SalesOrdersPage() {
   const router = useRouter();
@@ -254,6 +265,12 @@ export default function SalesOrdersPage() {
             onClick={() => setViewMode('table')}
           >
             <Table2 className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button className="h-8 px-3 text-sm rounded border font-medium" style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--primary)' }} onClick={() => exportToExcel(data, salesColumns, '销售订单')}>
+            <Download className="w-3.5 h-3.5 inline mr-1" /> 导出
           </button>
         </div>
       </div>

@@ -3,7 +3,8 @@ import { useRouter } from 'next/navigation';
 
 import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab } from '@/components/fiori';
-import { Search, RotateCcw, Inbox, LayoutList, Table2, CloudDownload } from 'lucide-react';
+import { Search, RotateCcw, Inbox, LayoutList, Table2, Download, CloudDownload } from 'lucide-react';
+import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { useViewMode } from '@/hooks/useViewMode';
 
 interface Customer {
@@ -24,6 +25,14 @@ const GROUP_COLORS: Record<string, 'success' | 'warning' | 'info' | 'neutral'> =
   '001': 'success',
   '002': 'warning',
 };
+
+const customerColumns: ExportColumn<Customer>[] = [
+  { header: '客户编号', key: 'Customer', width: 14 },
+  { header: '名称', key: 'CustomerName', width: 20 },
+  { header: '全名', key: 'CustomerFullName', width: 24 },
+  { header: '行业', key: 'Industry', width: 14 },
+  { header: '账户组', key: 'CustomerAccountGroup', width: 12 },
+];
 
 export default function CustomersPage() {
   const [data, setData] = useState<Customer[]>([]);
@@ -96,6 +105,9 @@ export default function CustomersPage() {
         </div>
         <div className="flex items-center gap-2">
           <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={() => { setPage(0); fetchData(); }} disabled={loading}><Search className="w-3.5 h-3.5 inline mr-1" /> 查询</button>
+          <button className="h-8 px-3 text-sm rounded border font-medium" style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--primary)' }} onClick={() => exportToExcel(data, customerColumns, '客户')}>
+            <Download className="w-3.5 h-3.5 inline mr-1" /> 导出
+          </button>
           <button className="h-8 px-3 text-sm rounded border flex items-center gap-1" style={{ background: 'var(--card)', borderColor: 'var(--border)', color: '#0A6ED1' }} onClick={fetchFromSap} disabled={sapRefreshing}><CloudDownload className="w-3.5 h-3.5" /> {sapRefreshing ? '同步中...' : '从SAP查询'}</button>
           <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={() => { setSearchQuery(''); setPage(0); }}><RotateCcw className="w-3.5 h-3.5 inline mr-1" /> 清除</button>
         </div>

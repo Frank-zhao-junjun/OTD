@@ -3,7 +3,8 @@ import { useRouter } from 'next/navigation';
 
 import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab } from '@/components/fiori';
-import { Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
+import { Search, RotateCcw, Inbox, LayoutList, Table2, Download } from 'lucide-react';
+import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { useViewMode } from '@/hooks/useViewMode';
 
 interface MaterialDocument {
@@ -45,6 +46,14 @@ function getMovementLabel(type: string): string {
   };
   return labels[type] || type;
 }
+
+const docColumns: ExportColumn<MaterialDocument>[] = [
+  { header: '凭证号', key: 'MaterialDocument', width: 14 },
+  { header: '物料', key: 'Material', width: 14 },
+  { header: '生产订单', key: 'ManufacturingOrder', width: 14 },
+  { header: '工厂/库位', key: 'Plant', width: 14, render: (d) => `${d.Plant} / ${d.StorageLocation}` },
+  { header: '数量', key: 'QuantityInBaseUnit', width: 12, render: (d) => `${parseFloat(d.QuantityInBaseUnit || '0').toLocaleString()} ${d.MaterialBaseUnit}` },
+];
 
 export default function MaterialDocumentsPage() {
   const [data, setData] = useState<MaterialDocument[]>([]);
@@ -121,6 +130,9 @@ export default function MaterialDocumentsPage() {
           <button className={`h-8 w-8 flex items-center justify-center ${viewMode === 'table' ? 'text-white' : ''}`} style={viewMode === 'table' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }} onClick={() => setViewMode('table')}><Table2 className="w-4 h-4" /></button>
         </div>
         <div className="flex items-center gap-2">
+          <button className="h-8 px-3 text-sm rounded border font-medium" style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--primary)' }} onClick={() => exportToExcel(data, docColumns, '物料凭证')}>
+            <Download className="w-3.5 h-3.5 inline mr-1" /> 导出
+          </button>
           <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={() => { setPage(0); fetchData(); }} disabled={loading}><Search className="w-3.5 h-3.5 inline mr-1" /> 查询</button>
           <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={() => { setSearchQuery(''); setPage(0); }}><RotateCcw className="w-3.5 h-3.5 inline mr-1" /> 清除</button>
         </div>

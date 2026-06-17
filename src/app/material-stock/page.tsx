@@ -3,7 +3,8 @@ import { useRouter } from 'next/navigation';
 
 import { useState, useEffect, useCallback } from 'react';
 import { FioriBadge, FioriFab } from '@/components/fiori';
-import { Search, RotateCcw, Inbox, LayoutList, Table2 } from 'lucide-react';
+import { Search, RotateCcw, Inbox, LayoutList, Table2, Download } from 'lucide-react';
+import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { useViewMode } from '@/hooks/useViewMode';
 
 interface StockItem {
@@ -28,6 +29,15 @@ function formatNumber(num: string | undefined): string {
   if (isNaN(n)) return num;
   return n.toLocaleString('zh-CN');
 }
+
+const stockColumns: ExportColumn<StockItem>[] = [
+  { header: '物料', key: 'Material', width: 14 },
+  { header: '工厂', key: 'Plant', width: 8 },
+  { header: '库位', key: 'StorageLocation', width: 10 },
+  { header: '批次', key: 'Batch', width: 12 },
+  { header: '数量', key: 'MatlWrhsStkQtyInMatlBaseUnit', width: 12, render: (d) => `${formatNumber(d.MatlWrhsStkQtyInMatlBaseUnit)} ${d.MaterialBaseUnit}` },
+  { header: '库存类型', key: 'InventoryStockType', width: 12, render: (d) => STOCK_TYPE_MAP[d.InventoryStockType] || d.InventoryStockType },
+];
 
 export default function MaterialStockPage() {
   const [data, setData] = useState<StockItem[]>([]);
@@ -100,6 +110,9 @@ export default function MaterialStockPage() {
           <button className={`h-8 w-8 flex items-center justify-center ${viewMode === 'table' ? 'text-white' : ''}`} style={viewMode === 'table' ? { background: 'var(--primary)' } : { background: 'var(--card)', color: 'var(--muted-foreground)' }} onClick={() => setViewMode('table')}><Table2 className="w-4 h-4" /></button>
         </div>
         <div className="flex items-center gap-2">
+          <button className="h-8 px-3 text-sm rounded border font-medium" style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--primary)' }} onClick={() => exportToExcel(data, stockColumns, '库存')}>
+            <Download className="w-3.5 h-3.5 inline mr-1" /> 导出
+          </button>
           <button className="h-8 px-4 text-sm rounded font-medium text-white" style={{ background: 'var(--primary)' }} onClick={() => { setPage(0); fetchData(); }} disabled={loading}><Search className="w-3.5 h-3.5 inline mr-1" /> 查询</button>
           <button className="h-8 px-3 text-sm rounded border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} onClick={() => { setSearchQuery(''); setPage(0); }}><RotateCcw className="w-3.5 h-3.5 inline mr-1" /> 清除</button>
         </div>
