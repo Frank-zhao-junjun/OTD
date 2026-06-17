@@ -22,6 +22,7 @@ import {
   Settings,
   LogOut,
 } from 'lucide-react';
+import { GlobalSearch } from './global-search';
 
 interface UserInfo {
   id: string;
@@ -72,8 +73,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
   const [user, setUser] = useState<UserInfo | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -100,6 +100,18 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Global keyboard shortcut: Cmd/Ctrl+K
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setGlobalSearchOpen((prev) => !prev);
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
   }, []);
 
   // Close sidebar on route change
@@ -165,27 +177,25 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         )}
 
-        {/* Search */}
-        {searchOpen ? (
-          <div className="flex items-center gap-2">
-            <input
-              className="fiori-shellbar-search"
-              style={{ display: 'block', width: '160px' }}
-              placeholder="搜索..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              autoFocus
-              onBlur={() => { if (!searchQuery) setSearchOpen(false); }}
-            />
-            <button className="fiori-shellbar-btn" onClick={() => { setSearchOpen(false); setSearchQuery(''); }}>
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        ) : (
-          <button className="fiori-shellbar-btn" onClick={() => setSearchOpen(true)} aria-label="Search">
-            <Search className="w-5 h-5" />
-          </button>
-        )}
+        {/* Search - opens GlobalSearch panel */}
+        <button
+          className="fiori-shellbar-btn hidden sm:flex items-center gap-2 px-3"
+          onClick={() => setGlobalSearchOpen(true)}
+          aria-label="Search (Cmd+K)"
+        >
+          <Search className="w-5 h-5" />
+          <kbd className="hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium"
+            style={{ background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.2)' }}>
+            ⌘K
+          </kbd>
+        </button>
+        <button
+          className="fiori-shellbar-btn sm:hidden"
+          onClick={() => setGlobalSearchOpen(true)}
+          aria-label="Search"
+        >
+          <Search className="w-5 h-5" />
+        </button>
 
         {/* Notifications - PC only */}
         <button className="fiori-shellbar-btn hidden md:flex" aria-label="Notifications">
@@ -349,6 +359,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </div>
       </nav>
+      {/* ===== Global Search Panel ===== */}
+      <GlobalSearch open={globalSearchOpen} onClose={() => setGlobalSearchOpen(false)} />
     </div>
   );
 }
