@@ -650,6 +650,120 @@ export default function SalesOrderDetailPage() {
         </div>
       )}
 
+      {/* ── Delivery Information ── */}
+      {(() => {
+        const allDeliveries = Object.values(deliveryByItem).flat();
+        const uniqueDeliveries = Array.from(new Map(allDeliveries.map(d => [d.DeliveryDocument, d])).values());
+        if (uniqueDeliveries.length === 0) return null;
+        const totalDelivered = uniqueDeliveries.reduce((sum, d) => sum + num(d.ActualDeliveryQuantity), 0);
+        return (
+          <div className="rounded-lg border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+            <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex items-center gap-2">
+                <Truck className="w-4 h-4" style={{ color: '#107E3E' }} />
+                <span className="font-semibold text-sm">发货信息 ({uniqueDeliveries.length})</span>
+              </div>
+              <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                累计发货 {totalDelivered} 件
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ background: 'var(--muted)' }}>
+                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>交货单号</th>
+                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>行号</th>
+                    <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>交货数量</th>
+                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>交货日期</th>
+                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>过账日期</th>
+                    <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>状态</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {uniqueDeliveries.map((d) => (
+                    <tr key={d.DeliveryDocument} className="border-t cursor-pointer hover:bg-muted/50 transition-colors" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/outbound-delivery/${d.DeliveryDocument}`)}>
+                      <td className="px-4 py-2.5 font-medium" style={{ color: 'var(--primary)' }}>
+                        {d.DeliveryDocument}
+                      </td>
+                      <td className="px-4 py-2.5 tabular-nums">{d.DeliveryDocumentItem || '-'}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums font-semibold" style={{ color: '#107E3E' }}>
+                        {d.ActualDeliveryQuantity ?? '-'}
+                      </td>
+                      <td className="px-4 py-2.5">{formatSapDate(d.DeliveryDate)}</td>
+                      <td className="px-4 py-2.5">{formatSapDate(d.ActualGoodsMovementDate)}</td>
+                      <td className="px-4 py-2.5 text-center">
+                        {d.DeliveryDocumentStatus && (
+                          <FioriBadge variant={getSapStatusColor(d.DeliveryDocumentStatus)}>
+                            {d.DeliveryDocumentStatus === 'C' ? '已完成' : d.DeliveryDocumentStatus}
+                          </FioriBadge>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Billing Information ── */}
+      {(() => {
+        const allBillings = Object.values(billingByItem).flat();
+        const uniqueBillings = Array.from(new Map(allBillings.map(b => [b.BillingDocument, b])).values());
+        if (uniqueBillings.length === 0) return null;
+        const totalBilled = uniqueBillings.reduce((sum, b) => sum + num(b.NetAmount), 0);
+        return (
+          <div className="rounded-lg border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+            <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex items-center gap-2">
+                <Receipt className="w-4 h-4" style={{ color: '#0A6ED1' }} />
+                <span className="font-semibold text-sm">开票信息 ({uniqueBillings.length})</span>
+              </div>
+              <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                累计开票 {fmtAmount(totalBilled, uniqueBillings[0]?.TransactionCurrency)}
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ background: 'var(--muted)' }}>
+                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>开票单号</th>
+                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>行号</th>
+                    <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>净额</th>
+                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>货币</th>
+                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>开票日期</th>
+                    <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>状态</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {uniqueBillings.map((b) => (
+                    <tr key={b.BillingDocument} className="border-t cursor-pointer hover:bg-muted/50 transition-colors" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/billing-documents/${b.BillingDocument}`)}>
+                      <td className="px-4 py-2.5 font-medium" style={{ color: 'var(--primary)' }}>
+                        {b.BillingDocument}
+                      </td>
+                      <td className="px-4 py-2.5 tabular-nums">{b.BillingDocumentItem || '-'}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums font-semibold" style={{ color: '#0A6ED1' }}>
+                        {fmtAmount(b.NetAmount, b.TransactionCurrency)}
+                      </td>
+                      <td className="px-4 py-2.5">{b.TransactionCurrency || '-'}</td>
+                      <td className="px-4 py-2.5">{formatSapDate(b.BillingDocumentDate)}</td>
+                      <td className="px-4 py-2.5 text-center">
+                        {b.BillingDocumentStatus && (
+                          <FioriBadge variant={getSapStatusColor(b.BillingDocumentStatus)}>
+                            {b.BillingDocumentStatus === 'C' ? '已完成' : b.BillingDocumentStatus}
+                          </FioriBadge>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── Document Flow Timeline ── */}
       {items.length > 0 && (
         <div className="rounded-lg border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>

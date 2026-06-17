@@ -81,7 +81,7 @@ export async function GET(
       try {
         const filterExpr = deliveryDocNumbers.map(d => `DeliveryDocument eq '${d}'`).join(' or ');
         const headers = await callProxyApi(
-          `/api/sap/API_OUTBOUND_DELIVERY_SRV/A_OutbDeliveryHeader?filter=${encodeURIComponent(filterExpr)}&select=DeliveryDocument,DeliveryDate,ActualGoodsMovementDate`
+          `/api/sap/API_OUTBOUND_DELIVERY_SRV/A_OutbDeliveryHeader?filter=${encodeURIComponent(filterExpr)}&select=DeliveryDocument,DeliveryDate,ActualGoodsMovementDate,OverallGoodsMovementStatus`
         );
         for (const h of headers) {
           deliveryHeaders[String(h.DeliveryDocument)] = h;
@@ -98,7 +98,7 @@ export async function GET(
       try {
         const filterExpr = billingDocNumbers.map(d => `BillingDocument eq '${d}'`).join(' or ');
         const headers = await callProxyApi(
-          `/api/sap/API_BILLING_DOCUMENT_SRV/A_BillingDocument?filter=${encodeURIComponent(filterExpr)}&select=BillingDocument,BillingDocumentDate`
+          `/api/sap/API_BILLING_DOCUMENT_SRV/A_BillingDocument?filter=${encodeURIComponent(filterExpr)}&select=BillingDocument,BillingDocumentDate,OverallBillingStatus`
         );
         for (const h of headers) {
           billingHeaders[String(h.BillingDocument)] = h;
@@ -108,20 +108,22 @@ export async function GET(
       }
     }
 
-    // Enrich delivery items with header dates
+    // Enrich delivery items with header dates and status
     for (const item of deliveryItems) {
       const header = deliveryHeaders[String(item.DeliveryDocument)];
       if (header) {
         item.DeliveryDate = header.DeliveryDate;
         item.ActualGoodsMovementDate = header.ActualGoodsMovementDate;
+        item.DeliveryDocumentStatus = header.OverallGoodsMovementStatus;
       }
     }
 
-    // Enrich billing items with header dates
+    // Enrich billing items with header dates and status
     for (const item of billingItems) {
       const header = billingHeaders[String(item.BillingDocument)];
       if (header) {
         item.BillingDocumentDate = header.BillingDocumentDate;
+        item.BillingDocumentStatus = header.OverallBillingStatus;
       }
     }
 
