@@ -1,3 +1,4 @@
 {
-  "navigationBarTitleText": "客户管理"
+  "navigationBarTitleText": "客户管理",
+  "usingComponents": { "view-switch": "/components/view-switch/view-switch" }
 }

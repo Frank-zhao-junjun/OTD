@@ -1,17 +1,25 @@
 // pages/material-documents/material-documents.js
 const { api } = require('../../utils/api');
+const { getViewMode, setViewMode } = require('../../utils/view-mode');
 
 Page({
   data: {
     documents: [],
     loading: false,
+    viewMode: 'card',
     searchQuery: '',
     totalCount: 0,
     page: 1,
     pageSize: 20
   },
 
-  onLoad() { this.fetchDocuments(); },
+  onLoad() { this.setData({ viewMode: getViewMode('material-documents') }); this.fetchDocuments(); },
+
+  onViewModeChange(e) {
+    const mode = e.detail.mode;
+    this.setData({ viewMode: mode });
+    setViewMode('material-documents', mode);
+  },
 
   async fetchDocuments() {
     this.setData({ loading: true });

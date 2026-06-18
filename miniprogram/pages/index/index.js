@@ -1,44 +1,115 @@
-// pages/index/index.js - 首页
-const app = getApp();
+// pages/index/index.js - 首页 Dashboard
+const { api } = require('../../utils/api');
 
 Page({
   data: {
+    // KPI
+    kpis: [
+      { key: 'sales', label: '销售订单', value: '—', unit: '张', color: 'blue', icon: '📋' },
+      { key: 'production', label: '生产订单', value: '—', unit: '张', color: 'green', icon: '🏭' },
+      { key: 'delivery', label: '待发货', value: '—', unit: '单', color: 'orange', icon: '🚚' },
+      { key: 'stock', label: '库存条目', value: '—', unit: '条', color: 'purple', icon: '📦' }
+    ],
+    activities: [],
+    loading: true,
+
+    // 模块入口
     businessModules: [
-      { id: 'sales-orders', title: '销售订单', desc: '查询销售订单及行项目', icon: '📋', color: '#1E40AF' },
-      { id: 'production-orders', title: '生产订单', desc: '查询生产订单及工序', icon: '⚙️', color: '#7C3AED' },
-      { id: 'material-stock', title: '库存查询', desc: '查询成品库存数量', icon: '📊', color: '#059669' },
-      { id: 'outbound-delivery', title: '发货单', desc: '查询外向发货单', icon: '🚚', color: '#D97706' },
-      { id: 'billing-documents', title: '开票单据', desc: '查询开票单据明细', icon: '🧾', color: '#DC2626' },
-      { id: 'material-documents', title: '入库单', desc: '查询入库记录', icon: '📄', color: '#0891B2' }
+      { id: 'sales-orders', title: '销售订单', desc: 'Sales Orders', icon: '📋', color: '#0A6ED1' },
+      { id: 'production-orders', title: '生产订单', desc: 'Production Orders', icon: '🏭', color: '#107E3E' },
+      { id: 'outbound-delivery', title: '交货单', desc: 'Outbound Delivery', icon: '🚚', color: '#E9730C' },
+      { id: 'billing-documents', title: '开票单据', desc: 'Billing Documents', icon: '🧾', color: '#6D28D9' }
     ],
     masterModules: [
-      { id: 'products', title: '产品管理', desc: '查询产品主数据', icon: '📦', color: '#475569' },
-      { id: 'customers', title: '客户管理', desc: '查询客户主数据', icon: '👥', color: '#475569' }
-    ],
-    loading: false
+      { id: 'material-stock', title: '库存', desc: 'Material Stock', icon: '📦', color: '#7C3AED' },
+      { id: 'material-documents', title: '凭证', desc: 'Material Docs', icon: '📄', color: '#0891B2' },
+      { id: 'products', title: '产品', desc: 'Products', icon: '🏷️', color: '#DB2777' },
+      { id: 'customers', title: '客户', desc: 'Customers', icon: '👥', color: '#059669' }
+    ]
   },
 
   onLoad() {
-    app.checkNetwork();
+    const app = getApp();
+    if (!app.isLoggedIn()) {
+      wx.reLaunch({ url: '/pages/login/login' });
+      return;
+    }
+    this.fetchDashboard();
   },
 
-  // 跳转到模块页面
-  navigateToModule(e) {
-    const moduleId = e.currentTarget.dataset.id;
-    // tabBar页面用switchTab，其他用navigateTo
-    const tabBarPages = ['index', 'sales-orders', 'material-stock', 'products'];
-    if (tabBarPages.indexOf(moduleId) >= 0) {
-      wx.switchTab({
-        url: `/pages/${moduleId}/${moduleId}`
-      });
-    } else {
-      wx.navigateTo({
-        url: `/pages/${moduleId}/${moduleId}`
-      });
+  onShow() {
+    if (getApp().isLoggedIn()) {
+      this.fetchDashboard();
     }
   },
 
   onPullDownRefresh() {
-    wx.stopPullDownRefresh();
+    this.fetchDashboard().finally(() => {
+      wx.stopPullDownRefresh();
+    });
+  },
+
+  // ── 获取 Dashboard 数据 ────────────────────────────────
+
+  async fetchDashboard() {
+    this.setData({ loading: true });
+    try {
+      const res = await api.getDashboard();
+      if (res.success && res.data) {
+        const serverKpis = res.data.kpis || [];
+        this.setData({
+          kpis: this.data.kpis.map(kpi => {
+            const match = serverKpis.find(k => k.key === kpi.key);
+            if (match) {
+              return { ...kpi, value: String(match.value), unit: match.unit || kpi.unit };
+            }
+            return kpi;
+          }),
+          activities: res.data.activities || []
+        });
+      }
+    } catch (err) {
+      console.error('Dashboard 加载失败:', err);
+    } finally {
+      this.setData({ loading: false });
+    }
+  },
+
+  // ── 搜索（预留入口，后续 US-MP-05 实现） ──────────────
+
+  onSearchTap() {
+    wx.navigateTo({ url: '/pages/search/search' });
+  },
+
+  // ── 模块导航 ──────────────────────────────────────────
+
+  navigateToModule(e) {
+    const moduleId = e.currentTarget.dataset.id;
+    const tabBarPages = ['index', 'sales-orders', 'material-stock', 'products'];
+    if (tabBarPages.indexOf(moduleId) >= 0) {
+      wx.switchTab({ url: `/pages/${moduleId}/${moduleId}` });
+    } else {
+      wx.navigateTo({ url: `/pages/${moduleId}/${moduleId}` });
+    }
+  },
+
+  // ── KPI 卡片点击跳转 ──────────────────────────────────
+
+  onKpiTap(e) {
+    const key = e.currentTarget.dataset.key;
+    const routeMap = {
+      sales: '/pages/sales-orders/sales-orders',
+      production: '/pages/production-orders/production-orders',
+      delivery: '/pages/outbound-delivery/outbound-delivery',
+      stock: '/pages/material-stock/material-stock'
+    };
+    const url = routeMap[key];
+    if (!url) return;
+    const tabBarPages = ['/pages/sales-orders/sales-orders', '/pages/material-stock/material-stock'];
+    if (tabBarPages.includes(url)) {
+      wx.switchTab({ url });
+    } else {
+      wx.navigateTo({ url });
+    }
   }
 });

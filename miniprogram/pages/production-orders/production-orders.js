@@ -1,5 +1,6 @@
 // pages/production-orders/production-orders.js
 const { api } = require('../../utils/api');
+const { getViewMode, setViewMode } = require('../../utils/view-mode');
 
 Page({
   data: {
@@ -9,10 +10,20 @@ Page({
     plantFilter: '1010',
     totalCount: 0,
     page: 1,
-    pageSize: 20
+    pageSize: 20,
+    viewMode: 'card'
   },
 
-  onLoad() { this.fetchOrders(); },
+  onLoad() {
+    this.setData({ viewMode: getViewMode('production-orders') });
+    this.fetchOrders();
+  },
+
+  onViewModeChange(e) {
+    const mode = e.detail.mode;
+    this.setData({ viewMode: mode });
+    setViewMode('production-orders', mode);
+  },
 
   async fetchOrders() {
     this.setData({ loading: true });
@@ -62,6 +73,6 @@ Page({
   onClear() { this.setData({ searchQuery: '', page: 1 }); this.fetchOrders(); },
 
   onViewDetail(e) {
-    wx.showModal({ title: '生产订单 ' + e.currentTarget.dataset.id, content: '详情请访问Web端查看', showCancel: false });
+    wx.navigateTo({ url: `/pages/production-orders/detail/detail?id=${e.currentTarget.dataset.id}` });
   }
 });

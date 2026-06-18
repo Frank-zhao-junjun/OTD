@@ -1,17 +1,25 @@
 // pages/outbound-delivery/outbound-delivery.js
 const { api } = require('../../utils/api');
+const { getViewMode, setViewMode } = require('../../utils/view-mode');
 
 Page({
   data: {
     deliveries: [],
     loading: false,
+    viewMode: 'card',
     searchQuery: '',
     totalCount: 0,
     page: 1,
     pageSize: 20
   },
 
-  onLoad() { this.fetchDeliveries(); },
+  onLoad() { this.setData({ viewMode: getViewMode('outbound-delivery') }); this.fetchDeliveries(); },
+
+  onViewModeChange(e) {
+    const mode = e.detail.mode;
+    this.setData({ viewMode: mode });
+    setViewMode('outbound-delivery', mode);
+  },
 
   async fetchDeliveries() {
     this.setData({ loading: true });
@@ -45,5 +53,9 @@ Page({
 
   onSearchInput(e) { this.setData({ searchQuery: e.detail.value }); },
   onSearch() { this.setData({ page: 1 }); this.fetchDeliveries(); },
-  onClear() { this.setData({ searchQuery: '', page: 1 }); this.fetchDeliveries(); }
+  onClear() { this.setData({ searchQuery: '', page: 1 }); this.fetchDeliveries(); },
+
+  onViewDetail(e) {
+    wx.navigateTo({ url: `/pages/outbound-delivery/detail/detail?id=${e.currentTarget.dataset.id}` });
+  }
 });

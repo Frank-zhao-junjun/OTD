@@ -8,13 +8,18 @@
     <button class="search-btn default" bindtap="onClear">重置</button>
   </view>
 
+  <view class="toolbar">
+    <view class="filter-hint"></view>
+    <view-switch mode="{{viewMode}}" bind:change="onViewModeChange"/>
+  </view>
+
   <view class="result-header" wx:if="{{totalCount > 0}}">
     <text class="result-count">共 {{totalCount}} 条记录</text>
   </view>
 
-  <view wx:if="{{!loading && documents.length > 0}}">
+  <view wx:if="{{!loading && documents.length > 0 && viewMode === 'card'}}">
     <block wx:for="{{documents}}" wx:key="BillingDocument">
-      <view class="list-card">
+      <view class="list-card" bindtap="onViewDetail" data-id="{{item.BillingDocument}}">
         <view class="card-header">
           <text class="card-title">{{item.BillingDocument}}</text>
           <text class="card-badge" style="background-color: {{item.BillingIsCancelled === true ? '#FEE2E2' : '#DCFCE7'}}; color: {{item.BillingIsCancelled === true ? '#991B1B' : '#166534'}};">
@@ -42,6 +47,28 @@
       </view>
     </block>
   </view>
+
+  <!-- 表格视图 -->
+  <scroll-view scroll-x wx:if="{{!loading && documents.length > 0 && viewMode === 'table'}}" class="table-scroll">
+    <view class="table-view">
+      <view class="table-row table-head">
+        <view class="table-cell" style="flex:1.5;">开票单号</view>
+        <view class="table-cell" style="flex:1.5;">客户</view>
+        <view class="table-cell" style="flex:1.5;">开票日期</view>
+        <view class="table-cell">类型</view>
+        <view class="table-cell" style="flex:1.5;">金额</view>
+        <view class="table-cell">状态</view>
+      </view>
+      <view class="table-row" wx:for="{{documents}}" wx:key="BillingDocument" bindtap="onViewDetail" data-id="{{item.BillingDocument}}">
+        <view class="table-cell" style="flex:1.5;">{{item.BillingDocument}}</view>
+        <view class="table-cell" style="flex:1.5;">{{item.SoldToParty || '-'}}</view>
+        <view class="table-cell" style="flex:1.5;">{{item.BillingDocumentDate}}</view>
+        <view class="table-cell">{{item.BillingDocumentType || '-'}}</view>
+        <view class="table-cell" style="flex:1.5;">¥{{item.TotalNetAmount}}</view>
+        <view class="table-cell">{{item.BillingIsCancelled === true ? '已取消' : '有效'}}</view>
+      </view>
+    </view>
+  </scroll-view>
 
   <view class="loading-container" wx:if="{{loading}}">
     <view class="loading-spinner"></view>

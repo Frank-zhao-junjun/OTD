@@ -1,10 +1,12 @@
 // pages/products/products.js - 产品查询页面
 const { api } = require('../../utils/api');
+const { getViewMode, setViewMode } = require('../../utils/view-mode');
 
 Page({
   data: {
     products: [],
     loading: false,
+    viewMode: 'card',
     searchQuery: '',
     productGroup: '',
     totalCount: 0,
@@ -13,7 +15,14 @@ Page({
   },
 
   onLoad() {
+    this.setData({ viewMode: getViewMode('products') });
     this.fetchProducts();
+  },
+
+  onViewModeChange(e) {
+    const mode = e.detail.mode;
+    this.setData({ viewMode: mode });
+    setViewMode('products', mode);
   },
 
   // 获取产品列表

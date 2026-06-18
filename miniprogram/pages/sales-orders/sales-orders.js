@@ -1,5 +1,6 @@
 // pages/sales-orders/sales-orders.js - 销售订单查询
 const { api } = require('../../utils/api');
+const { getViewMode, setViewMode } = require('../../utils/view-mode');
 const app = getApp();
 
 Page({
@@ -9,11 +10,19 @@ Page({
     searchQuery: '',
     totalCount: 0,
     page: 1,
-    pageSize: 20
+    pageSize: 20,
+    viewMode: 'card'
   },
 
   onLoad() {
+    this.setData({ viewMode: getViewMode('sales-orders') });
     this.fetchOrders();
+  },
+
+  onViewModeChange(e) {
+    const mode = e.detail.mode;
+    this.setData({ viewMode: mode });
+    setViewMode('sales-orders', mode);
   },
 
   async fetchOrders() {
@@ -87,10 +96,8 @@ Page({
 
   onViewDetail(e) {
     const orderId = e.currentTarget.dataset.id;
-    wx.showModal({
-      title: '销售订单 ' + orderId,
-      content: '行项目详情请访问Web端查看',
-      showCancel: false
+    wx.navigateTo({
+      url: `/pages/sales-orders/detail/detail?id=${orderId}`
     });
   },
 

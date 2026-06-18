@@ -8,11 +8,16 @@
     <button class="search-btn default" bindtap="onClear">重置</button>
   </view>
 
+  <view class="toolbar">
+    <view class="filter-hint"></view>
+    <view-switch mode="{{viewMode}}" bind:change="onViewModeChange"/>
+  </view>
+
   <view class="result-header" wx:if="{{totalCount > 0}}">
     <text class="result-count">共 {{totalCount}} 条记录</text>
   </view>
 
-  <view wx:if="{{!loading && documents.length > 0}}">
+  <view wx:if="{{!loading && documents.length > 0 && viewMode === 'card'}}">
     <block wx:for="{{documents}}" wx:key="MaterialDocument">
       <view class="list-card">
         <view class="card-header">
@@ -42,6 +47,28 @@
       </view>
     </block>
   </view>
+
+  <!-- 表格视图 -->
+  <scroll-view scroll-x wx:if="{{!loading && documents.length > 0 && viewMode === 'table'}}" class="table-scroll">
+    <view class="table-view">
+      <view class="table-row table-head">
+        <view class="table-cell" style="flex:1.5;">凭证号</view>
+        <view class="table-cell">物料</view>
+        <view class="table-cell">类型</view>
+        <view class="table-cell">工厂</view>
+        <view class="table-cell" style="flex:1.5;">过账日期</view>
+        <view class="table-cell" style="flex:1.5;">参考</view>
+      </view>
+      <view class="table-row" wx:for="{{documents}}" wx:key="MaterialDocument">
+        <view class="table-cell" style="flex:1.5;">{{item.MaterialDocument}}</view>
+        <view class="table-cell">{{item.Material || '-'}}</view>
+        <view class="table-cell">{{item.MoveTypeText}}</view>
+        <view class="table-cell">{{item.Plant || '-'}}</view>
+        <view class="table-cell" style="flex:1.5;">{{item.PostingDate}}</view>
+        <view class="table-cell" style="flex:1.5;">{{item.ReferenceDocument || '-'}}</view>
+      </view>
+    </view>
+  </scroll-view>
 
   <view class="loading-container" wx:if="{{loading}}">
     <view class="loading-spinner"></view>

@@ -1,0 +1,117 @@
+<!-- pages/production-orders/detail/detail.wxml -->
+<view class="detail-container">
+
+  <!-- Loading -->
+  <view class="state-loading" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- Error -->
+  <view class="state-error" wx:elif="{{error}}">
+    <text class="error-icon">⚠️</text>
+    <text class="error-text">{{errorMsg}}</text>
+    <button class="retry-btn" bindtap="onRetry">重试</button>
+  </view>
+
+  <!-- Content -->
+  <block wx:else>
+    <!-- 头部 -->
+    <view class="detail-header">
+      <view class="header-top">
+        <text class="header-order-no">生产订单 {{order.ProductionOrder}}</text>
+        <view class="header-badge" style="background-color: {{order.statusColor}}15; color: {{order.statusColor}};">
+          <text>{{order.statusText}}</text>
+        </view>
+      </view>
+      <view class="header-meta">
+        <text class="meta-item">{{order.Material}}</text>
+        <text class="meta-sep">|</text>
+        <text class="meta-item">工厂 {{order.ProductionPlant}}</text>
+        <text class="meta-sep">|</text>
+        <text class="meta-item">产品组 {{order.ProductGroup}}</text>
+      </view>
+    </view>
+
+    <!-- KPI 卡片 2×2 -->
+    <view class="kpi-grid">
+      <view class="kpi-card kpi-{{item.color}}" wx:for="{{kpis}}" wx:key="label">
+        <view class="kpi-icon-wrap kpi-icon-{{item.color}}">
+          <text class="kpi-emoji">
+            <block wx:if="{{item.color === 'blue'}}">📊</block>
+            <block wx:elif="{{item.color === 'green'}}">✅</block>
+            <block wx:elif="{{item.color === 'orange'}}">🔧</block>
+            <block wx:else>📦</block>
+          </text>
+        </view>
+        <view class="kpi-info">
+          <text class="kpi-val">{{item.value}}</text>
+          <text class="kpi-lbl">{{item.label}}</text>
+          <text class="kpi-un">{{item.value}}{{item.unit}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 工序进度 -->
+    <view class="section" wx:if="{{operations.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">🔧 工序进度</text>
+      </view>
+      <view class="op-card" wx:for="{{operations}}" wx:key="*this">
+        <view class="op-header">
+          <text class="op-seq">{{item.ProductionOrderOperation}}</text>
+          <text class="op-desc">{{item.OperationDescription}}</text>
+        </view>
+        <view class="op-meta">
+          <text class="op-wc">工作中心: {{item.WorkCenter}}</text>
+        </view>
+        <view class="op-dates">
+          <view class="op-date-row">
+            <text class="op-date-label">计划</text>
+            <text class="op-date-val">{{item.OpPlannedStartDate}} → {{item.OpPlannedEndDate}}</text>
+          </view>
+          <view class="op-date-row" wx:if="{{item.OpActualStartDate !== '—'}}">
+            <text class="op-date-label">实际</text>
+            <text class="op-date-val">{{item.OpActualStartDate}} → {{item.OpActualEndDate}}</text>
+          </view>
+        </view>
+        <!-- 进度条 -->
+        <view class="op-progress-wrap">
+          <view class="op-progress-bar">
+            <view class="op-progress-fill" style="width: {{item.progress}}%; background-color: {{item.progressColor}};"></view>
+          </view>
+          <text class="op-progress-pct" style="color: {{item.progressColor}};">{{item.progress}}%</text>
+        </view>
+        <!-- 合格/报废 -->
+        <view class="op-yield">
+          <text class="yield-text">合格: {{item.yieldQty}}</text>
+          <text class="scrap-text" wx:if="{{item.scrapQty > 0}}">报废: {{item.scrapQty}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 组件清单 -->
+    <view class="section" wx:if="{{components.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">📦 组件清单</text>
+      </view>
+      <view class="comp-card" wx:for="{{components}}" wx:key="*this">
+        <view class="comp-header">
+          <text class="comp-material">{{item.Material}}</text>
+          <view class="comp-badge" style="background-color: {{item.kittingColor}}15; color: {{item.kittingColor}};">
+            <text>{{item.kittingStatus}}</text>
+          </view>
+        </view>
+        <text class="comp-desc" wx:if="{{item.MaterialDescription}}">{{item.MaterialDescription}}</text>
+        <view class="comp-row">
+          <text class="comp-qty">需求: {{item.RequiredQuantity}} {{item.EntrySAPUnit}}</text>
+          <text class="comp-sep">|</text>
+          <text class="comp-withdrawn">已提: {{item.WithdrawnQuantity}} {{item.EntrySAPUnit}}</text>
+        </view>
+        <text class="comp-loc">库位: {{item.StorageLocation}}  |  关联工序: {{item.ProductionOrderOperation}}</text>
+      </view>
+    </view>
+
+    <view style="height: 24px;"></view>
+  </block>
+</view>

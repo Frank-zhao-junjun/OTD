@@ -1,0 +1,138 @@
+<!-- pages/sales-orders/detail/detail.wxml -->
+<view class="detail-container">
+
+  <!-- ====== Loading ====== -->
+  <view class="state-loading" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- ====== Error ====== -->
+  <view class="state-error" wx:elif="{{error}}">
+    <text class="error-icon">⚠️</text>
+    <text class="error-text">{{errorMsg}}</text>
+    <button class="retry-btn" bindtap="onRetry">重试</button>
+  </view>
+
+  <!-- ====== Content ====== -->
+  <block wx:else>
+    <!-- 头部 -->
+    <view class="detail-header">
+      <view class="header-top">
+        <text class="header-order-no">销售订单 {{order.SalesOrder}}</text>
+        <view class="header-badge" style="background-color: {{order.statusColor}}15; color: {{order.statusColor}};">
+          <text>{{order.statusText}}</text>
+        </view>
+      </view>
+      <view class="header-meta">
+        <text class="meta-item">{{order.SalesOrderType}}</text>
+        <text class="meta-sep">|</text>
+        <text class="meta-item">客户 {{order.SoldToParty}}</text>
+        <text class="meta-sep">|</text>
+        <text class="meta-item">{{order.SalesOrderDate}}</text>
+      </view>
+      <text class="header-amount">{{order.TotalNetAmount}}</text>
+    </view>
+
+    <!-- KPI 卡片 -->
+    <view class="kpi-row">
+      <view class="kpi-item">
+        <text class="kpi-value">{{order.TotalNetAmount}}</text>
+        <text class="kpi-label">净额</text>
+      </view>
+      <view class="kpi-item">
+        <text class="kpi-value">{{items.length}}</text>
+        <text class="kpi-label">行项目</text>
+      </view>
+      <view class="kpi-item">
+        <text class="kpi-value">{{order.OverallSDProcessStatus === 'C' ? '100%' : items.length > 0 ? '进行中' : '—'}}</text>
+        <text class="kpi-label">已交货</text>
+      </view>
+    </view>
+
+    <!-- 行项目 -->
+    <view class="section" wx:if="{{items.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">📋 行项目</text>
+      </view>
+      <view class="item-card" wx:for="{{items}}" wx:key="*this">
+        <view class="item-header">
+          <text class="item-material">{{item.Material}}</text>
+          <text class="item-delivery-pct" style="color: {{item.deliveryPct === '100%' ? '#107E3E' : '#E9730C'}};">{{item.deliveryPct}}</text>
+        </view>
+        <text class="item-desc" wx:if="{{item.SalesOrderItemText}}">{{item.SalesOrderItemText}}</text>
+        <view class="item-row">
+          <text class="item-qty">{{item.OrderQuantity}} {{item.OrderQuantityUnit}} × {{item.NetPrice}} = {{item.NetAmount}}</text>
+        </view>
+        <view class="item-delivery-bar">
+          <view class="delivery-bar-fill" style="width: {{item.deliveryPct}}; background-color: {{item.deliveryPct === '100%' ? '#107E3E' : '#E9730C'}};"></view>
+        </view>
+        <text class="item-delivery-info">已交货: {{item.ConfdDelivQtyInOrderQtyUnit}}/{{item.OrderQuantity}} {{item.OrderQuantityUnit}}</text>
+      </view>
+    </view>
+
+    <!-- 定价明细（可折叠） -->
+    <view class="section" wx:if="{{pricing.length > 0}}">
+      <view class="section-header section-collapsible" bindtap="onTogglePricing">
+        <text class="section-title">💰 定价明细</text>
+        <text class="collapse-arrow">{{pricingOpen ? '▲' : '▼'}}</text>
+      </view>
+      <view class="pricing-list" wx:if="{{pricingOpen}}">
+        <view class="pricing-item" wx:for="{{pricing}}" wx:key="*this">
+          <text class="pricing-type">{{item.ConditionType}}</text>
+          <text class="pricing-amount">{{item.ConditionAmount}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 发货信息 -->
+    <view class="section" wx:if="{{deliveries.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">🚚 发货信息</text>
+      </view>
+      <view class="link-card" wx:for="{{deliveries}}" wx:key="*this" data-id="{{item.DeliveryDocument}}" bindtap="onTapDelivery">
+        <text class="link-no">{{item.DeliveryDocument}}</text>
+        <text class="link-info">{{item.DeliveryDocumentItemText || ''}} {{item.ActualDeliveryQuantity || ''}}</text>
+        <text class="link-arrow">›</text>
+      </view>
+    </view>
+
+    <!-- 开票信息 -->
+    <view class="section" wx:if="{{billings.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">🧾 开票信息</text>
+      </view>
+      <view class="link-card" wx:for="{{billings}}" wx:key="*this" data-id="{{item.BillingDocument}}" bindtap="onTapBilling">
+        <text class="link-no">{{item.BillingDocument}}</text>
+        <text class="link-info">{{item.TotalNetAmount || ''}}</text>
+        <text class="link-arrow">›</text>
+      </view>
+    </view>
+
+    <!-- 生产订单 -->
+    <view class="section" wx:if="{{productionOrders.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">🏭 生产订单</text>
+      </view>
+      <view class="link-card" wx:for="{{productionOrders}}" wx:key="*this" data-id="{{item.ProductionOrder}}" bindtap="onTapProductionOrder">
+        <text class="link-no">{{item.ProductionOrder}}</text>
+        <text class="link-info">{{item.Material || ''}} {{item.ProductionOrderType || ''}}</text>
+        <text class="link-arrow">›</text>
+      </view>
+    </view>
+
+    <!-- 业务伙伴 -->
+    <view class="section" wx:if="{{partners.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">👤 业务伙伴</text>
+      </view>
+      <view class="partner-item" wx:for="{{partners}}" wx:key="*this">
+        <text class="partner-label">{{item.functionLabel}}</text>
+        <text class="partner-value">{{item.Customer}} - {{item.CustomerName}}</text>
+      </view>
+    </view>
+
+    <!-- 底部安全距离 -->
+    <view style="height: 24px;"></view>
+  </block>
+</view>

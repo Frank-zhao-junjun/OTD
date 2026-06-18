@@ -1,5 +1,6 @@
 // pages/material-stock/material-stock.js
 const { api } = require('../../utils/api');
+const { getViewMode, setViewMode } = require('../../utils/view-mode');
 const app = getApp();
 
 Page({
@@ -11,12 +12,22 @@ Page({
     plant: '1010',
     storageLocation: '1003',
     viewMode: 'summary',
+    displayMode: 'card',
     totalCount: 0,
     page: 1,
     pageSize: 50
   },
 
-  onLoad() { this.fetchStock(); },
+  onLoad() {
+    this.setData({ displayMode: getViewMode('material-stock') });
+    this.fetchStock();
+  },
+
+  onViewModeChange(e) {
+    const mode = e.detail.mode;
+    this.setData({ displayMode: mode });
+    setViewMode('material-stock', mode);
+  },
 
   async fetchStock() {
     this.setData({ loading: true });

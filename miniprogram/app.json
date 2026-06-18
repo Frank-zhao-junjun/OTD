@@ -1,11 +1,18 @@
 {
   "pages": [
+    "pages/login/login",
+    "pages/register/register",
     "pages/index/index",
+    "pages/search/search",
     "pages/sales-orders/sales-orders",
+    "pages/sales-orders/detail/detail",
     "pages/production-orders/production-orders",
+    "pages/production-orders/detail/detail",
     "pages/material-stock/material-stock",
     "pages/outbound-delivery/outbound-delivery",
+    "pages/outbound-delivery/detail/detail",
     "pages/billing-documents/billing-documents",
+    "pages/billing-documents/detail/detail",
     "pages/material-documents/material-documents",
     "pages/products/products",
     "pages/customers/customers"

@@ -1,17 +1,25 @@
 // pages/billing-documents/billing-documents.js
 const { api } = require('../../utils/api');
+const { getViewMode, setViewMode } = require('../../utils/view-mode');
 
 Page({
   data: {
     documents: [],
     loading: false,
+    viewMode: 'card',
     searchQuery: '',
     totalCount: 0,
     page: 1,
     pageSize: 20
   },
 
-  onLoad() { this.fetchDocuments(); },
+  onLoad() { this.setData({ viewMode: getViewMode('billing-documents') }); this.fetchDocuments(); },
+
+  onViewModeChange(e) {
+    const mode = e.detail.mode;
+    this.setData({ viewMode: mode });
+    setViewMode('billing-documents', mode);
+  },
 
   async fetchDocuments() {
     this.setData({ loading: true });
@@ -40,6 +48,11 @@ Page({
       const d = new Date(parseInt(ts));
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     });
+  },
+
+  onViewDetail(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.navigateTo({ url: `/pages/billing-documents/detail/detail?id=${id}` });
   },
 
   onSearchInput(e) { this.setData({ searchQuery: e.detail.value }); },

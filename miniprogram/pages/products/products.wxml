@@ -15,13 +15,19 @@
     <button class="search-btn" bindtap="onClear">清除</button>
   </view>
 
+  <!-- 工具栏 -->
+  <view class="toolbar">
+    <view class="filter-hint"></view>
+    <view-switch mode="{{viewMode}}" bind:change="onViewModeChange"/>
+  </view>
+
   <!-- 结果统计 -->
   <view class="result-header" wx:if="{{totalCount > 0}}">
     <text class="result-count">共 {{totalCount}} 条记录</text>
   </view>
 
-  <!-- 产品列表 -->
-  <view class="product-list" wx:if="{{!loading && products.length > 0}}">
+  <!-- 产品列表 - 卡片视图 -->
+  <view class="product-list" wx:if="{{!loading && products.length > 0 && viewMode === 'card'}}">
     <block wx:for="{{products}}" wx:key="Product">
       <view class="product-card" data-id="{{item.Product}}" bindtap="onViewDetail">
         <view class="product-header">
@@ -38,6 +44,26 @@
       </view>
     </block>
   </view>
+
+  <!-- 表格视图 -->
+  <scroll-view scroll-x wx:if="{{!loading && products.length > 0 && viewMode === 'table'}}" class="table-scroll">
+    <view class="table-view">
+      <view class="table-row table-head">
+        <view class="table-cell" style="flex:1.5;">产品编号</view>
+        <view class="table-cell" style="flex:2;">描述</view>
+        <view class="table-cell">类型</view>
+        <view class="table-cell">物料组</view>
+        <view class="table-cell">单位</view>
+      </view>
+      <view class="table-row" wx:for="{{products}}" wx:key="Product" data-id="{{item.Product}}" bindtap="onViewDetail">
+        <view class="table-cell" style="flex:1.5;">{{item.Product}}</view>
+        <view class="table-cell" style="flex:2;">{{item.ProductDescription || '-'}}</view>
+        <view class="table-cell">{{item.ProductType || '-'}}</view>
+        <view class="table-cell">{{item.ProductGroup || '-'}}</view>
+        <view class="table-cell">{{item.BaseUnit || '-'}}</view>
+      </view>
+    </view>
+  </scroll-view>
 
   <!-- 加载状态 -->
   <view class="loading-container" wx:if="{{loading}}">

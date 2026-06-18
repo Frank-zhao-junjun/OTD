@@ -8,8 +8,9 @@
     <button class="search-btn default" bindtap="onClear">重置</button>
   </view>
 
-  <view class="filter-hint">
-    <text class="hint-text">范围: 工厂 {{plant}} + 库位 {{storageLocation}}</text>
+  <view class="toolbar">
+    <view class="filter-hint"><text class="hint-text">范围: 工厂 {{plant}} + 库位 {{storageLocation}}</text></view>
+    <view-switch mode="{{displayMode}}" bind:change="onViewModeChange"/>
   </view>
 
   <!-- 视图切换 -->
@@ -19,7 +20,7 @@
   </view>
 
   <!-- 汇总视图 -->
-  <view wx:if="{{viewMode === 'summary'}}">
+  <view wx:if="{{displayMode === 'card' && viewMode === 'summary'}}">
     <view class="result-header">
       <text class="result-count">共 {{summary.length}} 种物料</text>
     </view>
@@ -47,7 +48,7 @@
   </view>
 
   <!-- 明细视图 -->
-  <view wx:if="{{viewMode === 'detail'}}">
+  <view wx:if="{{displayMode === 'card' && viewMode === 'detail'}}">
     <view class="result-header">
       <text class="result-count">共 {{totalCount}} 条记录</text>
     </view>
@@ -72,6 +73,28 @@
       </view>
     </block>
   </view>
+
+  <!-- 表格视图 -->
+  <scroll-view scroll-x wx:if="{{displayMode === 'table' && !loading && stocks.length > 0}}" class="table-scroll">
+    <view class="table-view">
+      <view class="table-row table-head">
+        <view class="table-cell" style="flex:1.5;">物料编号</view>
+        <view class="table-cell" style="flex:2;">描述</view>
+        <view class="table-cell">批次</view>
+        <view class="table-cell">库存类型</view>
+        <view class="table-cell" style="flex:1.5;">数量</view>
+        <view class="table-cell">单位</view>
+      </view>
+      <view class="table-row" wx:for="{{stocks}}" wx:key="Material">
+        <view class="table-cell" style="flex:1.5;">{{item.Material}}</view>
+        <view class="table-cell" style="flex:2;">{{item.MaterialName || '-'}}</view>
+        <view class="table-cell">{{item.Batch || '-'}}</view>
+        <view class="table-cell">{{item.StockType === '01' ? '非限制' : item.StockType === '02' ? '质检' : '冻结'}}</view>
+        <view class="table-cell" style="flex:1.5;">{{item.MatlWrhsStkQtyInMatlBaseUnit || '0'}}</view>
+        <view class="table-cell">{{item.BaseUnit || ''}}</view>
+      </view>
+    </view>
+  </scroll-view>
 
   <view class="loading-container" wx:if="{{loading}}">
     <view class="loading-spinner"></view>

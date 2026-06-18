@@ -1,17 +1,25 @@
 // pages/customers/customers.js
 const { api } = require('../../utils/api');
+const { getViewMode, setViewMode } = require('../../utils/view-mode');
 
 Page({
   data: {
     customers: [],
     loading: false,
+    viewMode: 'card',
     searchQuery: '',
     totalCount: 0,
     page: 1,
     pageSize: 20
   },
 
-  onLoad() { this.fetchCustomers(); },
+  onLoad() { this.setData({ viewMode: getViewMode('customers') }); this.fetchCustomers(); },
+
+  onViewModeChange(e) {
+    const mode = e.detail.mode;
+    this.setData({ viewMode: mode });
+    setViewMode('customers', mode);
+  },
 
   async fetchCustomers() {
     this.setData({ loading: true });
