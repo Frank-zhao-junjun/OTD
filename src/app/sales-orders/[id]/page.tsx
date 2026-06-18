@@ -477,6 +477,7 @@ export default function SalesOrderDetailPage() {
                     <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>已确认</th>
                     <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>已交货</th>
                     <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>净额</th>
+                    <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>生产订单</th>
                     <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>状态</th>
                     <th className="w-8"></th>
                   </tr>
@@ -485,6 +486,7 @@ export default function SalesOrderDetailPage() {
                   {items.map((item) => {
                     const deliveries = deliveryByItem[item.SalesOrderItem] || [];
                     const billings = billingByItem[item.SalesOrderItem] || [];
+                    const prods = productionByItem[item.SalesOrderItem] || [];
                     const deliveredQty = deliveries.reduce((sum, d) => sum + num(d.ActualDeliveryQuantity), 0);
                     const itemStatus = ITEM_STATUS_MAP[item.DeliveryStatus || item.SDProcessStatus || ''];
 
@@ -508,6 +510,16 @@ export default function SalesOrderDetailPage() {
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums font-semibold">{fmtAmount(item.NetAmount, item.TransactionCurrency)}</td>
                         <td className="px-4 py-3 text-center">
+                          {prods.length > 0 ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium cursor-pointer hover:underline" style={{ color: '#E9730C' }} onClick={(e) => { e.stopPropagation(); router.push(`/production-orders/${prods[0].ProductionOrder}`); }}>
+                              <Factory className="w-3 h-3" />
+                              {prods.length === 1 ? prods[0].ProductionOrder : `${prods.length} 个`}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
                           {itemStatus && (
                             <FioriBadge variant={itemStatus.color as 'success' | 'warning' | 'info' | 'error' | 'neutral'}>
                               {itemStatus.label}
@@ -528,6 +540,7 @@ export default function SalesOrderDetailPage() {
             <div className="lg:hidden divide-y" style={{ borderColor: 'var(--border)' }}>
               {items.map((item) => {
                 const deliveries = deliveryByItem[item.SalesOrderItem] || [];
+                const prods = productionByItem[item.SalesOrderItem] || [];
                 const deliveredQty = deliveries.reduce((sum, d) => sum + num(d.ActualDeliveryQuantity), 0);
                 const itemStatus = ITEM_STATUS_MAP[item.DeliveryStatus || item.SDProcessStatus || ''];
                 const progressPct = num(item.RequestedQuantity) > 0
@@ -568,6 +581,25 @@ export default function SalesOrderDetailPage() {
                             }}
                           />
                         </div>
+                      </div>
+                    )}
+                    {/* Production order link */}
+                    {prods.length > 0 && (
+                      <div className="mt-2 text-xs flex items-center gap-1">
+                        <Factory className="w-3 h-3" style={{ color: '#E9730C' }} />
+                        <span style={{ color: 'var(--muted-foreground)' }}>生产订单:</span>
+                        {prods.map((p, pi) => (
+                          <span key={pi}>
+                            <span
+                              className="font-medium cursor-pointer hover:underline"
+                              style={{ color: '#E9730C' }}
+                              onClick={(e) => { e.stopPropagation(); router.push(`/production-orders/${p.ProductionOrder}`); }}
+                            >
+                              {p.ProductionOrder}
+                            </span>
+                            {pi < prods.length - 1 && <span className="mx-0.5">,</span>}
+                          </span>
+                        ))}
                       </div>
                     )}
                     <div className="flex items-center justify-between mt-2 text-xs">
@@ -757,6 +789,76 @@ export default function SalesOrderDetailPage() {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Production Orders (MTO) ── */}
+      {(() => {
+        const allProds = Object.values(productionByItem).flat();
+        const uniqueProds = Array.from(new Map(allProds.map(p => [p.ProductionOrder, p])).values());
+        if (uniqueProds.length === 0) return null;
+        const totalPlanned = uniqueProds.reduce((sum, p) => sum + num(p.OrderPlannedTotalQty), 0);
+        const totalActual = uniqueProds.reduce((sum, p) => sum + num(p.ActualDeliveredQuantity), 0);
+        return (
+          <div className="rounded-lg border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+            <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex items-center gap-2">
+                <Factory className="w-4 h-4" style={{ color: '#E9730C' }} />
+                <span className="font-semibold text-sm">生产订单 ({uniqueProds.length})</span>
+              </div>
+              <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                计划 {totalPlanned} · 产出 {totalActual}
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ background: 'var(--muted)' }}>
+                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>生产订单</th>
+                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>行项目</th>
+                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>产品</th>
+                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>类型</th>
+                    <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>计划数量</th>
+                    <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>实际产出</th>
+                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>工厂</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {uniqueProds.map((p) => {
+                    const pct = num(p.OrderPlannedTotalQty) > 0
+                      ? Math.round((num(p.ActualDeliveredQuantity) / num(p.OrderPlannedTotalQty)) * 100)
+                      : 0;
+                    return (
+                      <tr key={p.ProductionOrder} className="border-t cursor-pointer hover:bg-muted/50 transition-colors" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/production-orders/${p.ProductionOrder}`)}>
+                        <td className="px-4 py-2.5 font-medium" style={{ color: 'var(--primary)' }}>
+                          {p.ProductionOrder}
+                        </td>
+                        <td className="px-4 py-2.5 tabular-nums">{p.SalesOrderItem || '-'}</td>
+                        <td className="px-4 py-2.5">{p.Product || '-'}</td>
+                        <td className="px-4 py-2.5">
+                          <FioriBadge variant="neutral">{p.ProductionOrderType || '-'}</FioriBadge>
+                        </td>
+                        <td className="px-4 py-2.5 text-right tabular-nums font-semibold">
+                          {num(p.OrderPlannedTotalQty) || '-'}
+                        </td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">
+                          {num(p.ActualDeliveredQuantity) > 0 ? (
+                            <span className="font-semibold" style={{ color: pct >= 100 ? '#107E3E' : '#E9730C' }}>
+                              {num(p.ActualDeliveredQuantity)}
+                              <span className="text-xs ml-1" style={{ color: 'var(--muted-foreground)' }}>({pct}%)</span>
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5">{p.ProductionPlant || '-'}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
