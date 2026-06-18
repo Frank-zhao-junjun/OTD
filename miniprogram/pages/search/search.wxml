@@ -4,7 +4,7 @@
   <!-- 搜索栏 -->
   <view class="search-bar">
     <view class="search-input-wrap">
-      <text class="search-icon">🔍</text>
+      <text class="search-icon">搜索</text>
       <input
         class="search-input"
         type="text"
@@ -54,7 +54,7 @@
   <view class="results-section" wx:if="{{results.length > 0}}">
     <view class="result-group" wx:for="{{results}}" wx:key="group">
       <view class="group-header">
-        <text class="group-icon">{{item.icon || '📄'}}</text>
+        <text class="group-icon">{{item.icon || '凭证'}}</text>
         <text class="group-name">{{item.group}}</text>
         <text class="group-count">({{item.items.length}})</text>
       </view>
@@ -77,7 +77,7 @@
 
   <!-- 空结果 -->
   <view class="empty-result" wx:if="{{noResult && !searching}}">
-    <text class="empty-icon">🔍</text>
+    <text class="empty-icon">搜索</text>
     <text class="empty-title">未找到匹配数据</text>
     <text class="empty-hint">请尝试其他关键词</text>
   </view>

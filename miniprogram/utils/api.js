@@ -1,5 +1,6 @@
 // utils/api.js - API 请求封装（含认证注入）
-const API_HOST = 'https://7f286be5-741a-4bb9-af5b-90fecb106734.dev.coze.site';
+const appConfig = require('../app-config.js');
+const API_HOST = appConfig.apiHost;
 
 /**
  * 通用请求方法 — 自动注入 x-session header，统一处理 401
@@ -178,17 +179,17 @@ const api = {
   }),
 
   /** 登录 */
-  login: (username, password, captcha) => request({
+  login: (username, password, captchaCode, captchaId) => request({
     url: '/api/auth/login',
     method: 'POST',
-    data: { username, password, captcha }
+    data: { username, password, captchaCode, captchaId }
   }),
 
   /** 注册 */
-  register: (username, password, confirmPassword, captcha) => request({
+  register: (username, password, confirmPassword, captchaCode, captchaId) => request({
     url: '/api/auth/register',
     method: 'POST',
-    data: { username, password, confirmPassword, captcha }
+    data: { username, password, confirmPassword, captchaCode, captchaId }
   }),
 
   /** 获取当前用户信息 */

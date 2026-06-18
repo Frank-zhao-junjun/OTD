@@ -9,7 +9,7 @@
 
   <!-- ====== Error ====== -->
   <view class="state-error" wx:elif="{{error}}">
-    <text class="error-icon">⚠️</text>
+    <text class="error-icon">⚠</text>
     <text class="error-text">{{errorMsg}}</text>
     <button class="retry-btn" bindtap="onRetry">重试</button>
   </view>
@@ -53,7 +53,7 @@
     <!-- 行项目 -->
     <view class="section" wx:if="{{items.length > 0}}">
       <view class="section-header">
-        <text class="section-title">📋 行项目</text>
+        <text class="section-title">单据 行项目</text>
       </view>
       <view class="item-card" wx:for="{{items}}" wx:key="*this">
         <view class="item-header">
@@ -88,7 +88,7 @@
     <!-- 发货信息 -->
     <view class="section" wx:if="{{deliveries.length > 0}}">
       <view class="section-header">
-        <text class="section-title">🚚 发货信息</text>
+        <text class="section-title">交货 发货信息</text>
       </view>
       <view class="link-card" wx:for="{{deliveries}}" wx:key="*this" data-id="{{item.DeliveryDocument}}" bindtap="onTapDelivery">
         <text class="link-no">{{item.DeliveryDocument}}</text>
@@ -100,7 +100,7 @@
     <!-- 开票信息 -->
     <view class="section" wx:if="{{billings.length > 0}}">
       <view class="section-header">
-        <text class="section-title">🧾 开票信息</text>
+        <text class="section-title">开票 开票信息</text>
       </view>
       <view class="link-card" wx:for="{{billings}}" wx:key="*this" data-id="{{item.BillingDocument}}" bindtap="onTapBilling">
         <text class="link-no">{{item.BillingDocument}}</text>
@@ -112,7 +112,7 @@
     <!-- 生产订单 -->
     <view class="section" wx:if="{{productionOrders.length > 0}}">
       <view class="section-header">
-        <text class="section-title">🏭 生产订单</text>
+        <text class="section-title">工厂 生产订单</text>
       </view>
       <view class="link-card" wx:for="{{productionOrders}}" wx:key="*this" data-id="{{item.ProductionOrder}}" bindtap="onTapProductionOrder">
         <text class="link-no">{{item.ProductionOrder}}</text>
@@ -124,7 +124,7 @@
     <!-- 业务伙伴 -->
     <view class="section" wx:if="{{partners.length > 0}}">
       <view class="section-header">
-        <text class="section-title">👤 业务伙伴</text>
+        <text class="section-title">用户 业务伙伴</text>
       </view>
       <view class="partner-item" wx:for="{{partners}}" wx:key="*this">
         <text class="partner-label">{{item.functionLabel}}</text>

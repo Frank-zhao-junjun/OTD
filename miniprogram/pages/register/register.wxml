@@ -12,7 +12,7 @@
     <!-- 用户名 -->
     <view class="form-item">
       <view class="form-input-wrap">
-        <text class="form-icon">👤</text>
+        <text class="form-icon">用</text>
         <input
           class="form-input {{errors.username ? 'form-input-error' : ''}}"
           type="text"
@@ -30,7 +30,7 @@
     <!-- 密码 -->
     <view class="form-item">
       <view class="form-input-wrap">
-        <text class="form-icon">🔒</text>
+        <text class="form-icon">密</text>
         <input
           class="form-input {{errors.password ? 'form-input-error' : ''}}"
           type="{{showPassword ? 'text' : 'password'}}"
@@ -41,7 +41,7 @@
           maxlength="32"
         />
         <view class="form-suffix" bindtap="onTogglePassword">
-          <text>{{showPassword ? '🙈' : '👁️'}}</text>
+          <text>{{showPassword ? '隐' : '显'}}</text>
         </view>
       </view>
       <text class="form-error" wx:if="{{errors.password}}">{{errors.password}}</text>
@@ -50,7 +50,7 @@
     <!-- 确认密码 -->
     <view class="form-item">
       <view class="form-input-wrap">
-        <text class="form-icon">🔒</text>
+        <text class="form-icon">密</text>
         <input
           class="form-input {{errors.confirmPassword ? 'form-input-error' : ''}}"
           type="{{showConfirmPassword ? 'text' : 'password'}}"
@@ -61,7 +61,7 @@
           maxlength="32"
         />
         <view class="form-suffix" bindtap="onToggleConfirmPassword">
-          <text>{{showConfirmPassword ? '🙈' : '👁️'}}</text>
+          <text>{{showConfirmPassword ? '隐' : '显'}}</text>
         </view>
       </view>
       <text class="form-error" wx:if="{{errors.confirmPassword}}">{{errors.confirmPassword}}</text>
@@ -71,7 +71,7 @@
     <view class="form-item">
       <view class="captcha-row">
         <view class="form-input-wrap captcha-input-wrap">
-          <text class="form-icon">🔑</text>
+          <text class="form-icon">验</text>
           <input
             class="form-input {{errors.captcha ? 'form-input-error' : ''}}"
             type="number"
@@ -83,7 +83,8 @@
           />
         </view>
         <view class="captcha-display" bindtap="onRefreshCaptcha">
-          <text class="captcha-text">{{captchaText || '获取中...'}}</text>
+          <image class="captcha-image" src="{{captchaSvgBase64}}" mode="aspectFit" wx:if="{{captchaSvgBase64}}" />
+          <text class="captcha-text" wx:else>获取中...</text>
           <text class="captcha-hint">点击刷新</text>
         </view>
       </view>

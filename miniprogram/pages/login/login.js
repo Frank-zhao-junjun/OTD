@@ -6,8 +6,8 @@ Page({
     username: '',
     password: '',
     captcha: '',
-    captchaSvg: '',
-    captchaText: '',
+    captchaId: '',
+    captchaSvgBase64: '',
     showPassword: false,
     submitting: false,
     errors: {
@@ -25,15 +25,19 @@ Page({
   async fetchCaptcha() {
     try {
       const res = await api.getCaptcha();
-      if (res.success && res.data) {
+      if (res.success && res.data && res.data.svg) {
+        const base64 = wx.arrayBufferToBase64(
+          new Uint8Array(
+            unescape(encodeURIComponent(res.data.svg)).split('').map(c => c.charCodeAt(0))
+          ).buffer
+        );
         this.setData({
-          captchaSvg: res.data.svg || '',
-          captchaText: res.data.text || ''
+          captchaId: res.data.captchaId || '',
+          captchaSvgBase64: 'data:image/svg+xml;base64,' + base64
         });
       }
     } catch (err) {
       console.error('获取验证码失败:', err);
-      // 验证码获取失败不阻塞页面
     }
   },
 
@@ -98,7 +102,7 @@ Page({
   // ── 登录 ──────────────────────────────────────────────
 
   async onLogin() {
-    const { username, password, captcha } = this.data;
+    const { username, password, captcha, captchaId } = this.data;
 
     // 全字段校验
     const errors = {
@@ -113,7 +117,7 @@ Page({
     this.setData({ submitting: true });
 
     try {
-      const res = await api.login(username, password, captcha);
+      const res = await api.login(username, password, captcha, captchaId);
       if (res.success && res.data?.token) {
         const app = getApp();
         app.setToken(res.data.token, res.data.user);

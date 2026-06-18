@@ -5,26 +5,26 @@ Page({
   data: {
     // KPI
     kpis: [
-      { key: 'sales', label: '销售订单', value: '—', unit: '张', color: 'blue', icon: '📋' },
-      { key: 'production', label: '生产订单', value: '—', unit: '张', color: 'green', icon: '🏭' },
-      { key: 'delivery', label: '待发货', value: '—', unit: '单', color: 'orange', icon: '🚚' },
-      { key: 'stock', label: '库存条目', value: '—', unit: '条', color: 'purple', icon: '📦' }
+      { key: 'sales', label: '销售订单', value: '—', unit: '张', color: 'blue', icon: '单' },
+      { key: 'production', label: '生产订单', value: '—', unit: '张', color: 'green', icon: '工' },
+      { key: 'delivery', label: '待发货', value: '—', unit: '单', color: 'orange', icon: '交' },
+      { key: 'stock', label: '库存条目', value: '—', unit: '条', color: 'purple', icon: '库' }
     ],
     activities: [],
     loading: true,
 
     // 模块入口
     businessModules: [
-      { id: 'sales-orders', title: '销售订单', desc: 'Sales Orders', icon: '📋', color: '#0A6ED1' },
-      { id: 'production-orders', title: '生产订单', desc: 'Production Orders', icon: '🏭', color: '#107E3E' },
-      { id: 'outbound-delivery', title: '交货单', desc: 'Outbound Delivery', icon: '🚚', color: '#E9730C' },
-      { id: 'billing-documents', title: '开票单据', desc: 'Billing Documents', icon: '🧾', color: '#6D28D9' }
+      { id: 'sales-orders', title: '销售订单', desc: 'Sales Orders', icon: '单', color: '#0A6ED1' },
+      { id: 'production-orders', title: '生产订单', desc: 'Production Orders', icon: '工', color: '#107E3E' },
+      { id: 'outbound-delivery', title: '交货单', desc: 'Outbound Delivery', icon: '交', color: '#E9730C' },
+      { id: 'billing-documents', title: '开票单据', desc: 'Billing Documents', icon: '票', color: '#6D28D9' }
     ],
     masterModules: [
-      { id: 'material-stock', title: '库存', desc: 'Material Stock', icon: '📦', color: '#7C3AED' },
-      { id: 'material-documents', title: '凭证', desc: 'Material Docs', icon: '📄', color: '#0891B2' },
-      { id: 'products', title: '产品', desc: 'Products', icon: '🏷️', color: '#DB2777' },
-      { id: 'customers', title: '客户', desc: 'Customers', icon: '👥', color: '#059669' }
+      { id: 'material-stock', title: '库存', desc: 'Material Stock', icon: '库', color: '#7C3AED' },
+      { id: 'material-documents', title: '凭证', desc: 'Material Docs', icon: '凭', color: '#0891B2' },
+      { id: 'products', title: '产品', desc: 'Products', icon: '品', color: '#DB2777' },
+      { id: 'customers', title: '客户', desc: 'Customers', icon: '客', color: '#059669' }
     ]
   },
 

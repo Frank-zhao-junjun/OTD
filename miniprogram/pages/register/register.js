@@ -7,7 +7,8 @@ Page({
     password: '',
     confirmPassword: '',
     captcha: '',
-    captchaText: '',
+    captchaId: '',
+    captchaSvgBase64: '',
     showPassword: false,
     showConfirmPassword: false,
     submitting: false,
@@ -26,8 +27,16 @@ Page({
   async fetchCaptcha() {
     try {
       const res = await api.getCaptcha();
-      if (res.success && res.data) {
-        this.setData({ captchaText: res.data.text || '' });
+      if (res.success && res.data && res.data.svg) {
+        const base64 = wx.arrayBufferToBase64(
+          new Uint8Array(
+            unescape(encodeURIComponent(res.data.svg)).split('').map(c => c.charCodeAt(0))
+          ).buffer
+        );
+        this.setData({
+          captchaId: res.data.captchaId || '',
+          captchaSvgBase64: 'data:image/svg+xml;base64,' + base64
+        });
       }
     } catch (err) {
       console.error('获取验证码失败:', err);
@@ -115,7 +124,7 @@ Page({
   // ── 注册 ──────────────────────────────────────────────
 
   async onRegister() {
-    const { username, password, confirmPassword, captcha } = this.data;
+    const { username, password, confirmPassword, captcha, captchaId } = this.data;
 
     const errors = {
       username: this.validateUsername(username),
@@ -130,7 +139,7 @@ Page({
     this.setData({ submitting: true });
 
     try {
-      const res = await api.register(username, password, confirmPassword, captcha);
+      const res = await api.register(username, password, confirmPassword, captcha, captchaId);
 
       // 注册成功后自动登录
       if (res.success && res.data?.token) {

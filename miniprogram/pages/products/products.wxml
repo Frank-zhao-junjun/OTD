@@ -73,7 +73,7 @@
 
   <!-- 空状态 -->
   <view class="empty-container" wx:if="{{!loading && products.length === 0}}">
-    <text class="empty-icon">🔍</text>
+    <text class="empty-icon">搜索</text>
     <text class="empty-text">暂无数据，请调整查询条件</text>
   </view>
 </view>

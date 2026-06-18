@@ -10,7 +10,7 @@
       </view>
     </view>
     <view class="shell-search" bindtap="onSearchTap">
-      <text class="shell-search-icon">🔍</text>
+      <text class="shell-search-icon">搜索</text>
       <text class="shell-search-text">搜索订单、物料...</text>
     </view>
   </view>
@@ -38,7 +38,7 @@
   <!-- 最近动态 -->
   <view class="section" wx:if="{{activities.length > 0}}">
     <view class="section-header">
-      <text class="section-title">📋 最近动态</text>
+      <text class="section-title">单 最近动态</text>
     </view>
     <view class="activity-list">
       <view

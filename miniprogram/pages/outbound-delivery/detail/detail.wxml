@@ -7,7 +7,7 @@
   </view>
 
   <view class="state-error" wx:elif="{{error}}">
-    <text class="error-icon">⚠️</text>
+    <text class="error-icon">⚠</text>
     <text class="error-text">{{errorMsg}}</text>
     <button class="retry-btn" bindtap="onRetry">重试</button>
   </view>
@@ -35,7 +35,7 @@
     <!-- 行项目 -->
     <view class="section" wx:if="{{items.length > 0}}">
       <view class="section-header">
-        <text class="section-title">📋 行项目 ({{items.length}})</text>
+        <text class="section-title">单据 行项目 ({{items.length}})</text>
       </view>
       <view class="item-card" wx:for="{{items}}" wx:key="*this">
         <view class="item-header">
