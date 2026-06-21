@@ -5,13 +5,13 @@
     data-mode="card"
     bindtap="onSwitch"
   >
-    <text>📋</text>
+    <text>列</text>
   </view>
   <view
     class="vs-btn {{mode === 'table' ? 'vs-active' : ''}}"
     data-mode="table"
     bindtap="onSwitch"
   >
-    <text>📊</text>
+    <text>表</text>
   </view>
 </view>

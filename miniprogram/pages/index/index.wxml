@@ -58,7 +58,7 @@
   <!-- 功能模块 -->
   <view class="section">
     <view class="section-header">
-      <text class="section-title">📁 业务交易</text>
+      <text class="section-title">业务交易</text>
     </view>
     <view class="module-grid">
       <view
@@ -79,7 +79,7 @@
 
   <view class="section">
     <view class="section-header">
-      <text class="section-title">📁 主数据</text>
+      <text class="section-title">主数据</text>
     </view>
     <view class="module-grid">
       <view

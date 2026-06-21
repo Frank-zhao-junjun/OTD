@@ -16,7 +16,7 @@
         focus="{{true}}"
         confirm-type="search"
       />
-      <text class="search-clear" wx:if="{{query.length > 0}}" bindtap="onClear">✕</text>
+      <text class="search-clear" wx:if="{{query.length > 0}}" bindtap="onClear">×</text>
     </view>
     <text class="search-cancel" bindtap="onCancel">取消</text>
   </view>

@@ -9,7 +9,7 @@
 
   <!-- ====== Error ====== -->
   <view class="state-error" wx:elif="{{error}}">
-    <text class="error-icon">⚠</text>
+    <text class="error-icon">!</text>
     <text class="error-text">{{errorMsg}}</text>
     <button class="retry-btn" bindtap="onRetry">重试</button>
   </view>
@@ -74,7 +74,7 @@
     <!-- 定价明细（可折叠） -->
     <view class="section" wx:if="{{pricing.length > 0}}">
       <view class="section-header section-collapsible" bindtap="onTogglePricing">
-        <text class="section-title">💰 定价明细</text>
+        <text class="section-title">定价明细</text>
         <text class="collapse-arrow">{{pricingOpen ? '▲' : '▼'}}</text>
       </view>
       <view class="pricing-list" wx:if="{{pricingOpen}}">

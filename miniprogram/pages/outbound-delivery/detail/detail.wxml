@@ -7,7 +7,7 @@
   </view>
 
   <view class="state-error" wx:elif="{{error}}">
-    <text class="error-icon">⚠</text>
+    <text class="error-icon">!</text>
     <text class="error-text">{{errorMsg}}</text>
     <button class="retry-btn" bindtap="onRetry">重试</button>
   </view>
@@ -63,7 +63,7 @@
     <!-- 关联销售订单 -->
     <view class="section" wx:if="{{salesOrder}}">
       <view class="section-header">
-        <text class="section-title">📎 关联销售订单</text>
+        <text class="section-title">关联销售订单</text>
       </view>
       <view class="link-card" bindtap="onTapSalesOrder">
         <text class="link-no">{{salesOrder.SalesOrder}}</text>

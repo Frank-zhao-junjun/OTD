@@ -9,7 +9,7 @@
 
   <!-- Error -->
   <view class="state-error" wx:elif="{{error}}">
-    <text class="error-icon">⚠</text>
+    <text class="error-icon">!</text>
     <text class="error-text">{{errorMsg}}</text>
     <button class="retry-btn" bindtap="onRetry">重试</button>
   </view>
@@ -38,9 +38,9 @@
       <view class="kpi-card kpi-{{item.color}}" wx:for="{{kpis}}" wx:key="label">
         <view class="kpi-icon-wrap kpi-icon-{{item.color}}">
           <text class="kpi-emoji">
-            <block wx:if="{{item.color === 'blue'}}">📊</block>
-            <block wx:elif="{{item.color === 'green'}}">✅</block>
-            <block wx:elif="{{item.color === 'orange'}}">🔧</block>
+            <block wx:if="{{item.color === 'blue'}}">数</block>
+            <block wx:elif="{{item.color === 'green'}}">完</block>
+            <block wx:elif="{{item.color === 'orange'}}">工</block>
             <block wx:else>库存</block>
           </text>
         </view>
@@ -55,7 +55,7 @@
     <!-- 工序进度 -->
     <view class="section" wx:if="{{operations.length > 0}}">
       <view class="section-header">
-        <text class="section-title">🔧 工序进度</text>
+        <text class="section-title">工序进度</text>
       </view>
       <view class="op-card" wx:for="{{operations}}" wx:key="*this">
         <view class="op-header">
