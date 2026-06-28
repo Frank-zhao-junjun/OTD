@@ -5,7 +5,7 @@ import { getUserById } from '@/lib/users';
 export async function GET() {
   try {
     const session = await getSession();
-    
+
     if (!session) {
       return NextResponse.json(
         { success: false, error: '未登录' },
@@ -14,7 +14,7 @@ export async function GET() {
     }
 
     const user = getUserById(session.userId);
-    
+
     if (!user) {
       return NextResponse.json(
         { success: false, error: '用户不存在' },
@@ -27,6 +27,7 @@ export async function GET() {
       user: {
         id: user.id,
         username: user.username,
+        role: user.role,
         displayName: user.displayName,
         email: user.email,
       },

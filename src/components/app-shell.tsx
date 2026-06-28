@@ -21,12 +21,14 @@ import {
   ChevronRight,
   Settings,
   LogOut,
+  ShieldCheck,
 } from 'lucide-react';
 import { GlobalSearch } from './global-search';
 
 interface UserInfo {
   id: string;
   username: string;
+  role: 'admin' | 'user';
   displayName?: string;
   email?: string;
 }
@@ -49,11 +51,16 @@ const SYSTEM_ITEMS = [
   { id: 'settings', label: '设置', icon: Settings, path: '/settings' },
 ];
 
+const ADMIN_ITEMS = [
+  { id: 'admin-users', label: '用户管理', icon: ShieldCheck, path: '/admin/users' },
+];
+
 const ALL_ITEMS = [
   { id: 'home', label: '工作台', icon: LayoutDashboard, path: '/' },
   ...BUSINESS_ITEMS,
   ...MASTER_ITEMS,
   ...SYSTEM_ITEMS,
+  ...ADMIN_ITEMS,
 ];
 
 // Mobile tab items (bottom navigation) - 8 items
@@ -223,6 +230,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                     {user.email}
                   </p>
                 )}
+                {user?.role === 'admin' && (
+                  <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ background: 'rgba(0,112,242,0.12)', color: '#0070F2' }}>
+                    <ShieldCheck className="w-3 h-3" />
+                    管理员
+                  </span>
+                )}
               </div>
               <div className="p-1">
                 <Link
@@ -327,6 +340,21 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Link>
             );
           })}
+
+          {/* Admin Group - only visible to admin users */}
+          {user?.role === 'admin' && (
+            <>
+              <div className="fiori-sidebar-group-label">管理</div>
+              <Link
+                href="/admin/users"
+                className={`fiori-sidebar-item ${pathname.startsWith('/admin') ? 'active' : ''}`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <ShieldCheck className="w-[18px] h-[18px]" />
+                <span>用户管理</span>
+              </Link>
+            </>
+          )}
         </aside>
 
         {/* ===== Main Content ===== */}

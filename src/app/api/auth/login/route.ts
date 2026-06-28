@@ -41,10 +41,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Set session
+    // Set session (includes role)
     await setSession({
       userId: user.id,
       username: user.username,
+      role: user.role,
     });
 
     return NextResponse.json({
@@ -53,6 +54,7 @@ export async function POST(request: NextRequest) {
       user: {
         id: user.id,
         username: user.username,
+        role: user.role,
         displayName: user.displayName,
         email: user.email,
       },

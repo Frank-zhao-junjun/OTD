@@ -1,10 +1,12 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { getJwtSecretKey } from '@/lib/app-config';
+import type { UserRole } from '@/lib/users';
 
 export interface SessionUser {
   userId: string;
   username: string;
+  role: UserRole;
 }
 
 export async function signToken(payload: SessionUser): Promise<string> {
@@ -20,6 +22,7 @@ export async function verifyToken(token: string): Promise<SessionUser | null> {
     return {
       userId: payload.userId as string,
       username: payload.username as string,
+      role: (payload.role as UserRole) || 'user',
     };
   } catch {
     return null;
