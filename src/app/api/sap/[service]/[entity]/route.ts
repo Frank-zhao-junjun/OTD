@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SAP_DEFAULT_SELECTS, SAP_DEFAULT_EXPANDS } from '@/lib/sap-service';
 import { readEnvLocal } from '@/lib/env-local';
+import { queryMockData } from '@/lib/mock-data';
+
+function isMockMode(): boolean {
+  const v = process.env.USE_MOCK || readEnvLocal('USE_MOCK');
+  return v === 'true' || v === '1';
+}
 // Variable names aligned with SAP Communication Scenarios (SAP_COM_xxxx) Postman environment.
 function getSapConfig() {
   return {
@@ -168,6 +174,28 @@ export async function GET(
 
   // === DOCUMENT SERVICES: Always SAP direct, no DB caching ===
   // Documents bypass DB entirely — they go straight to SAP
+
+  // === MOCK MODE ===
+  if (isMockMode()) {
+    const searchParams = request.nextUrl.searchParams;
+    const id = searchParams.get('id') || undefined;
+    const top = searchParams.get('top') ? parseInt(searchParams.get('top')!, 10) : undefined;
+    const skip = searchParams.get('skip') ? parseInt(searchParams.get('skip')!, 10) : undefined;
+    const orderby = searchParams.get('orderby') || undefined;
+    const filter = searchParams.get('filter') || undefined;
+    const wantCount = searchParams.get('count') === 'true' || searchParams.get('inlinecount') === 'allpages';
+    const result = queryMockData(serviceEntityKey, { id, top, skip, orderby, filter, count: wantCount });
+    return NextResponse.json({
+      success: true,
+      d: { results: result.list, __count: result.count },
+      value: result.list,
+      '@odata.count': result.count,
+      totalCount: result.count,
+      count: result.count,
+      data: result.list,
+      _source: 'mock',
+    });
+  }
 
   // === LIVE SAP MODE ===
   if (!config.sapHost) {

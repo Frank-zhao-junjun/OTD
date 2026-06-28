@@ -191,7 +191,7 @@ export async function GET(): Promise<NextResponse> {
           tileCounts: {},
         },
       },
-      { status: 503 }
+      { status: 200 }
     );
   }
 }

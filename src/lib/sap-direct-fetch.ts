@@ -1,5 +1,11 @@
 import { readEnvLocal } from '@/lib/env-local';
 import { SAP_DEFAULT_SELECTS } from '@/lib/sap-service';
+import { queryMockData } from '@/lib/mock-data';
+
+function isMockMode(): boolean {
+  const v = process.env.USE_MOCK || readEnvLocal('USE_MOCK');
+  return v === 'true' || v === '1';
+}
 
 const SERVICE_PATH_MAP: Record<string, string> = {
   API_PRODUCT_SRV: '/sap/opu/odata/sap/API_PRODUCT_SRV/',
@@ -73,6 +79,19 @@ export async function querySapDirect(
   entity: string,
   options: SapDirectQueryOptions = {}
 ): Promise<SapDirectResult> {
+  // Mock mode: return in-memory demo data
+  if (isMockMode()) {
+    const serviceEntityKey = `${service}:${entity}`;
+    const result = queryMockData(serviceEntityKey, {
+      top: options.top,
+      skip: options.skip,
+      filter: options.filter,
+      orderby: options.orderby,
+      count: options.count,
+    });
+    return { success: true, data: result.list, count: result.count };
+  }
+
   const config = getSapConfig();
   if (!config.sapHost) {
     return { success: false, data: [], count: 0, error: 'SAP host not configured' };
