@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
-import { getJwtSecretKey, isRegistrationAllowed } from '@/lib/app-config';
+import { getJwtSecretKey, isRegistrationAllowed } from '@/lib/auth-config';
 
 const publicPagePaths = ['/login', '/register'];
 const publicApiPrefixes = ['/api/auth/captcha', '/api/auth/login', '/api/auth/register', '/api/auth/config', '/api/auth/logout'];

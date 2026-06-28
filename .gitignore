@@ -16,6 +16,7 @@ __pycache__/
 
 # JS/TS bundlers & build outputs
 .next
+next-env.d.ts
 .nuxt
 .turbo
 .vercel
