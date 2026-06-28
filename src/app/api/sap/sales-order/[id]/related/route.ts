@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Input validation — matches patterns in [service]/[entity]/route.ts
+const SAFE_ID_PATTERN = /^[a-zA-Z0-9_.\-:/ ]+$/;
+function validateSalesOrderId(id: string): string | null {
+  const trimmed = id.trim();
+  if (trimmed.length === 0 || trimmed.length > 128) return null;
+  if (!SAFE_ID_PATTERN.test(trimmed)) return null;
+  return trimmed;
+}
+
 /**
  * Helper: call our own proxy API
  */
@@ -30,7 +39,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
-  const { id: salesOrderId } = await params;
+  const { id: rawId } = await params;
+  const salesOrderId = validateSalesOrderId(rawId);
+  if (!salesOrderId) {
+    return NextResponse.json(
+      { success: false, error: 'Invalid sales order ID format' },
+      { status: 400 }
+    );
+  }
 
   try {
     // 1. Fetch outbound delivery items referencing this sales order
@@ -156,7 +172,8 @@ export async function GET(
   } catch (error) {
     console.error('Failed to fetch sales order related data:', error);
     return NextResponse.json({
-      success: true,
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch related data',
       data: { deliveryByItem: {}, billingByItem: {}, productionByItem: {} },
     });
   }

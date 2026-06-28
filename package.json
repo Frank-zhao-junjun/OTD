@@ -5,7 +5,7 @@
   "scripts": {
     "build": "pnpm next build && pnpm tsup src/server.ts --format cjs --platform node --target node20 --outDir dist --no-splitting --no-minify",
     "build:bash": "bash ./scripts/build.sh",
-    "dev": "bash ./scripts/dev.sh",
+    "dev": "next dev -p 5000",
     "dev:win": "next dev -p 5000",
     "preinstall": "npx only-allow pnpm",
     "lint": "eslint",

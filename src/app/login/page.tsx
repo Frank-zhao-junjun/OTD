@@ -76,11 +76,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#f5f7fa] to-[#e4e8eb] p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'var(--background)'}}">
       <Card className="w-full max-w-md shadow-xl border-0">
         <CardHeader className="space-y-3 text-center pb-6">
-          <CardTitle className="text-2xl font-bold text-[#1A2228]">OTD 助手</CardTitle>
-          <CardDescription className="text-[#6A6D70]">
+          <div className="mx-auto w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold"
+               style={{background: 'rgba(0,112,242,0.1)', color: 'var(--primary)'}}>
+            OT
+          </div>
+          <CardTitle className="text-2xl font-bold" style={{color: 'var(--foreground)'}}>OTD 助手</CardTitle>
+          <CardDescription style={{color: 'var(--muted-foreground)'}}>
             SAP ERP 数据查询系统
           </CardDescription>
         </CardHeader>
@@ -94,7 +98,7 @@ export default function LoginPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-[#1A2228] font-medium">
+              <Label htmlFor="username" style={{color: 'var(--foreground)'}} className="font-medium">
                 用户名
               </Label>
               <div className="relative">
@@ -113,7 +117,7 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-[#1A2228] font-medium">
+              <Label htmlFor="password" style={{color: 'var(--foreground)'}} className="font-medium">
                 密码
               </Label>
               <div className="relative">
@@ -132,7 +136,7 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="captcha" className="text-[#1A2228] font-medium">
+              <Label htmlFor="captcha" style={{color: 'var(--foreground)'}} className="font-medium">
                 验证码
               </Label>
               <div className="flex gap-3">
@@ -168,7 +172,7 @@ export default function LoginPage() {
           <CardFooter className="flex flex-col space-y-4 pt-2">
             <Button
               type="submit"
-              className="w-full h-11 bg-[#0070F2] hover:bg-[#0064d9] text-white font-medium"
+              className="w-full h-11 font-medium" style={{background: 'var(--primary)', color: '#FFF'}}
               disabled={loading}
             >
               {loading ? (
@@ -184,7 +188,7 @@ export default function LoginPage() {
             {allowRegistration && (
               <p className="text-sm text-[#6A6D70]">
                 还没有账号？{' '}
-                <Link href="/register" className="text-[#0070F2] hover:underline font-medium">
+                <Link href="/register" className="hover:underline font-medium" style={{color: 'var(--primary)'}}>
                   立即注册
                 </Link>
               </p>

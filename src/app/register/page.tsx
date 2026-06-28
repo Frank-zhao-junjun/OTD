@@ -76,7 +76,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#f5f7fa] to-[#e4e8eb] p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'var(--background)'}}">
       <Card className="w-full max-w-md shadow-xl border-0">
         <CardHeader className="space-y-3 text-center pb-6">
           <div className="mx-auto w-16 h-16 bg-[#0070F2] rounded-2xl flex items-center justify-center mb-2">
@@ -85,7 +85,7 @@ export default function RegisterPage() {
             </svg>
           </div>
           <CardTitle className="text-2xl font-bold text-[#1A2228]">注册账号</CardTitle>
-          <CardDescription className="text-[#6A6D70]">
+          <CardDescription style={{color: 'var(--muted-foreground)'}}>
             创建您的 OTD 助手账号
           </CardDescription>
         </CardHeader>
@@ -104,7 +104,7 @@ export default function RegisterPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-[#1A2228] font-medium">
+              <Label htmlFor="username" style={{color: 'var(--foreground)'}} className="font-medium">
                 用户名 <span className="text-[#BB0000]">*</span>
               </Label>
               <div className="relative">
@@ -125,7 +125,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="displayName" className="text-[#1A2228] font-medium">
+              <Label htmlFor="displayName" style={{color: 'var(--foreground)'}} className="font-medium">
                 显示名称
               </Label>
               <div className="relative">
@@ -143,7 +143,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-[#1A2228] font-medium">
+              <Label htmlFor="email" style={{color: 'var(--foreground)'}} className="font-medium">
                 邮箱
               </Label>
               <div className="relative">
@@ -161,7 +161,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-[#1A2228] font-medium">
+              <Label htmlFor="password" style={{color: 'var(--foreground)'}} className="font-medium">
                 密码 <span className="text-[#BB0000]">*</span>
               </Label>
               <div className="relative">
@@ -181,7 +181,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-[#1A2228] font-medium">
+              <Label htmlFor="confirmPassword" style={{color: 'var(--foreground)'}} className="font-medium">
                 确认密码 <span className="text-[#BB0000]">*</span>
               </Label>
               <div className="relative">
@@ -204,7 +204,7 @@ export default function RegisterPage() {
           <CardFooter className="flex flex-col space-y-4 pt-2">
             <Button
               type="submit"
-              className="w-full h-11 bg-[#0070F2] hover:bg-[#0064d9] text-white font-medium"
+              className="w-full h-11 font-medium" style={{background: 'var(--primary)', color: '#FFF'}}
               disabled={loading}
             >
               {loading ? (

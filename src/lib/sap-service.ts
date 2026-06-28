@@ -4,71 +4,8 @@
  * Supports both V2 and V4 OData endpoints
  */
 
-// API endpoint configuration — maps service name → SAP path prefix
-// V2 services use: /sap/opu/odata/sap/{SERVICE_NAME}/
-// V4 services use: /sap/opu/odata4/sap/{SERVICE_PATH}/
-export const SAP_ENDPOINTS = {
-  // V2 OData endpoints
-  PRODUCT: {
-    version: 'v2' as const,
-    path: '/sap/opu/odata/sap/API_PRODUCT_SRV/',
-  },
-  BUSINESS_PARTNER: {
-    version: 'v2' as const,
-    path: '/sap/opu/odata/sap/API_BUSINESS_PARTNER/',
-  },
-  SALES_ORDER_V2: {
-    version: 'v2' as const,
-    path: '/sap/opu/odata/sap/API_SALES_ORDER_SRV/',
-  },
-  MATERIAL_STOCK: {
-    version: 'v2' as const,
-    path: '/sap/opu/odata/sap/API_MATERIAL_STOCK_SRV/',
-  },
-  OUTBOUND_DELIVERY: {
-    version: 'v2' as const,
-    path: '/sap/opu/odata/sap/API_OUTBOUND_DELIVERY_SRV;v=0002/',
-  },
-  BILLING_DOCUMENT: {
-    version: 'v2' as const,
-    path: '/sap/opu/odata/sap/API_BILLING_DOCUMENT_SRV/',
-  },
-  MATERIAL_DOCUMENT: {
-    version: 'v2' as const,
-    path: '/sap/opu/odata/sap/API_MATERIAL_DOCUMENT_SRV/',
-  },
-  PRODUCTION_CONFIRMATION: {
-    version: 'v2' as const,
-    path: '/sap/opu/odata/sap/API_PROD_ORDER_CONFIRMATION_2_SRV/',
-  },
-
-  // V4 OData endpoints (used by Sales Order & Production Order)
-  SALES_ORDER: {
-    version: 'v4' as const,
-    path: '/sap/opu/odata4/sap/api_salesorder/srvd_a2x/sap/salesorder/0001/',
-  },
-  PRODUCTION_ORDER: {
-    version: 'v4' as const,
-    path: '/sap/opu/odata4/sap/api_productionorder/srvd_a2x/sap/productionorder/0001/',
-  },
-} as const;
-
-// V4 entity set names (different from V2 which uses A_ prefix)
-export const SAP_ENTITY_SETS = {
-  // V2 entity sets (A_ prefix)
-  PRODUCT: ['A_Product', 'A_ProductDescription'],
-  BUSINESS_PARTNER: ['A_BusinessPartner', 'A_Customer', 'A_CustomerSalesArea'],
-  SALES_ORDER_V2: ['A_SalesOrder', 'A_SalesOrderItem'],
-  MATERIAL_STOCK: ['A_MatlStkInAcctMod'],
-  OUTBOUND_DELIVERY: ['A_OutbDeliveryHeader', 'A_OutbDeliveryItem'],
-  BILLING_DOCUMENT: ['A_BillingDocument', 'A_BillingDocumentItem'],
-  MATERIAL_DOCUMENT: ['A_MaterialDocumentItem'],
-  PRODUCTION_CONFIRMATION: ['A_ProdOrderConf'],
-
-  // V4 entity sets (no A_ prefix)
-  SALES_ORDER: ['SalesOrder', 'SalesOrderItem', 'SalesOrderScheduleLine', 'SalesOrderPartner'],
-  PRODUCTION_ORDER: ['ProductionOrder', 'ProductionOrderItem', 'ProductionOrderOperation'],
-} as const;
+// Unified service-name-to-path map 閳?SINGLE SOURCE OF TRUTH for all SAP API routing.
+// V2 services use /sap/opu/odata/sap/ prefix; V4 use /sap/opu/odata4/sap/
 
 // Default business filters (from Python backend config)
 export const SAP_DEFAULTS = {
@@ -139,7 +76,7 @@ export interface SapApiResponse<T> {
   error?: string;
 }
 
-// Common SAP field labels (Chinese) — ALL fields verified against real SAP S/4HANA Cloud responses
+// Common SAP field labels (Chinese) 閳?ALL fields verified against real SAP S/4HANA Cloud responses
 export const SAP_FIELD_LABELS = {
   // === Product fields (V2: API_PRODUCT_SRV/A_Product) ===
   Product: '产品编号',
@@ -337,4 +274,19 @@ export const PRODUCTION_ORDER_STATUS_MAP: Record<string, { label: string; varian
   'TECO': { label: '技术完成', variant: 'outline' },
   'CLSD': { label: '已关闭', variant: 'outline' },
   'DLFL': { label: '已删除', variant: 'destructive' },
+};
+
+/** Service name → SAP OData path prefix. Single source of truth for API proxy routing. */
+export const SERVICE_PATH_MAP: Record<string, string> = {
+  'API_PRODUCT_SRV': '/sap/opu/odata/sap/API_PRODUCT_SRV/',
+  'API_BUSINESS_PARTNER': '/sap/opu/odata/sap/API_BUSINESS_PARTNER/',
+  'API_SALES_ORDER_SRV': '/sap/opu/odata/sap/API_SALES_ORDER_SRV/',
+  'API_PRODUCTION_ORDER_2_SRV': '/sap/opu/odata/sap/API_PRODUCTION_ORDER_2_SRV/',
+  'API_MATERIAL_STOCK_SRV': '/sap/opu/odata/sap/API_MATERIAL_STOCK_SRV/',
+  'API_OUTBOUND_DELIVERY_SRV': '/sap/opu/odata/sap/API_OUTBOUND_DELIVERY_SRV;v=0002/',
+  'API_BILLING_DOCUMENT_SRV': '/sap/opu/odata/sap/API_BILLING_DOCUMENT_SRV/',
+  'API_MATERIAL_DOCUMENT_SRV': '/sap/opu/odata/sap/API_MATERIAL_DOCUMENT_SRV/',
+  'API_PROD_ORDER_CONFIRMATION_2_SRV': '/sap/opu/odata/sap/API_PROD_ORDER_CONFIRMATION_2_SRV/',
+  'CE_SALESORDER_0001': '/sap/opu/odata4/sap/api_salesorder/srvd_a2x/sap/salesorder/0001/',
+  'CE_PRODUCTIONORDER_0001': '/sap/opu/odata4/sap/api_productionorder/srvd_a2x/sap/productionorder/0001/',
 };

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SAP_DEFAULT_SELECTS, SAP_DEFAULT_EXPANDS } from '@/lib/sap-service';
+import { SAP_DEFAULT_SELECTS, SAP_DEFAULT_EXPANDS, SERVICE_PATH_MAP } from '@/lib/sap-service';
 import { readEnvLocal } from '@/lib/env-local';
 import { queryMockData } from '@/lib/mock-data';
 
@@ -7,7 +7,48 @@ function isMockMode(): boolean {
   const v = process.env.USE_MOCK || readEnvLocal('USE_MOCK');
   return v === 'true' || v === '1';
 }
-// Variable names aligned with SAP Communication Scenarios (SAP_COM_xxxx) Postman environment.
+
+// Input validation for OData-safe identifiers
+const SAFE_ID_PATTERN = /^[a-zA-Z0-9_.\-:/ ]+$/;
+function validateId(id: string | null): string | null {
+  if (!id) return null;
+  const trimmed = id.trim();
+  if (trimmed.length === 0 || trimmed.length > 128) return null;
+  if (!SAFE_ID_PATTERN.test(trimmed)) return null;
+  return trimmed;
+}
+
+const SAFE_FILTER_PATTERN = /^[a-zA-Z0-9_\-:()=,.*'%<>!\s&| ]+$/;
+const SAFE_SELECT_PATTERN = /^[a-zA-Z0-9_(),.\$ ]+$/;
+const SAFE_ORDERBY_PATTERN = /^[a-zA-Z0-9_,\s]+$/;
+
+function validateFilter(filter: string | null): string | null {
+  if (!filter) return null;
+  const trimmed = filter.trim();
+  if (trimmed.length === 0 || trimmed.length > 2000) return null;
+  if (!SAFE_FILTER_PATTERN.test(trimmed)) return null;
+  return trimmed;
+}
+
+function validateSelect(sel: string | null): string | null {
+  if (!sel) return null;
+  const trimmed = sel.trim();
+  if (trimmed.length === 0 || trimmed.length > 2000) return null;
+  if (!SAFE_SELECT_PATTERN.test(trimmed)) return null;
+  return trimmed;
+}
+
+function validateExpand(exp: string | null): string | null {
+  return validateSelect(exp);
+}
+
+function validateOrderby(ob: string | null): string | null {
+  if (!ob) return null;
+  const trimmed = ob.trim();
+  if (trimmed.length === 0 || trimmed.length > 500) return null;
+  if (!SAFE_ORDERBY_PATTERN.test(trimmed)) return null;
+  return trimmed;
+}
 function getSapConfig() {
   return {
     sapScheme: process.env.sapScheme || readEnvLocal('sapScheme') || 'https',
@@ -29,25 +70,7 @@ function getAuthHeader(): string {
   return `Basic ${credentials}`;
 }
 
-/**
- * Service name → SAP path prefix mapping
- * Supports both V2 and V4 OData endpoints.
- */
-const SERVICE_PATH_MAP: Record<string, string> = {
-  // V2 OData services
-  'API_PRODUCT_SRV': '/sap/opu/odata/sap/API_PRODUCT_SRV/',
-  'API_BUSINESS_PARTNER': '/sap/opu/odata/sap/API_BUSINESS_PARTNER/',
-  'API_SALES_ORDER_SRV': '/sap/opu/odata/sap/API_SALES_ORDER_SRV/',
-  'API_PRODUCTION_ORDER_2_SRV': '/sap/opu/odata4/sap/api_productionorder/srvd_a2x/sap/productionorder/0001/',
-  'API_MATERIAL_STOCK_SRV': '/sap/opu/odata/sap/API_MATERIAL_STOCK_SRV/',
-  'API_OUTBOUND_DELIVERY_SRV': '/sap/opu/odata/sap/API_OUTBOUND_DELIVERY_SRV;v=0002/',
-  'API_BILLING_DOCUMENT_SRV': '/sap/opu/odata/sap/API_BILLING_DOCUMENT_SRV/',
-  'API_MATERIAL_DOCUMENT_SRV': '/sap/opu/odata/sap/API_MATERIAL_DOCUMENT_SRV/',
-  'API_PROD_ORDER_CONFIRMATION_2_SRV': '/sap/opu/odata/sap/API_PROD_ORDER_CONFIRMATION_2_SRV/',
-  // V4 OData services
-  'CE_SALESORDER_0001': '/sap/opu/odata4/sap/api_salesorder/srvd_a2x/sap/salesorder/0001/',
-  'CE_PRODUCTIONORDER_0001': '/sap/opu/odata4/sap/api_productionorder/srvd_a2x/sap/productionorder/0001/',
-};
+// SERVICE_PATH_MAP imported from @/lib/sap-service (single source of truth)
 
 function getODataVersion(servicePath: string): 'v2' | 'v4' {
   if (servicePath.includes('/odata4/')) return 'v4';
@@ -70,7 +93,7 @@ const MASTER_DATA_SERVICES = new Set([
  * Generic SAP OData proxy endpoint
  *
  * Architecture:
- * - Master Data (products, customers): DB-first → SAP fallback.
+ * - Master Data (products, customers): DB-first 闁?SAP fallback.
  *   Supports `sap_direct=true` to force SAP query + incremental DB save.
  * - Documents (sales orders, production orders, etc.): Always SAP direct, no DB caching.
  *
@@ -91,7 +114,7 @@ export async function GET(
   const serviceEntityKey = `${service}:${entity}`;
   const isMasterData = MASTER_DATA_SERVICES.has(serviceEntityKey);
 
-  // Query parameter: sap_direct=true → bypass DB, query SAP directly & save to DB (master data only)
+  // Query parameter: sap_direct=true 闁?bypass DB, query SAP directly & save to DB (master data only)
   const sapDirect = request.nextUrl.searchParams.get('sap_direct') === 'true';
 
   // === MASTER DATA: DB-FIRST MODE ===
@@ -107,7 +130,7 @@ export async function GET(
 
         if (hasData) {
           // Parse query params for DB query
-          const id = request.nextUrl.searchParams.get('id');
+          const id = validateId(request.nextUrl.searchParams.get('id'));
           const top = parseInt(request.nextUrl.searchParams.get('top') || '0', 10) || undefined;
           const skip = parseInt(request.nextUrl.searchParams.get('skip') || '0', 10) || undefined;
           const filterStr = request.nextUrl.searchParams.get('filter');
@@ -134,7 +157,7 @@ export async function GET(
                 const val = eqMatch[2];
                 const dbProp = prop.replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2')
                   .replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
-                // Multiple or-conditions on same field → use .in(), single → use .eq()
+                // Multiple or-conditions on same field 闁?use .in(), single 闁?use .eq()
                 if (parts.length > 1) {
                   if (!inFilter[dbProp]) inFilter[dbProp] = [];
                   inFilter[dbProp].push(val);
@@ -173,16 +196,16 @@ export async function GET(
   }
 
   // === DOCUMENT SERVICES: Always SAP direct, no DB caching ===
-  // Documents bypass DB entirely — they go straight to SAP
+  // Documents bypass DB entirely 闁?they go straight to SAP
 
   // === MOCK MODE ===
   if (isMockMode()) {
     const searchParams = request.nextUrl.searchParams;
-    const id = searchParams.get('id') || undefined;
+    const id = validateId(searchParams.get('id')) || undefined;
     const top = searchParams.get('top') ? parseInt(searchParams.get('top')!, 10) : undefined;
     const skip = searchParams.get('skip') ? parseInt(searchParams.get('skip')!, 10) : undefined;
-    const orderby = searchParams.get('orderby') || undefined;
-    const filter = searchParams.get('filter') || undefined;
+    const orderby = validateOrderby(searchParams.get('orderby')) || undefined;
+    const filter = validateFilter(searchParams.get('filter')) || undefined;
     const wantCount = searchParams.get('count') === 'true' || searchParams.get('inlinecount') === 'allpages';
     const result = queryMockData(serviceEntityKey, { id, top, skip, orderby, filter, count: wantCount });
     return NextResponse.json({
@@ -223,7 +246,13 @@ export async function GET(
   const searchParams = request.nextUrl.searchParams;
   const queryParams: string[] = [];
 
-  const id = searchParams.get('id');
+  const id = validateId(searchParams.get('id'));
+  if (searchParams.get('id') && !id) {
+    return NextResponse.json(
+      { success: false, error: 'Invalid id format' },
+      { status: 400 }
+    );
+  }
   const isSingleEntity = !!id;
 
   queryParams.push(`sap-client=${config.sapClient}`);
@@ -236,7 +265,7 @@ export async function GET(
     if (top) queryParams.push(`$top=${top}`);
     if (skip) queryParams.push(`$skip=${skip}`);
 
-    const orderby = searchParams.get('orderby');
+    const orderby = validateOrderby(searchParams.get('orderby'));
     if (orderby) queryParams.push(`$orderby=${encodeURIComponent(orderby)}`);
 
     const count = searchParams.get('count');
@@ -244,14 +273,14 @@ export async function GET(
     if (odataVersion === 'v2') queryParams.push('$inlinecount=allpages');
   }
 
-  const filter = searchParams.get('filter');
+  const filter = validateFilter(searchParams.get('filter'));
   if (filter) queryParams.push(`$filter=${encodeURIComponent(filter)}`);
 
   // Auto-inject default $select if not provided by client
-  const select = searchParams.get('select');
+  const select = validateSelect(searchParams.get('select'));
   const defaultSelectKey = `${service}:${entity}`;
   const defaultSelect = DEFAULT_SELECT_MAP[defaultSelectKey];
-  const expand = searchParams.get('expand');
+  const expand = validateExpand(searchParams.get('expand'));
   const defaultExpand = DEFAULT_EXPAND_MAP[defaultSelectKey];
   const effectiveExpand = expand || defaultExpand;
   // When $expand is used with $select, the expanded nav property names must be included in $select
