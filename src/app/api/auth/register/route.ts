@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isRegistrationAllowed } from '@/lib/app-config';
 import { createUser } from '@/lib/users';
+import { signToken, COOKIE_NAME, getCookieOptions } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   if (!isRegistrationAllowed()) {
@@ -54,11 +55,22 @@ export async function POST(request: NextRequest) {
 
     const user = await createUser(username, password, email, displayName);
 
-    return NextResponse.json({
+    // Auto-login after registration
+    const token = await signToken({
+      userId: user.id,
+      username: user.username,
+      role: user.role,
+    });
+
+    const response = NextResponse.json({
       success: true,
       message: '注册成功',
       user,
     });
+
+    response.cookies.set(COOKIE_NAME, token, getCookieOptions());
+
+    return response;
   } catch (error) {
     console.error('Registration error:', error);
     

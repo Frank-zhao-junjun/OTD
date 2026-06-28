@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateUser } from '@/lib/users';
-import { setSession } from '@/lib/auth';
+import { signToken, COOKIE_NAME, getCookieOptions } from '@/lib/auth';
 import { verifyCaptcha } from '@/lib/captcha';
 
 export async function POST(request: NextRequest) {
@@ -41,14 +41,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Set session (includes role)
-    await setSession({
+    // Generate token
+    const token = await signToken({
       userId: user.id,
       username: user.username,
       role: user.role,
     });
 
-    return NextResponse.json({
+    // Build response with httpOnly cookie
+    const response = NextResponse.json({
       success: true,
       message: '登录成功',
       user: {
@@ -59,8 +60,12 @@ export async function POST(request: NextRequest) {
         email: user.email,
       },
     });
+
+    response.cookies.set(COOKIE_NAME, token, getCookieOptions());
+
+    return response;
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('[auth/login] error:', error);
     return NextResponse.json(
       { success: false, error: '登录失败，请稍后重试' },
       { status: 500 }
