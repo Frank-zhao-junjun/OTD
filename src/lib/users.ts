@@ -39,7 +39,21 @@ function readUsers(): User[] {
     return [];
   }
   const data = fs.readFileSync(USERS_FILE, 'utf-8');
-  return JSON.parse(data);
+  const raw = JSON.parse(data);
+  // 迁移旧数据：补全 role 字段
+  let migrated = false;
+  const users: User[] = raw.map((u: any) => {
+    if (!u.role) {
+      migrated = true;
+      return { ...u, role: (u.username === 'admin' ? 'admin' : 'user') as UserRole };
+    }
+    return u as User;
+  });
+  if (migrated) {
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+    console.log('[migration] Users migrated with role field');
+  }
+  return users;
 }
 
 function writeUsers(users: User[]): void {
