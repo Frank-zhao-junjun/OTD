@@ -171,6 +171,10 @@ export default function HomePage() {
               <Link key={tile.path} href={tile.path} className="fiori-tile">
                 <div className={`fiori-tile-band fiori-tile-band--${tile.color}`} />
                 <div className="fiori-tile-body">
+                  <div className="flex items-center justify-between">
+                    <Icon className={`w-5 h-5 lg:w-6 lg:h-6 fiori-tile-icon--${tile.color}`} />
+                    <ArrowRight className="w-4 h-4 text-[#6A6D70] opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
                   <div className="fiori-tile-kpi">
                     {count !== undefined ? formatNum(count) : '—'}
                   </div>
@@ -187,11 +191,16 @@ export default function HomePage() {
       <FioriSection title="主数据" meta={`${MASTER_TILES.length} 项`}>
         <div className="grid grid-cols-2 gap-3">
           {MASTER_TILES.map((tile) => {
+            const Icon = tile.icon;
             const count = tileCounts[tile.countKey];
             return (
               <Link key={tile.path} href={tile.path} className="fiori-tile">
                 <div className={`fiori-tile-band fiori-tile-band--${tile.color}`} />
                 <div className="fiori-tile-body">
+                  <div className="flex items-center justify-between">
+                    <Icon className={`w-5 h-5 lg:w-6 lg:h-6 fiori-tile-icon--${tile.color}`} />
+                    <ArrowRight className="w-4 h-4 text-[#6A6D70] opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
                   <div className="fiori-tile-kpi">
                     {count !== undefined ? formatNum(count) : '—'}
                   </div>
