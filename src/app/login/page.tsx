@@ -158,9 +158,13 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={loadCaptcha}
-                  className="h-11 px-2 rounded-md border border-[#E4E4E4] hover:border-[#0070F2] transition-colors overflow-hidden"
+                  className="h-11 w-[120px] flex-shrink-0 rounded-md border border-[#E4E4E4] hover:border-[#0070F2] transition-colors overflow-hidden flex items-center justify-center bg-[#f5f5f5]"
                   title="点击刷新验证码"
-                  dangerouslySetInnerHTML={{ __html: captchaSvg }}
+                  dangerouslySetInnerHTML={{
+                    __html: captchaSvg
+                      ? captchaSvg.replace('<svg ', '<svg style="max-width:100%;max-height:100%;display:block;" ')
+                      : '',
+                  }}
                 />
               </div>
             </div>
