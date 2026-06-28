@@ -6,6 +6,8 @@ import { Search, RotateCw, Filter, LayoutList, Table2, FileText, Download } from
 import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { FioriOli, FioriBadge, FioriPageHeader, FioriSection, getSapStatusColor, getSapStatusLabel } from '@/components/fiori';
 import { useViewMode } from '@/hooks/useViewMode';
+import { useFilterPageFetch } from '@/hooks/useFilterPageFetch';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 interface SalesOrderItem {
   SalesOrderItem: string;
@@ -79,6 +81,7 @@ export default function SalesOrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [filterOpen, setFilterOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -104,30 +107,29 @@ export default function SalesOrdersPage() {
         filters.push(`OverallSDProcessStatus eq '${statusFilter}'`);
       }
 
-      if (search.trim()) {
-        const keyword = search.trim();
+      let searchData: { success?: boolean; customers?: { customer: string }[]; products?: { product: string }[] } | null = null;
+
+      if (debouncedSearch.trim()) {
+        const keyword = debouncedSearch.trim();
         const searchRes = await fetch(`/api/sap/search?type=all&q=${encodeURIComponent(keyword)}`);
-        const searchData = await searchRes.json();
-        if (searchData.success) {
+        searchData = await searchRes.json();
+        if (searchData?.success) {
           const customerFilters: string[] = [];
           const productFilters: string[] = [];
 
-          if (searchData.customers?.length > 0) {
+          if (searchData.customers?.length) {
             for (const c of searchData.customers) {
               customerFilters.push(`SoldToParty eq '${c.customer}'`);
             }
           }
-          if (searchData.products?.length > 0) {
+          if (searchData.products?.length) {
             for (const p of searchData.products) {
               productFilters.push(p.product);
             }
           }
 
-          const codeFilters: string[] = [];
-          if (customerFilters.length > 0) codeFilters.push(customerFilters.join(' or '));
-
-          if (codeFilters.length > 0) {
-            filters.push(`(${codeFilters.join(' or ')})`);
+          if (customerFilters.length > 0) {
+            filters.push(`(${customerFilters.join(' or ')})`);
           } else if (productFilters.length === 0) {
             filters.push(`SalesOrder eq '${keyword}'`);
           }
@@ -139,31 +141,19 @@ export default function SalesOrdersPage() {
       const res = await fetch(`/api/sap/API_SALES_ORDER_SRV/A_SalesOrder?${params}`);
       const json = await res.json();
       if (json.success) {
-        let orders = json.data || [];
+        let orders: SalesOrder[] = json.data || [];
         setTotalCount(json.totalCount || json.count || 0);
 
-        setData(prev => page === 0 ? orders : [...prev, ...orders]);
-
-        if (search.trim()) {
-          const keyword = search.trim();
-          const searchRes = await fetch(`/api/sap/search?type=all&q=${encodeURIComponent(keyword)}`);
-          const searchData = await searchRes.json();
-          if (searchData.success && searchData.products?.length > 0) {
-            const productCodes = new Set(searchData.products.map((p: { product: string }) => p.product));
-            const customerCodes = searchData.customers?.length > 0
-              ? new Set(searchData.customers.map((c: { customer: string }) => c.customer))
-              : null;
-            if (!customerCodes) {
-              orders = orders.filter((o: SalesOrder) =>
-                o.to_Item?.some((item: SalesOrderItem) => productCodes.has(item.Material))
-              );
-            }
-          }
+        if (debouncedSearch.trim() && searchData?.success && searchData.products?.length && !searchData.customers?.length) {
+          const productCodes = new Set(searchData.products.map((p) => p.product));
+          orders = orders.filter((o) =>
+            o.to_Item?.some((item) => productCodes.has(item.Material))
+          );
         }
 
-        setData(orders);
+        setData((prev) => (page === 0 ? orders : [...prev, ...orders]));
 
-        const customerCodes = [...new Set(orders.map((o: SalesOrder) => o.SoldToParty).filter(Boolean))] as string[];
+        const customerCodes = [...new Set(orders.map((o) => o.SoldToParty).filter(Boolean))] as string[];
         if (customerCodes.length > 0) {
           fetchCustomerNames(customerCodes);
         }
@@ -176,7 +166,10 @@ export default function SalesOrdersPage() {
       setLoading(false);
     }
 
-  }, [page, search, statusFilter, typeFilter]);
+  }, [page, debouncedSearch, statusFilter, typeFilter]);
+
+  const filterSig = `${debouncedSearch}|${statusFilter}|${typeFilter}`;
+  useFilterPageFetch(filterSig, page, setPage, fetchData);
 
   const fetchCustomerNames = async (codes: string[]) => {
     try {
@@ -194,10 +187,6 @@ export default function SalesOrdersPage() {
       // ignore
     }
   };
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   function getCustomerName(soldToParty: string): string {
     return customerMap[soldToParty] || '';
@@ -237,7 +226,7 @@ export default function SalesOrdersPage() {
               className="w-full h-8 pl-8 pr-3 text-sm rounded border outline-none"
               style={{ background: 'var(--background)', borderColor: 'var(--border)' }}
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+              onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <button

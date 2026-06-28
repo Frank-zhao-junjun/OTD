@@ -7,6 +7,8 @@ import { Search, RotateCcw, Inbox, LayoutList, Table2, Download } from 'lucide-r
 import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { formatSapDate } from '@/lib/utils';
 import { useViewMode } from '@/hooks/useViewMode';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useFilterPageFetch } from '@/hooks/useFilterPageFetch';
 
 interface Delivery {
   DeliveryDocument: string;
@@ -57,6 +59,7 @@ export default function OutboundDeliveryPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
   const router = useRouter();
@@ -87,8 +90,8 @@ export default function OutboundDeliveryPage() {
       params.set('skip', String(page * PAGE_SIZE));
       params.set('count', 'true');
 
-      if (searchQuery.trim()) {
-        const keyword = searchQuery.trim();
+      if (debouncedSearchQuery.trim()) {
+        const keyword = debouncedSearchQuery.trim();
         const searchRes = await fetch(`/api/sap/search?type=customer&q=${encodeURIComponent(keyword)}`);
         const searchData = await searchRes.json();
         if (searchData.success && searchData.data?.length > 0) {
@@ -114,11 +117,9 @@ export default function OutboundDeliveryPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, fetchCustomerNames]);
+  }, [page, debouncedSearchQuery, fetchCustomerNames]);
 
-  useEffect(() => {
-    fetchDeliveries();
-  }, [fetchDeliveries]);
+  useFilterPageFetch(debouncedSearchQuery, page, setPage, fetchDeliveries);
 
   return (
     <div className="space-y-4">

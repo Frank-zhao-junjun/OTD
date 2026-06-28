@@ -16,9 +16,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [captchaCode, setCaptchaCode] = useState('');
   const [captchaSvg, setCaptchaSvg] = useState('');
-  const [captchaId, setCaptchaId] = useState('');
+  const [captchaToken, setCaptchaToken] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const [allowRegistration, setAllowRegistration] = useState(false);
 
   const loadCaptcha = useCallback(async () => {
     try {
@@ -26,7 +28,7 @@ export default function LoginPage() {
       const data = await res.json();
       if (data.success) {
         setCaptchaSvg(data.svg);
-        setCaptchaId(data.captchaId);
+        setCaptchaToken(data.captchaToken);
       }
     } catch (err) {
       console.error('Failed to load captcha:', err);
@@ -35,6 +37,12 @@ export default function LoginPage() {
 
   useEffect(() => {
     loadCaptcha();
+    fetch('/api/auth/config')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) setAllowRegistration(Boolean(data.allowRegistration));
+      })
+      .catch(() => setAllowRegistration(false));
   }, [loadCaptcha]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,7 +54,7 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, captchaCode, captchaId }),
+        body: JSON.stringify({ username, password, captchaCode, captchaToken }),
       });
 
       const data = await res.json();
@@ -174,12 +182,14 @@ export default function LoginPage() {
               )}
             </Button>
             
-            <p className="text-sm text-[#6A6D70]">
-              还没有账号？{' '}
-              <Link href="/register" className="text-[#0070F2] hover:underline font-medium">
-                立即注册
-              </Link>
-            </p>
+            {allowRegistration && (
+              <p className="text-sm text-[#6A6D70]">
+                还没有账号？{' '}
+                <Link href="/register" className="text-[#0070F2] hover:underline font-medium">
+                  立即注册
+                </Link>
+              </p>
+            )}
           </CardFooter>
         </form>
       </Card>

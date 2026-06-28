@@ -1,64 +1,67 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
+import { getJwtSecretKey, isRegistrationAllowed } from '@/lib/app-config';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'otd-assistant-secret-key-change-in-production'
-);
+const publicPagePaths = ['/login', '/register'];
+const publicApiPrefixes = ['/api/auth/captcha', '/api/auth/login', '/api/auth/register', '/api/auth/config', '/api/auth/logout'];
 
-// Public paths that don't require authentication
-const publicPaths = ['/login', '/register', '/api/auth'];
-
-// Static files and assets
-const staticPaths = ['/_next', '/favicon', '/api/sap', '/api/settings', '/api/sync', '/api/search', '/api/dashboard'];
-
-function isPublicPath(pathname: string): boolean {
-  return publicPaths.some(path => pathname.startsWith(path));
+function isPublicPage(pathname: string): boolean {
+  if (pathname === '/register' && !isRegistrationAllowed()) return false;
+  return publicPagePaths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
-function isStaticPath(pathname: string): boolean {
-  return staticPaths.some(path => pathname.startsWith(path));
+function isPublicApi(pathname: string): boolean {
+  return publicApiPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+function unauthorizedResponse(request: NextRequest): NextResponse {
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    return NextResponse.json({ success: false, error: '未授权，请先登录' }, { status: 401 });
+  }
+
+  const loginUrl = new URL('/login', request.url);
+  loginUrl.searchParams.set('redirect', request.nextUrl.pathname);
+  return NextResponse.redirect(loginUrl);
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow public paths
-  if (isPublicPath(pathname)) {
-    // If already logged in and trying to access login/register, redirect to home
+  if (pathname === '/register' && !isRegistrationAllowed()) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  const isPublic = isPublicPage(pathname) || isPublicApi(pathname);
+
+  if (isPublic) {
     const token = request.cookies.get('auth-token')?.value;
     if (token && (pathname === '/login' || pathname === '/register')) {
       try {
-        await jwtVerify(token, JWT_SECRET);
+        await jwtVerify(token, getJwtSecretKey());
         return NextResponse.redirect(new URL('/', request.url));
       } catch {
-        // Token invalid, allow access to login page
+        /* invalid token — allow login/register */
       }
     }
     return NextResponse.next();
   }
 
-  // Allow static files and API routes (except protected ones)
-  if (isStaticPath(pathname)) {
-    return NextResponse.next();
-  }
-
-  // Check authentication
   const token = request.cookies.get('auth-token')?.value;
-
   if (!token) {
-    // Redirect to login page
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
+    return unauthorizedResponse(request);
   }
 
   try {
-    // Verify token
-    await jwtVerify(token, JWT_SECRET);
+    await jwtVerify(token, getJwtSecretKey());
     return NextResponse.next();
   } catch {
-    // Token invalid, redirect to login
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+      const response = NextResponse.json({ success: false, error: '登录已过期，请重新登录' }, { status: 401 });
+      response.cookies.delete('auth-token');
+      return response;
+    }
+
     const response = NextResponse.redirect(new URL('/login', request.url));
     response.cookies.delete('auth-token');
     return response;
@@ -67,13 +70,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

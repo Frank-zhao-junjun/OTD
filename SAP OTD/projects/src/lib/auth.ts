@@ -1,9 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'otd-assistant-secret-key-change-in-production'
-);
+import { getJwtSecretKey } from '@/lib/app-config';
 
 export interface SessionUser {
   userId: string;
@@ -14,12 +11,12 @@ export async function signToken(payload: SessionUser): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime('7d')
-    .sign(JWT_SECRET);
+    .sign(getJwtSecretKey());
 }
 
 export async function verifyToken(token: string): Promise<SessionUser | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecretKey());
     return {
       userId: payload.userId as string,
       username: payload.username as string,
@@ -43,7 +40,7 @@ export async function setSession(payload: SessionUser): Promise<void> {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: 60 * 60 * 24 * 7,
     path: '/',
   });
 }

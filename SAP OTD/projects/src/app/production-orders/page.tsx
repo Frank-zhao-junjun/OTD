@@ -8,6 +8,8 @@ import { SAP_DEFAULTS } from '@/lib/sap-service';
 import { Search, RotateCcw, Filter, Inbox, LayoutList, Table2, Download } from 'lucide-react';
 import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { useViewMode } from '@/hooks/useViewMode';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useFilterPageFetch } from '@/hooks/useFilterPageFetch';
 
 interface ProductionOrder {
   ProductionOrder: string;
@@ -50,6 +52,7 @@ export default function ProductionOrdersPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
   const [plant, setPlant] = useState(SAP_DEFAULTS.plant);
   const [totalCount, setTotalCount] = useState(0);
   const [showFilter, setShowFilter] = useState(false);
@@ -89,8 +92,8 @@ export default function ProductionOrdersPage() {
       if (plant && plant !== 'all') filterParts.push(`ProductionPlant eq '${plant}'`);
 
       // 搜索关键词：先在DB中模糊搜索产品名称获取精确编号，再用编号过滤
-      if (searchQuery.trim()) {
-        const keyword = searchQuery.trim();
+      if (debouncedSearchQuery.trim()) {
+        const keyword = debouncedSearchQuery.trim();
         const searchRes = await fetch(`/api/sap/search?type=product&q=${encodeURIComponent(keyword)}`);
         const searchData = await searchRes.json();
         if (searchData.success && searchData.data?.length > 0) {
@@ -114,9 +117,9 @@ export default function ProductionOrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, plant]);
+  }, [page, debouncedSearchQuery, plant]);
 
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  useFilterPageFetch(`${debouncedSearchQuery}|${plant}`, page, setPage, fetchOrders);
 
   const handleClear = () => {
     setSearchQuery('');

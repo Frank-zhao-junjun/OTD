@@ -1,35 +1,18 @@
 import { NextResponse } from 'next/server';
-import { storeCaptcha } from '@/lib/captcha';
-import crypto from 'crypto';
+import { createCaptchaToken } from '@/lib/captcha';
 
 export async function GET() {
   try {
-    const code = Math.floor(1000 + Math.random() * 9000).toString();
-    const expires = Date.now() + 5 * 60 * 1000; // 5 minutes
-    
-    // Generate unique ID
-    const id = crypto.randomUUID();
-    
-    // Store captcha
-    storeCaptcha(id, code, expires);
+    const { token, code } = await createCaptchaToken();
 
     // Generate SVG
     const svg = generateCaptchaSVG(code);
 
     const response = NextResponse.json({
       success: true,
-      captchaId: id,
+      captchaToken: token,
       svg,
       ...(process.env.NODE_ENV !== 'production' ? { codeHint: code } : {}),
-    });
-
-    // Set cookie with captcha ID
-    response.cookies.set('captcha-id', id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 300,
-      path: '/',
     });
 
     return response;
@@ -45,9 +28,9 @@ export async function GET() {
 function generateCaptchaSVG(code: string): string {
   const width = 120;
   const height = 40;
-  
+
   const colors = ['#0070F2', '#E9730C', '#107E3E', '#BB0000'];
-  
+
   let noise = '';
   for (let i = 0; i < 5; i++) {
     const x1 = Math.random() * width;
@@ -66,13 +49,13 @@ function generateCaptchaSVG(code: string): string {
   let digits = '';
   const startX = 15;
   const spacing = 25;
-  
+
   for (let i = 0; i < code.length; i++) {
     const x = startX + i * spacing;
     const y = 28 + Math.random() * 6 - 3;
     const rotation = Math.random() * 30 - 15;
     const color = colors[i % colors.length];
-    
+
     digits += `<text x="${x}" y="${y}" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="${color}" transform="rotate(${rotation} ${x} ${y})">${code[i]}</text>`;
   }
 

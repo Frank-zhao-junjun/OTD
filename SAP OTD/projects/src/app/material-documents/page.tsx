@@ -6,6 +6,8 @@ import { FioriBadge, FioriFab } from '@/components/fiori';
 import { Search, RotateCcw, Inbox, LayoutList, Table2, Download } from 'lucide-react';
 import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { useViewMode } from '@/hooks/useViewMode';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useFilterPageFetch } from '@/hooks/useFilterPageFetch';
 
 interface MaterialDocument {
   MaterialDocument: string;
@@ -61,6 +63,7 @@ export default function MaterialDocumentsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
   const router = useRouter();
@@ -89,11 +92,11 @@ export default function MaterialDocumentsPage() {
     setLoading(true); setError(null);
     try {
       const params = new URLSearchParams({ top: String(PAGE_SIZE), skip: String(page * PAGE_SIZE), count: 'true' });
-      if (searchQuery) {
-        const searchRes = await fetch(`/api/sap/search?type=product&q=${encodeURIComponent(searchQuery)}`);
+      if (debouncedSearchQuery) {
+        const searchRes = await fetch(`/api/sap/search?type=product&q=${encodeURIComponent(debouncedSearchQuery)}`);
         const searchData = await searchRes.json();
         const productCodes = (searchData.data || []).map((p: { product: string }) => p.product);
-        const searchFilters: string[] = [`MaterialDocument eq '${searchQuery}'`];
+        const searchFilters: string[] = [`MaterialDocument eq '${debouncedSearchQuery}'`];
         if (productCodes.length > 0) searchFilters.push(productCodes.map((m: string) => `Material eq '${m}'`).join(' or '));
         // 搜索时叠加默认过滤
         params.set('filter', `(${searchFilters.join(' or ')}) and ${DEFAULT_FILTER}`);
@@ -110,9 +113,9 @@ export default function MaterialDocumentsPage() {
       fetchMaterialNames(codes);
     } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
     finally { setLoading(false); }
-  }, [searchQuery, fetchMaterialNames]);
+  }, [page, debouncedSearchQuery, fetchMaterialNames]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useFilterPageFetch(debouncedSearchQuery, page, setPage, fetchData);
 
   return (
     <div className="space-y-4">

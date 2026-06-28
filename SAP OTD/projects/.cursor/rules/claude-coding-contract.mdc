@@ -1,0 +1,36 @@
+---
+description: OTD 编码行为契约（Karpathy 8 条）；写代码前必读 CLAUDE.md
+alwaysApply: true
+---
+
+# 编码行为契约
+
+写代码、修 bug、加功能前，**先读并遵守** [CLAUDE.md](../CLAUDE.md)。项目上下文见 [AGENTS.md](../AGENTS.md)。
+
+## 8 条（摘要）
+
+1. **先想再写** — SAP 字段、OData V2/V4、鉴权边界不确定时先问，禁止猜。
+2. **极简优先** — 最少代码解决问题；不加未请求的抽象或「顺手优化」。
+3. **手术式修改** — 只动任务要求的文件；匹配现有风格；不顺手重构。
+4. **目标驱动** — 先定义成功标准，验证通过再停。
+5. **先读再写** — 改 hook/API 前读调用方；列表页复用 `useDebouncedValue`、`useFilterPageFetch`、Fiori 组件。
+6. **约定优于创新** — V2：`d.results` + `$format=json`；V4：`value` + Accept header；UI 遵循 Fiori 3。
+7. **失败必须可见** — API catch 禁止 `success: true`；前端要有错误态；禁止静默吞错。
+8. **测试验行为** — 覆盖分页追加、debounce、鉴权；禁止假绿测试。
+
+## 高频禁区
+
+| 禁止 | 正确 |
+|------|------|
+| 服务端 HTTP 调 `localhost` | `src/lib/sap-direct-fetch.ts` |
+| `useCallback` 漏依赖（如 `page`） | 加载更多/状态变更时核对依赖数组 |
+| 搜索后 `setData` 覆盖 append | 首次加载与追加分开 |
+| 提交 `.env.local`、JWT_SECRET | 只改 `.env.local.example` |
+| npm / yarn | `pnpm`；Windows 用 `pnpm dev:win` |
+| middleware 误拦业务 API | 仅 `/api/auth/*` 公开，其余需 JWT |
+
+## 提交前自检
+
+- `pnpm validate` 或至少 `pnpm ts-check`
+- 列表页：首屏 + 加载更多 + 搜索 debounce
+- 同一 bug 连修两次仍失败 → 换思路或说明阻塞，禁止空转

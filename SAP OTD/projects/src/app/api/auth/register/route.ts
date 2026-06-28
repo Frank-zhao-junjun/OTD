@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isRegistrationAllowed } from '@/lib/app-config';
 import { createUser } from '@/lib/users';
 
 export async function POST(request: NextRequest) {
+  if (!isRegistrationAllowed()) {
+    return NextResponse.json(
+      { success: false, error: '注册功能已关闭，请联系管理员' },
+      { status: 403 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { username, password, email, displayName } = body;

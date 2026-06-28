@@ -6,7 +6,7 @@ import { verifyCaptcha } from '@/lib/captcha';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { username, password, captchaCode, captchaId } = body;
+    const { username, password, captchaCode, captchaToken } = body;
 
     // Validation
     if (!username || !password) {
@@ -16,15 +16,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!captchaCode) {
+    if (!captchaCode || !captchaToken) {
       return NextResponse.json(
         { success: false, error: '请输入验证码' },
         { status: 400 }
       );
     }
 
-    // Verify captcha
-    const captchaValid = await verifyCaptcha(captchaCode, captchaId);
+    // Verify captcha (stateless JWT — works across all instances)
+    const captchaValid = await verifyCaptcha(captchaCode, captchaToken);
     if (!captchaValid) {
       return NextResponse.json(
         { success: false, error: '验证码错误或已过期' },

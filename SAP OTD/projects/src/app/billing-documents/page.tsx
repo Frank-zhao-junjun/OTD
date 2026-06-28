@@ -7,6 +7,8 @@ import { Search, RotateCcw, Inbox, LayoutList, Table2, Download } from 'lucide-r
 import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { formatSapDate } from '@/lib/utils';
 import { useViewMode } from '@/hooks/useViewMode';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useFilterPageFetch } from '@/hooks/useFilterPageFetch';
 
 interface BillingDocument {
   BillingDocument: string;
@@ -62,6 +64,7 @@ export default function BillingDocumentsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
   const router = useRouter();
@@ -72,13 +75,13 @@ export default function BillingDocumentsPage() {
     setLoading(true); setError(null);
     try {
       const params = new URLSearchParams({ top: String(PAGE_SIZE), skip: String(page * PAGE_SIZE), count: 'true' });
-      if (searchQuery) {
-        const searchRes = await fetch(`/api/sap/search?type=all&q=${encodeURIComponent(searchQuery)}`);
+      if (debouncedSearchQuery) {
+        const searchRes = await fetch(`/api/sap/search?type=all&q=${encodeURIComponent(debouncedSearchQuery)}`);
         const searchData = await searchRes.json();
         const customerCodes = (searchData.customers || []).map((c: { customer: string }) => c.customer);
-        const filters: string[] = [`BillingDocument eq '${searchQuery}'`];
+        const filters: string[] = [`BillingDocument eq '${debouncedSearchQuery}'`];
         if (customerCodes.length > 0) filters.push(customerCodes.map((c: string) => `SoldToParty eq '${c}'`).join(' or '));
-        params.set('filter', filters.length > 0 ? filters.join(' or ') : `BillingDocument eq '${searchQuery}'`);
+        params.set('filter', filters.join(' or '));
       }
       const res = await fetch(`/api/sap/API_BILLING_DOCUMENT_SRV/A_BillingDocument?${params}`);
       const json = await res.json();
@@ -87,7 +90,9 @@ export default function BillingDocumentsPage() {
       setTotalCount(json.totalCount || json.count || 0);
     } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
     finally { setLoading(false); }
-  }, [searchQuery]);
+  }, [page, debouncedSearchQuery]);
+
+  useFilterPageFetch(debouncedSearchQuery, page, setPage, fetchData);
 
   const fetchCustomerNames = useCallback(async (soldToCodes: string[]) => {
     if (soldToCodes.length === 0) return;
@@ -103,8 +108,6 @@ export default function BillingDocumentsPage() {
       setCustomerNames(names);
     } catch { /* ignore */ }
   }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
     if (data.length > 0) {

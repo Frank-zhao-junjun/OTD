@@ -1,26 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readFileSync } from 'fs';
-import { join } from 'path';
-
-/**
- * Read a value from .env.local by key, bypassing dotenv-expand.
- */
-function readEnvLocal(key: string): string | undefined {
-  const paths = ['/tmp/.env.local', join(process.env.COZE_WORKSPACE_PATH || process.cwd(), '.env.local')];
-  for (const envPath of paths) {
-    try {
-      const content = readFileSync(envPath, 'utf-8');
-      const regex = new RegExp(`^${key}=(?:["'](.+?)["']|(.+))$`, 'm');
-      const match = content.match(regex);
-      if (match) {
-        const val = match[1] || match[2];
-        const commentIdx = val.search(/(?<!["'])#/);
-        return commentIdx > 0 ? val.substring(0, commentIdx).trimEnd() : val.trimEnd();
-      }
-    } catch { /* file not found */ }
-  }
-  return undefined;
-}
+import { readEnvLocal } from '@/lib/env-local';
 
 function getSapConfig() {
   return {

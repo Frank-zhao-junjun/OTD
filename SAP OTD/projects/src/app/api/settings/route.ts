@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
-import path from 'path';
+import { getEnvLocalPaths, getRuntimeEnvLocalPath } from '@/lib/app-config';
 
-// 配置文件路径优先级：
-// 1. /tmp/.env.local (运行时可写，不需要重启)
-// 2. {COZE_WORKSPACE_PATH}/.env.local (部署时配置)
 function getConfigPaths(): string[] {
-  const paths: string[] = ['/tmp/.env.local'];
-  const workspace = process.env.COZE_WORKSPACE_PATH || process.cwd();
-  paths.push(path.join(workspace, '.env.local'));
-  return paths;
+  return getEnvLocalPaths();
 }
 
 // Sensitive keys - mask in GET response, never use process.env fallback
@@ -100,7 +94,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as Record<string, string>;
-    
+
     // Validate keys
     const validated: Record<string, string> = {};
     for (const key of CONFIG_KEYS) {
@@ -108,10 +102,10 @@ export async function POST(request: NextRequest) {
         validated[key] = String(body[key]);
       }
     }
-    
+
     // Read existing values from all config files
     const existing = readConfigValues();
-    
+
     // Merge: skip masked passwords
     for (const [key, value] of Object.entries(validated)) {
       if (SENSITIVE_KEYS.includes(key) && value === MASK) {
@@ -119,33 +113,51 @@ export async function POST(request: NextRequest) {
       }
       existing[key] = value;
     }
-    
-    // Always write to /tmp/.env.local (runtime writable, no restart needed)
-    const tmpPath = '/tmp/.env.local';
-    const lines: string[] = ['# SAP S/4HANA Cloud Connection Settings', '# Auto-saved by OTD助手 Settings page', ''];
-    for (const key of CONFIG_KEYS) {
-      if (existing[key] !== undefined) {
-        const val = existing[key];
-        // Quote values containing special characters
-        if (/[{}()\[\]$&|;<>!#\s\\'"`]/.test(val)) {
-          lines.push(`${key}='${val}'`);
-        } else {
-          lines.push(`${key}=${val}`);
+
+    // Detect writability of runtime config path
+    const tmpPath = getRuntimeEnvLocalPath();
+    let fileWritten = false;
+    let fileWarn: string | undefined;
+
+    try {
+      // Probe: try an atomic write to see if the location is writable
+      const dir = require('path').dirname(tmpPath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      const probe = tmpPath + '.probe';
+      fs.writeFileSync(probe, '', 'utf-8');
+      fs.unlinkSync(probe);
+      fileWritten = true; // location is writable
+    } catch {
+      fileWarn = '配置文件系统不可写，本次更改仅在当前进程中生效，重启后将丢失。请通过环境变量持久化配置。';
+    }
+
+    if (fileWritten) {
+      const lines: string[] = ['# SAP S/4HANA Cloud Connection Settings', '# Auto-saved by OTD助手 Settings page', ''];
+      for (const key of CONFIG_KEYS) {
+        if (existing[key] !== undefined) {
+          const val = existing[key];
+          // Quote values containing special characters
+          if (/[{}()\[\]$&|;<>!#\s\\'"`]/.test(val)) {
+            lines.push(`${key}='${val}'`);
+          } else {
+            lines.push(`${key}=${val}`);
+          }
         }
       }
+
+      fs.writeFileSync(tmpPath, lines.join('\n') + '\n', 'utf-8');
     }
-    
-    fs.writeFileSync(tmpPath, lines.join('\n') + '\n', 'utf-8');
-    
-    // Also update process.env so current process picks up changes immediately
+
+    // Always update process.env so current process picks up changes immediately
     for (const [key, value] of Object.entries(validated)) {
       if (SENSITIVE_KEYS.includes(key) && value === MASK) continue;
       process.env[key] = value;
     }
-    
+
     return NextResponse.json({
       success: true,
-      message: '配置已保存，立即生效。',
+      message: fileWarn || '配置已保存，立即生效。',
+      ...(fileWarn ? { warning: fileWarn } : {}),
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : '保存配置失败';

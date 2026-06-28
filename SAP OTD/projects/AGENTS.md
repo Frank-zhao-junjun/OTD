@@ -1,5 +1,7 @@
 # AGENTS.md
 
+> **AI 编码行为契约**见 [CLAUDE.md](./CLAUDE.md)（Karpathy 4 条 + OTD 扩展 4 条）。本文件为项目上下文与 SAP 接口参考。
+
 ## 项目概述
 
 OTD助手 - SAP ERP数据查询系统，提供Web端和微信小程序端的数据查询能力。

@@ -6,6 +6,8 @@ import { FioriBadge, FioriFab } from '@/components/fiori';
 import { Search, RotateCcw, Inbox, LayoutList, Table2, Download, CloudDownload } from 'lucide-react';
 import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { useViewMode } from '@/hooks/useViewMode';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useFilterPageFetch } from '@/hooks/useFilterPageFetch';
 
 interface Customer {
   Customer: string;
@@ -40,6 +42,7 @@ export default function CustomersPage() {
   const [sapRefreshing, setSapRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
   const router = useRouter();
@@ -51,9 +54,8 @@ export default function CustomersPage() {
     setLoading(true); setError(null);
     try {
       const params = new URLSearchParams({ top: String(PAGE_SIZE), skip: String(page * PAGE_SIZE), count: 'true' });
-      if (searchQuery) {
-        // Step 1: 在本地DB中按名称/编号模糊搜索，获取精确代码
-        const searchRes = await fetch(`/api/sap/search?type=customer&q=${encodeURIComponent(searchQuery)}`);
+      if (debouncedSearchQuery) {
+        const searchRes = await fetch(`/api/sap/search?type=customer&q=${encodeURIComponent(debouncedSearchQuery)}`);
         const searchJson = await searchRes.json();
         if (searchJson.success && searchJson.data && searchJson.data.length > 0) {
           // Step 2: 用精确代码列表过滤DB数据
@@ -70,9 +72,10 @@ export default function CustomersPage() {
       setData(prev => page === 0 ? (json.data || []) : [...prev, ...(json.data || [])]); setTotalCount(json.totalCount || json.count || 0);
     } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
     finally { setLoading(false); }
-  }, [searchQuery]);
+  }, [page, debouncedSearchQuery]);
 
-  // 从SAP直接查询并增量保存到DB
+  useFilterPageFetch(debouncedSearchQuery, page, setPage, fetchData);
+
   const fetchFromSap = useCallback(async () => {
     setSapRefreshing(true); setError(null);
     try {
@@ -80,13 +83,11 @@ export default function CustomersPage() {
       const res = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_Customer?${params}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'SAP查询失败');
-      // SAP数据已自动增量保存到DB，刷新页面数据
-      setData(prev => page === 0 ? (json.data || []) : [...prev, ...(json.data || [])]); setTotalCount(json.totalCount || json.count || 0);
+      setData(prev => page === 0 ? (json.data || []) : [...prev, ...(json.data || [])]);
+      setTotalCount(json.totalCount || json.count || 0);
     } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
     finally { setSapRefreshing(false); }
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  }, [page]);
 
   return (
     <div className="space-y-4">

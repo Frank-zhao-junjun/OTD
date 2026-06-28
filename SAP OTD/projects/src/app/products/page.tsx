@@ -6,6 +6,8 @@ import { FioriBadge, FioriFab } from '@/components/fiori';
 import { Search, RotateCcw, Inbox, LayoutList, Table2, Download, CloudDownload } from 'lucide-react';
 import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { useViewMode } from '@/hooks/useViewMode';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useFilterPageFetch } from '@/hooks/useFilterPageFetch';
 
 interface ProductDescription {
   Product: string;
@@ -129,6 +131,7 @@ export default function ProductsPage() {
   const [sapRefreshing, setSapRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
   const router = useRouter();
@@ -140,9 +143,8 @@ export default function ProductsPage() {
     setLoading(true); setError(null);
     try {
       const params = new URLSearchParams({ top: String(PAGE_SIZE), skip: String(page * PAGE_SIZE), count: 'true' });
-      if (searchQuery.trim()) {
-        // Step 1: 在本地DB中按名称/编号模糊搜索，获取精确代码
-        const searchRes = await fetch(`/api/sap/search?type=product&q=${encodeURIComponent(searchQuery.trim())}`);
+      if (debouncedSearchQuery.trim()) {
+        const searchRes = await fetch(`/api/sap/search?type=product&q=${encodeURIComponent(debouncedSearchQuery.trim())}`);
         const searchJson = await searchRes.json();
         if (searchJson.success && searchJson.data && searchJson.data.length > 0) {
           // Step 2: 用精确代码列表过滤DB数据
@@ -159,9 +161,10 @@ export default function ProductsPage() {
       setData(prev => page === 0 ? (json.data || []) : [...prev, ...(json.data || [])]); setTotalCount(json.totalCount || json.count || 0);
     } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
     finally { setLoading(false); }
-  }, [searchQuery]);
+  }, [page, debouncedSearchQuery]);
 
-  // 从SAP直接查询并增量保存到DB
+  useFilterPageFetch(debouncedSearchQuery, page, setPage, fetchData);
+
   const fetchFromSap = useCallback(async () => {
     setSapRefreshing(true); setError(null);
     try {
@@ -169,13 +172,11 @@ export default function ProductsPage() {
       const res = await fetch(`/api/sap/API_PRODUCT_SRV/A_Product?${params}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'SAP查询失败');
-      // SAP数据已自动增量保存到DB，刷新页面数据
-      setData(prev => page === 0 ? (json.data || []) : [...prev, ...(json.data || [])]); setTotalCount(json.totalCount || json.count || 0);
+      setData(prev => page === 0 ? (json.data || []) : [...prev, ...(json.data || [])]);
+      setTotalCount(json.totalCount || json.count || 0);
     } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
     finally { setSapRefreshing(false); }
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  }, [page]);
 
   return (
     <div className="space-y-4">

@@ -101,7 +101,8 @@ export default function HomePage() {
         if (json.success) {
           setData(json.data);
         } else {
-          setError('获取数据失败');
+          setError(json.error || '获取数据失败');
+          if (json.data) setData(json.data);
         }
       })
       .catch(() => setError('网络错误'))
@@ -120,6 +121,12 @@ export default function HomePage() {
 
   return (
     <div className="space-y-5">
+      {error && (
+        <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-sm">
+          <AlertCircle className="w-4 h-4 inline mr-1" />
+          {error}
+        </div>
+      )}
       {/* ===== Hero KPI Row ===== */}
       <FioriSection title="业务概览" meta={data?.error ? '离线' : '实时数据'}>
         {data?.error ? (

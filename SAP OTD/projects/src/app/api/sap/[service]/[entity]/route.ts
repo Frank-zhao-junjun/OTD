@@ -1,30 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { SAP_DEFAULT_SELECTS, SAP_DEFAULT_EXPANDS } from '@/lib/sap-service';
-
-/**
- * Read a value from .env.local by key, bypassing dotenv-expand.
- * Priority: /tmp/.env.local (runtime settings) > workspace .env.local (deploy config)
- */
-function readEnvLocal(key: string): string | undefined {
-  const paths = ['/tmp/.env.local', join(process.env.COZE_WORKSPACE_PATH || process.cwd(), '.env.local')];
-  for (const envPath of paths) {
-    try {
-      const content = readFileSync(envPath, 'utf-8');
-      const regex = new RegExp(`^${key}=(?:["'](.+?)["']|(.+))$`, 'm');
-      const match = content.match(regex);
-      if (match) {
-        const val = match[1] || match[2];
-        const commentIdx = val.search(/(?<!["'])#/);
-        return commentIdx > 0 ? val.substring(0, commentIdx).trimEnd() : val.trimEnd();
-      }
-    } catch { /* file not found */ }
-  }
-  return undefined;
-}
-
-// SAP configuration — dynamically read on each request so settings take effect immediately.
+import { readEnvLocal } from '@/lib/env-local';
 // Variable names aligned with SAP Communication Scenarios (SAP_COM_xxxx) Postman environment.
 function getSapConfig() {
   return {
