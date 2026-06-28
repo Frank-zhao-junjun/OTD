@@ -38,7 +38,7 @@ function forbiddenResponse(request: NextRequest): NextResponse {
   return NextResponse.redirect(new URL('/', request.url));
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname === '/register' && !isRegistrationAllowed()) {
@@ -87,7 +87,7 @@ export async function middleware(request: NextRequest) {
   }
 }
 
-export const config = {
+export const proxyConfig = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
