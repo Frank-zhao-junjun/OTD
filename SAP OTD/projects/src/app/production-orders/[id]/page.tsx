@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FioriBadge, FioriErrorState } from '@/components/fiori';
 import { formatSapDate } from '@/lib/utils';
+import { fetchProductNameMap } from '@/lib/bilingual-display';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -124,11 +125,8 @@ export default function ProductionOrderDetailPage() {
           const product = orderData.Product;
           if (product) {
             try {
-              const pRes = await fetch('/api/sap/API_PRODUCT_SRV/A_Product?top=200');
-              const pJson = await pRes.json();
-              const products = (pJson.data || []) as { Product: string; ProductDescription: string }[];
-              const p = products.find(x => x.Product === product);
-              if (p) setProductName(p.ProductDescription);
+              const nameMap = await fetchProductNameMap([product]);
+              setProductName(nameMap[product] || '');
             } catch { /* ignore */ }
           }
         } else {

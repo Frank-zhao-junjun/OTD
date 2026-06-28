@@ -2,16 +2,29 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Sales Order E2E', () => {
   test.beforeEach(async ({ page }) => {
-    // Login first (mock auth if needed)
-    await page.goto('/login');
-    // Quick login with existing credentials
-    await page.fill('input[name="username"]', 'admin');
-    await page.fill('input[name="password"]', 'admin123');
-    const captcha = page.locator('input[name="captchaCode"]');
-    if (await captcha.isVisible()) {
-      await captcha.fill('0000');
-    }
-    await page.click('button[type="submit"]');
+    // Login via API directly (bypasses captcha UI complexity)
+    await page.goto('/login', { waitUntil: 'networkidle' });
+
+    const loginResult = await page.evaluate(async () => {
+      const captchaRes = await fetch('/api/auth/captcha');
+      const captchaData = await captchaRes.json();
+      const loginRes = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: 'admin',
+          password: 'admin123',
+          captchaCode: captchaData.codeHint,
+          captchaToken: captchaData.captchaToken,
+        }),
+      });
+      return await loginRes.json();
+    });
+
+    expect(loginResult.success).toBe(true);
+    // Navigate to home after cookie is set
+    await page.goto('/');
+    await expect(page).toHaveURL('/', { timeout: 5000 });
   });
 
   test('sales order list loads and displays orders', async ({ page }) => {

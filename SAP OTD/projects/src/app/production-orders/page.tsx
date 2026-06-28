@@ -10,6 +10,7 @@ import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { useViewMode } from '@/hooks/useViewMode';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useFilterPageFetch } from '@/hooks/useFilterPageFetch';
+import { fetchProductNameMap } from '@/lib/bilingual-display';
 
 interface ProductionOrder {
   ProductionOrder: string;
@@ -61,23 +62,11 @@ export default function ProductionOrdersPage() {
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 20;
 
-  // 获取产品名称映射
   useEffect(() => {
-    const fetchProductNames = async () => {
-      try {
-        const res = await fetch('/api/sap/search?type=product&q=');
-        const data = await res.json();
-        if (data.success && data.data) {
-          const map: Record<string, string> = {};
-          for (const p of data.data) {
-            map[p.product] = p.description || p.description_zh || p.description_en || p.product;
-          }
-          setProductNames(map);
-        }
-      } catch { /* ignore */ }
-    };
-    fetchProductNames();
-  }, []);
+    const codes = [...new Set(orders.map((o) => o.Product).filter(Boolean))] as string[];
+    if (codes.length === 0) return;
+    fetchProductNameMap(codes).then(setProductNames).catch(() => {});
+  }, [orders]);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);

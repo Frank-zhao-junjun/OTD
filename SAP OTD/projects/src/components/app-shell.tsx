@@ -36,8 +36,8 @@ const BUSINESS_ITEMS = [
   { id: 'production-orders', label: '生产订单', icon: Factory, path: '/production-orders' },
   { id: 'outbound-delivery', label: '发货单', icon: Truck, path: '/outbound-delivery' },
   { id: 'billing-documents', label: '开票单据', icon: Receipt, path: '/billing-documents' },
-  { id: 'material-stock', label: '库存查询', icon: BarChart3, path: '/material-stock' },
   { id: 'material-documents', label: '入库单', icon: FileSpreadsheet, path: '/material-documents' },
+  { id: 'material-stock', label: '库存查询', icon: BarChart3, path: '/material-stock' },
 ];
 
 const MASTER_ITEMS = [

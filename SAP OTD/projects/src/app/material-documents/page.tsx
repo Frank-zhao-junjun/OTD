@@ -8,6 +8,9 @@ import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { useViewMode } from '@/hooks/useViewMode';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useFilterPageFetch } from '@/hooks/useFilterPageFetch';
+import { fetchProductNameMap } from '@/lib/bilingual-display';
+import { fetchMaterialDocumentHeaderDates } from '@/lib/material-document';
+import { formatSapDate } from '@/lib/utils';
 
 interface MaterialDocument {
   MaterialDocument: string;
@@ -49,17 +52,10 @@ function getMovementLabel(type: string): string {
   return labels[type] || type;
 }
 
-const docColumns: ExportColumn<MaterialDocument>[] = [
-  { header: '凭证号', key: 'MaterialDocument', width: 14 },
-  { header: '物料', key: 'Material', width: 14 },
-  { header: '生产订单', key: 'ManufacturingOrder', width: 14 },
-  { header: '工厂/库位', key: 'Plant', width: 14, render: (d) => `${d.Plant} / ${d.StorageLocation}` },
-  { header: '数量', key: 'QuantityInBaseUnit', width: 12, render: (d) => `${parseFloat(d.QuantityInBaseUnit || '0').toLocaleString()} ${d.MaterialBaseUnit}` },
-];
-
 export default function MaterialDocumentsPage() {
   const [data, setData] = useState<MaterialDocument[]>([]);
   const [materialNames, setMaterialNames] = useState<Record<string, string>>({});
+  const [headerDates, setHeaderDates] = useState<Record<string, { documentDate?: string; postingDate?: string }>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -74,17 +70,9 @@ export default function MaterialDocumentsPage() {
   const DEFAULT_FILTER = "startswith(MaterialDocument,'5') eq true and GoodsMovementType eq '101' and ManufacturingOrder ne ''";
 
   const fetchMaterialNames = useCallback(async (materialCodes: string[]) => {
-    if (materialCodes.length === 0) return;
-    const names: Record<string, string> = {};
     try {
-      const res = await fetch('/api/sap/API_PRODUCT_SRV/A_Product?top=200');
-      const json = await res.json();
-      const products = (json.data || []) as { Product: string; ProductDescription: string }[];
-      for (const code of materialCodes) {
-        const p = products.find(x => x.Product === code);
-        if (p) names[code] = p.ProductDescription;
-      }
-      setMaterialNames(names);
+      const map = await fetchProductNameMap(materialCodes);
+      setMaterialNames(map);
     } catch { /* ignore */ }
   }, []);
 
@@ -111,11 +99,23 @@ export default function MaterialDocumentsPage() {
       setTotalCount(json.totalCount || json.count || 0);
       const codes = [...new Set(docData.map(d => d.Material).filter(Boolean))];
       fetchMaterialNames(codes);
+      const dates = await fetchMaterialDocumentHeaderDates(docData);
+      setHeaderDates(prev => page === 0 ? dates : { ...prev, ...dates });
     } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
     finally { setLoading(false); }
   }, [page, debouncedSearchQuery, fetchMaterialNames]);
 
   useFilterPageFetch(debouncedSearchQuery, page, setPage, fetchData);
+
+  const docColumns: ExportColumn<MaterialDocument>[] = [
+    { header: '凭证号', key: 'MaterialDocument', width: 14 },
+    { header: '凭证日期', key: 'MaterialDocument', width: 12, render: (d) => formatSapDate(headerDates[d.MaterialDocument]?.documentDate) },
+    { header: '过账日期', key: 'MaterialDocument', width: 12, render: (d) => formatSapDate(headerDates[d.MaterialDocument]?.postingDate) },
+    { header: '物料', key: 'Material', width: 14 },
+    { header: '生产订单', key: 'ManufacturingOrder', width: 14 },
+    { header: '工厂/库位', key: 'Plant', width: 14, render: (d) => `${d.Plant} / ${d.StorageLocation}` },
+    { header: '数量', key: 'QuantityInBaseUnit', width: 12, render: (d) => `${parseFloat(d.QuantityInBaseUnit || '0').toLocaleString()} ${d.MaterialBaseUnit}` },
+  ];
 
   return (
     <div className="space-y-4">
@@ -163,12 +163,14 @@ export default function MaterialDocumentsPage() {
           {data.map((item, idx) => {
             const barColor = MOVEMENT_COLORS[item.GoodsMovementType] || 'neutral';
             const movementLabel = getMovementLabel(item.GoodsMovementType);
+            const dates = headerDates[item.MaterialDocument];
             return (
               <div key={`${item.MaterialDocument}-${item.MaterialDocumentItem}-${idx}`} className="fiori-oli cursor-pointer" onClick={() => router.push(`/material-documents/${item.MaterialDocument}`)}>
                 <div className={`fiori-oli-bar fiori-oli-bar--${barColor}`} />
                 <div className="fiori-oli-content">
                   <div className="fiori-oli-title">{item.MaterialDocument} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.Material}{materialNames[item.Material] ? ` (${materialNames[item.Material]})` : ''}</div>
                   <div className="fiori-oli-subtitle">生产订单: {item.ManufacturingOrder} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.Plant} / {item.StorageLocation}</div>
+                  <div className="fiori-oli-subtitle">凭证日期: {formatSapDate(dates?.documentDate)} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> 过账日期: {formatSapDate(dates?.postingDate)}</div>
                   <div className="flex items-center gap-2">
                     <FioriBadge variant={barColor}>{movementLabel}</FioriBadge>
                     <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>{parseFloat(item.QuantityInBaseUnit || '0').toLocaleString()} {item.MaterialBaseUnit}</span>
@@ -185,14 +187,19 @@ export default function MaterialDocumentsPage() {
           <table className="w-full text-sm">
             <thead><tr style={{ background: 'var(--muted)' }}>
               <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>凭证号</th>
+              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>凭证日期</th>
+              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>过账日期</th>
               <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>物料</th>
               <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>生产订单</th>
               <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>工厂/库位</th>
               <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>数量</th>
             </tr></thead>
             <tbody>{data.map((item, idx) => {
+              const dates = headerDates[item.MaterialDocument];
               return (<tr key={`${item.MaterialDocument}-${item.MaterialDocumentItem}-${idx}`} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/material-documents/${item.MaterialDocument}`)}>
                 <td className="px-4 py-3 font-medium text-[#0070F2]">{item.MaterialDocument}</td>
+                <td className="px-4 py-3 tabular-nums">{formatSapDate(dates?.documentDate)}</td>
+                <td className="px-4 py-3 tabular-nums">{formatSapDate(dates?.postingDate)}</td>
                 <td className="px-4 py-3">{item.Material}{materialNames[item.Material] ? ` (${materialNames[item.Material]})` : ''}</td>
                 <td className="px-4 py-3">{item.ManufacturingOrder}</td>
                 <td className="px-4 py-3 tabular-nums">{item.Plant} / {item.StorageLocation}</td>

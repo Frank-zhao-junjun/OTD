@@ -228,6 +228,12 @@ export const SAP_FIELD_LABELS = {
   CustomerCorporateGroup: '企业集团',
   Industry: '行业',
   Supplier: '供应商',
+  CityName: '城市',
+  Country: '国家/地区',
+  Region: '地区',
+  BusinessPartnerType: '业务伙伴类型',
+  BusinessPartnerCategory: '业务伙伴类别',
+  IsMarkedForArchiving: '归档标记',
 
   // === Outbound Delivery fields (V2: API_OUTBOUND_DELIVERY_SRV/A_OutbDeliveryHeader) ===
   DeliveryDocument: '交货单号',
@@ -260,6 +266,8 @@ export const SAP_FIELD_LABELS = {
   MaterialDocument: '物料凭证号',
   MaterialDocumentYear: '年度',
   MaterialDocumentItem: '行号',
+  DocumentDate: '凭证日期',
+  PostingDate: '过账日期',
   GoodsMovementType: '移动类型',
   QuantityInBaseUnit: '数量',
   GoodsRecipientName: '收货人',
@@ -285,7 +293,7 @@ export const SAP_DEFAULT_SELECTS: Record<string, string> = {
     'Product,ProductType,ProductGroup,BaseUnit,WeightUnit,GrossWeight,NetWeight,IsMarkedForDeletion,CrossPlantStatus,CreatedByUser,CreationDate',
   // Customers (V2)
   'API_BUSINESS_PARTNER:A_Customer':
-    'Customer,CustomerName,CustomerFullName,CustomerAccountGroup,CreationDate,CustomerCorporateGroup,Industry,Supplier',
+    'Customer,CustomerName,CustomerFullName,BPCustomerName,BPCustomerFullName,CustomerAccountGroup,CreationDate,CustomerCorporateGroup,Industry,Supplier',
   // Material Stock (V2)
   'API_MATERIAL_STOCK_SRV:A_MatlStkInAcctMod':
     'Material,Plant,StorageLocation,Batch,InventoryStockType,MaterialBaseUnit,MatlWrhsStkQtyInMatlBaseUnit',
@@ -298,6 +306,8 @@ export const SAP_DEFAULT_SELECTS: Record<string, string> = {
   // Material Document (V2)
   'API_MATERIAL_DOCUMENT_SRV:A_MaterialDocumentItem':
     'MaterialDocument,MaterialDocumentYear,MaterialDocumentItem,Material,Plant,StorageLocation,GoodsMovementType,QuantityInBaseUnit,MaterialBaseUnit,GoodsRecipientName,ManufacturingOrder,Batch,PurchaseOrder,PurchaseOrderItem,CostCenter,ProfitCenter',
+  'API_MATERIAL_DOCUMENT_SRV:A_MaterialDocumentHeader':
+    'MaterialDocumentYear,MaterialDocument,DocumentDate,PostingDate,MaterialDocumentHeaderText',
 };
 
 // Default $expand per service:entity (SAP navigation properties)

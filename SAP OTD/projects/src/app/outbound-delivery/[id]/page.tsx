@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FioriBadge, FioriErrorState } from '@/components/fiori';
 import { formatSapDate } from '@/lib/utils';
+import { fetchCustomerNameMap } from '@/lib/bilingual-display';
 
 const DELIVERY_STATUS_MAP: Record<string, { label: string; color: 'success' | 'warning' | 'error' | 'info' | 'neutral' }> = {
   A: { label: '未处理', color: 'neutral' },
@@ -55,11 +56,8 @@ export default function OutboundDeliveryDetailPage() {
           // Fetch customer name
           const soldTo = data.data[0].SoldToParty;
           if (soldTo) {
-            const cRes = await fetch('/api/sap/API_BUSINESS_PARTNER/A_Customer?top=200');
-            const cJson = await cRes.json();
-            const customers = cJson.data as Array<{Customer: string; CustomerName: string}>;
-            const c = customers.find(x => x.Customer === soldTo);
-            if (c) setCustomerName(c.CustomerName);
+            const nameMap = await fetchCustomerNameMap([soldTo]);
+            setCustomerName(nameMap[soldTo] || '');
           }
         } else {
           setError(data.error || '未找到发货单');

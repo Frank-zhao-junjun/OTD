@@ -9,6 +9,7 @@ import { formatSapDate } from '@/lib/utils';
 import { useViewMode } from '@/hooks/useViewMode';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useFilterPageFetch } from '@/hooks/useFilterPageFetch';
+import { fetchCustomerNameMap } from '@/lib/bilingual-display';
 
 interface BillingDocument {
   BillingDocument: string;
@@ -95,17 +96,9 @@ export default function BillingDocumentsPage() {
   useFilterPageFetch(debouncedSearchQuery, page, setPage, fetchData);
 
   const fetchCustomerNames = useCallback(async (soldToCodes: string[]) => {
-    if (soldToCodes.length === 0) return;
-    const names: Record<string, string> = {};
     try {
-      const res = await fetch('/api/sap/API_BUSINESS_PARTNER/A_Customer?top=200');
-      const json = await res.json();
-      const customers = (json.data || []) as { Customer: string; CustomerName: string }[];
-      for (const code of soldToCodes) {
-        const c = customers.find(x => x.Customer === code);
-        if (c) names[code] = c.CustomerName;
-      }
-      setCustomerNames(names);
+      const map = await fetchCustomerNameMap(soldToCodes);
+      setCustomerNames(map);
     } catch { /* ignore */ }
   }, []);
 

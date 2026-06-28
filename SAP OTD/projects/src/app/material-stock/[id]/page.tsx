@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FioriBadge, FioriErrorState } from '@/components/fiori';
 import { ArrowLeft, BarChart3 } from 'lucide-react';
+import { fetchProductNameMap } from '@/lib/bilingual-display';
 
 interface StockItem {
   Material: string;
@@ -54,11 +55,8 @@ export default function MaterialStockDetailPage() {
         setItems(results);
         // Fetch material name
         try {
-          const pRes = await fetch('/api/sap/API_PRODUCT_SRV/A_Product?top=200');
-          const pJson = await pRes.json();
-          const products = (pJson.data || []) as { Product: string; ProductDescription: string }[];
-          const p = products.find(x => x.Product === id);
-          if (p) setMaterialName(p.ProductDescription);
+          const nameMap = await fetchProductNameMap([id]);
+          setMaterialName(nameMap[id] || '');
         } catch { /* ignore */ }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');

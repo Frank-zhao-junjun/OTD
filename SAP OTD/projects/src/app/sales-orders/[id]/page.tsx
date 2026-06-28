@@ -13,6 +13,11 @@ import {
 } from 'lucide-react';
 import { SALES_ORDER_STATUS_MAP } from '@/lib/sap-service';
 import { formatSapDate } from '@/lib/utils';
+import {
+  formatBilingual,
+  fetchProductNameMap,
+  fetchCustomerNameMap,
+} from '@/lib/bilingual-display';
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -199,27 +204,16 @@ export default function SalesOrderDetailPage() {
         // Fetch customer name
         if (orderData.SoldToParty) {
           try {
-            const cRes = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_Customer?filter=${encodeURIComponent(`Customer eq '${orderData.SoldToParty}'`)}&top=1`);
-            const cData = await cRes.json();
-            if (cData.success && cData.data?.length > 0) {
-              setCustomerName(cData.data[0].CustomerName || cData.data[0].CustomerFullName || '');
-            }
+            const nameMap = await fetchCustomerNameMap([orderData.SoldToParty]);
+            setCustomerName(nameMap[orderData.SoldToParty] || '');
           } catch { /* non-critical */ }
         }
 
-        // Fetch material names
         const items = orderData._Item || [];
         if (items.length > 0) {
           try {
-            const pRes = await fetch('/api/sap/API_PRODUCT_SRV/A_Product?top=200');
-            const pJson = await pRes.json();
-            const products = (pJson.data || []) as { Product: string; ProductDescription: string }[];
-            const nameMap: Record<string, string> = {};
-            for (const item of items) {
-              const p = products.find(x => x.Product === item.Product);
-              if (p) nameMap[item.Product] = p.ProductDescription;
-            }
-            setMaterialNames(nameMap);
+            const codes = items.map((item) => item.Product).filter(Boolean);
+            setMaterialNames(await fetchProductNameMap(codes));
           } catch { /* ignore */ }
         }
 
@@ -397,61 +391,6 @@ export default function SalesOrderDetailPage() {
         </div>
       </div>
 
-      {/* ── Pricing Elements ── */}
-      {realPricing.length > 0 && (
-        <div className="rounded-lg border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
-          <div className="px-4 py-3 border-b flex items-center gap-2" style={{ borderColor: 'var(--border)' }}>
-            <DollarSign className="w-4 h-4" style={{ color: 'var(--primary)' }} />
-            <span className="font-semibold text-sm">定价明细</span>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr style={{ background: 'var(--muted)' }}>
-                  <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>步骤</th>
-                  <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>条件类型</th>
-                  <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>描述</th>
-                  <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>费率</th>
-                  <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>金额</th>
-                  <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>货币</th>
-                </tr>
-              </thead>
-              <tbody>
-                {realPricing.map((p, idx) => (
-                  <tr key={idx} className="border-t" style={{ borderColor: 'var(--border)' }}>
-                    <td className="px-4 py-2 tabular-nums">{pricingElements.indexOf(p) + 1}</td>
-                    <td className="px-4 py-2 font-medium" style={{ color: p.ConditionType ? 'var(--primary)' : 'var(--muted-foreground)' }}>{p.ConditionType || '-'}</td>
-                    <td className="px-4 py-2">{p.PriceElementDescription || '-'}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{num(p.ConditionRateAmount) > 0 ? fmtAmount(p.ConditionRateAmount) : '-'}</td>
-                    <td className="px-4 py-2 text-right tabular-nums font-semibold">{fmtAmount(p.ConditionAmount, p.TransactionCurrency)}</td>
-                    <td className="px-4 py-2 text-right">{p.TransactionCurrency || p.ConditionCurrency || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 font-bold" style={{ borderColor: 'var(--border)' }}>
-                  <td colSpan={4} className="px-4 py-2 text-right">合计净额</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{fmtAmount(netPricing?.ConditionAmount, netPricing?.TransactionCurrency)}</td>
-                  <td className="px-4 py-2"></td>
-                </tr>
-                {taxPricing && (
-                  <tr className="font-semibold">
-                    <td colSpan={4} className="px-4 py-2 text-right">税额</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{fmtAmount(taxPricing.ConditionAmount, taxPricing.TransactionCurrency)}</td>
-                    <td className="px-4 py-2"></td>
-                  </tr>
-                )}
-                <tr className="border-t-2 font-bold text-base" style={{ borderColor: 'var(--border)' }}>
-                  <td colSpan={4} className="px-4 py-2 text-right">总计</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{fmtAmount(grossPricing?.ConditionAmount || order.TotalNetAmount, order.TransactionCurrency)}</td>
-                  <td className="px-4 py-2"></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-      )}
-
       {/* ── Line Items ── */}
       <div className="rounded-lg border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
         <div className="px-4 py-3 border-b flex items-center gap-2" style={{ borderColor: 'var(--border)' }}>
@@ -621,6 +560,61 @@ export default function SalesOrderDetailPage() {
         )}
       </div>
 
+      {/* ── Pricing Elements ── */}
+      {realPricing.length > 0 && (
+        <div className="rounded-lg border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+          <div className="px-4 py-3 border-b flex items-center gap-2" style={{ borderColor: 'var(--border)' }}>
+            <DollarSign className="w-4 h-4" style={{ color: 'var(--primary)' }} />
+            <span className="font-semibold text-sm">定价明细</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ background: 'var(--muted)' }}>
+                  <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>步骤</th>
+                  <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>条件类型</th>
+                  <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>描述</th>
+                  <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>费率</th>
+                  <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>金额</th>
+                  <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>货币</th>
+                </tr>
+              </thead>
+              <tbody>
+                {realPricing.map((p, idx) => (
+                  <tr key={idx} className="border-t" style={{ borderColor: 'var(--border)' }}>
+                    <td className="px-4 py-2 tabular-nums">{pricingElements.indexOf(p) + 1}</td>
+                    <td className="px-4 py-2 font-medium" style={{ color: p.ConditionType ? 'var(--primary)' : 'var(--muted-foreground)' }}>{p.ConditionType || '-'}</td>
+                    <td className="px-4 py-2">{p.PriceElementDescription || '-'}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{num(p.ConditionRateAmount) > 0 ? fmtAmount(p.ConditionRateAmount) : '-'}</td>
+                    <td className="px-4 py-2 text-right tabular-nums font-semibold">{fmtAmount(p.ConditionAmount, p.TransactionCurrency)}</td>
+                    <td className="px-4 py-2 text-right">{p.TransactionCurrency || p.ConditionCurrency || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 font-bold" style={{ borderColor: 'var(--border)' }}>
+                  <td colSpan={4} className="px-4 py-2 text-right">合计净额</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{fmtAmount(netPricing?.ConditionAmount, netPricing?.TransactionCurrency)}</td>
+                  <td className="px-4 py-2"></td>
+                </tr>
+                {taxPricing && (
+                  <tr className="font-semibold">
+                    <td colSpan={4} className="px-4 py-2 text-right">税额</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{fmtAmount(taxPricing.ConditionAmount, taxPricing.TransactionCurrency)}</td>
+                    <td className="px-4 py-2"></td>
+                  </tr>
+                )}
+                <tr className="border-t-2 font-bold text-base" style={{ borderColor: 'var(--border)' }}>
+                  <td colSpan={4} className="px-4 py-2 text-right">总计</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{fmtAmount(grossPricing?.ConditionAmount || order.TotalNetAmount, order.TransactionCurrency)}</td>
+                  <td className="px-4 py-2"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* ── Partner Information ── */}
       {partners.length > 0 && (
         <div className="rounded-lg border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
@@ -642,11 +636,8 @@ export default function SalesOrderDetailPage() {
                     </span>
                   </div>
                   <div className="text-sm font-medium mb-1">
-                    {partner.BusinessPartnerName1 || partner.Customer || partner.Supplier || partner.Personnel || '-'}
+                    {formatBilingual(partner.BusinessPartnerName1, partner.BusinessPartnerName2, partner.Customer || partner.Supplier || partner.Personnel || '-')}
                   </div>
-                  {partner.BusinessPartnerName2 && (
-                    <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{partner.BusinessPartnerName2}</div>
-                  )}
                   {hasAddress && (
                     <div className="mt-2 text-xs space-y-0.5" style={{ color: 'var(--muted-foreground)' }}>
                       {partner.StreetName && (

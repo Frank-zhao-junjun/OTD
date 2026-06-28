@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { formatProductDescriptionFromParts, formatCustomerName } from '@/lib/bilingual-display';
 
 /**
  * DB模糊搜索API
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
 
       products = Array.from(grouped.values()).map(item => ({
         product: item.product,
-        productDescription: item.desc_ZH || item.desc_EN || '',
+        productDescription: formatProductDescriptionFromParts(item.desc_ZH, item.desc_EN, item.product),
         enDescription: item.desc_EN || '',
       }));
     }
@@ -84,7 +85,11 @@ export async function GET(request: NextRequest) {
           seen.add(row.customer);
           customers.push({
             customer: row.customer,
-            customerName: row.customer_name || '',
+            customerName: formatCustomerName({
+              Customer: row.customer,
+              CustomerName: row.customer_name || '',
+              CustomerFullName: row.customer_full_name || '',
+            }),
             customerFullName: row.customer_full_name || '',
           });
         }

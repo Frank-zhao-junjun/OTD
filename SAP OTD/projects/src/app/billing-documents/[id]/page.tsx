@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FioriBadge, FioriErrorState } from '@/components/fiori';
 import { formatSapDate } from '@/lib/utils';
+import { fetchCustomerNameMap } from '@/lib/bilingual-display';
 
 /** Format SAP Edm.Time format (PT14H30M0S) to HH:mm:ss */
 function formatSapTime(timeStr: string | undefined): string {
@@ -70,11 +71,8 @@ export default function BillingDocumentDetailPage() {
           setDoc(data.data[0]);
           const soldTo = data.data[0].SoldToParty;
           if (soldTo) {
-            const cRes = await fetch('/api/sap/API_BUSINESS_PARTNER/A_Customer?top=200');
-            const cJson = await cRes.json();
-            const customers = cJson.data as Array<{Customer: string; CustomerName: string}>;
-            const c = customers.find(x => x.Customer === soldTo);
-            if (c) setCustomerName(c.CustomerName);
+            const nameMap = await fetchCustomerNameMap([soldTo]);
+            setCustomerName(nameMap[soldTo] || '');
           }
         } else {
           setError(data.error || '未找到开票单据');

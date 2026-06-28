@@ -8,6 +8,8 @@ import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { useViewMode } from '@/hooks/useViewMode';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useFilterPageFetch } from '@/hooks/useFilterPageFetch';
+import { formatCustomerName } from '@/lib/bilingual-display';
+import { fetchAddressMapForCustomers, formatCountryRegion, type CustomerAddressSummary } from '@/lib/customer-master';
 
 interface Customer {
   Customer: string;
@@ -22,22 +24,25 @@ interface Customer {
   Supplier: string;
 }
 
+type CustomerRow = Customer & { _address?: CustomerAddressSummary };
+
 const GROUP_COLORS: Record<string, 'success' | 'warning' | 'info' | 'neutral'> = {
   'CUST': 'info',
   '001': 'success',
   '002': 'warning',
 };
 
-const customerColumns: ExportColumn<Customer>[] = [
+const customerColumns: ExportColumn<CustomerRow>[] = [
   { header: '客户编号', key: 'Customer', width: 14 },
-  { header: '名称', key: 'CustomerName', width: 20 },
-  { header: '全名', key: 'CustomerFullName', width: 24 },
+  { header: '名称', key: 'Customer', width: 28, render: (d) => formatCustomerName(d) },
+  { header: '城市', key: 'Customer', width: 14, render: (d) => d._address?.city || '-' },
+  { header: '国家/地区', key: 'Customer', width: 16, render: (d) => formatCountryRegion(d._address?.country, d._address?.region) },
   { header: '行业', key: 'Industry', width: 14 },
   { header: '账户组', key: 'CustomerAccountGroup', width: 12 },
 ];
 
 export default function CustomersPage() {
-  const [data, setData] = useState<Customer[]>([]);
+  const [data, setData] = useState<CustomerRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [sapRefreshing, setSapRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +53,16 @@ export default function CustomersPage() {
   const router = useRouter();
   const [viewMode, setViewMode] = useViewMode();
   const PAGE_SIZE = 20;
+
+  const enrichWithAddresses = useCallback(async (rows: Customer[]): Promise<CustomerRow[]> => {
+    if (rows.length === 0) return [];
+    try {
+      const addressMap = await fetchAddressMapForCustomers(rows.map((r) => r.Customer));
+      return rows.map((row) => ({ ...row, _address: addressMap[row.Customer] }));
+    } catch {
+      return rows;
+    }
+  }, []);
 
   // 从本地DB查询（默认行为，DB优先）
   const fetchData = useCallback(async () => {
@@ -69,10 +84,12 @@ export default function CustomersPage() {
       const res = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_Customer?${params}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Failed');
-      setData(prev => page === 0 ? (json.data || []) : [...prev, ...(json.data || [])]); setTotalCount(json.totalCount || json.count || 0);
+      const rows = (json.data || []) as Customer[];
+      const enriched = await enrichWithAddresses(rows);
+      setData(prev => page === 0 ? enriched : [...prev, ...enriched]); setTotalCount(json.totalCount || json.count || 0);
     } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
     finally { setLoading(false); }
-  }, [page, debouncedSearchQuery]);
+  }, [page, debouncedSearchQuery, enrichWithAddresses]);
 
   useFilterPageFetch(debouncedSearchQuery, page, setPage, fetchData);
 
@@ -83,11 +100,13 @@ export default function CustomersPage() {
       const res = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_Customer?${params}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'SAP查询失败');
-      setData(prev => page === 0 ? (json.data || []) : [...prev, ...(json.data || [])]);
+      const rows = (json.data || []) as Customer[];
+      const enriched = await enrichWithAddresses(rows);
+      setData(prev => page === 0 ? enriched : [...prev, ...enriched]);
       setTotalCount(json.totalCount || json.count || 0);
     } catch (err) { setError(err instanceof Error ? err.message : 'Unknown error'); }
     finally { setSapRefreshing(false); }
-  }, [page]);
+  }, [page, enrichWithAddresses]);
 
   return (
     <div className="space-y-4">
@@ -139,11 +158,10 @@ export default function CustomersPage() {
               <div key={item.Customer} className="fiori-oli cursor-pointer" onClick={() => router.push(`/customers/${item.Customer}`)}>
                 <div className={`fiori-oli-bar fiori-oli-bar--${groupColor}`} />
                 <div className="fiori-oli-content">
-                  <div className="fiori-oli-title">{item.Customer} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {item.CustomerName}</div>
-                  {item.CustomerFullName && item.CustomerFullName !== item.CustomerName && (
-                    <div className="fiori-oli-subtitle" style={{ color: 'var(--muted-foreground)' }}>{item.CustomerFullName}</div>
-                  )}
-                  <div className="fiori-oli-subtitle">{item.Industry || '-'}</div>
+                  <div className="fiori-oli-title">{item.Customer} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {formatCustomerName(item)}</div>
+                  <div className="fiori-oli-subtitle">
+                    {[item._address?.city, formatCountryRegion(item._address?.country, item._address?.region)].filter((v) => v && v !== '-').join(' · ') || item.Industry || '-'}
+                  </div>
                   <div className="flex items-center gap-2">
                     <FioriBadge variant={groupColor}>{item.CustomerAccountGroup}</FioriBadge>
                   </div>
@@ -160,7 +178,8 @@ export default function CustomersPage() {
             <thead><tr style={{ background: 'var(--muted)' }}>
               <th className="px-4 py-2 text-left">客户编号</th>
               <th className="px-4 py-2 text-left">名称</th>
-              <th className="px-4 py-2 text-left">全名</th>
+              <th className="px-4 py-2 text-left">城市</th>
+              <th className="px-4 py-2 text-left">国家/地区</th>
               <th className="px-4 py-2 text-left">行业</th>
               <th className="px-4 py-2 text-center">账户组</th>
             </tr></thead>
@@ -168,8 +187,9 @@ export default function CustomersPage() {
               const groupColor = GROUP_COLORS[item.CustomerAccountGroup] || 'neutral';
               return <tr key={item.Customer} className="border-t cursor-pointer hover:bg-muted/50" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/customers/${item.Customer}`)}>
                 <td className="px-4 py-3 font-medium">{item.Customer}</td>
-                <td className="px-4 py-3">{item.CustomerName}</td>
-                <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{item.CustomerFullName || '-'}</td>
+                <td className="px-4 py-3">{formatCustomerName(item)}</td>
+                <td className="px-4 py-3">{item._address?.city || '-'}</td>
+                <td className="px-4 py-3">{formatCountryRegion(item._address?.country, item._address?.region)}</td>
                 <td className="px-4 py-3">{item.Industry || '-'}</td>
                 <td className="px-4 py-3 text-center"><FioriBadge variant={groupColor}>{item.CustomerAccountGroup}</FioriBadge></td>
               </tr>;

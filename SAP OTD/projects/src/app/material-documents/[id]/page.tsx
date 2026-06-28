@@ -6,6 +6,9 @@ import { ArrowLeft, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FioriErrorState } from '@/components/fiori';
+import { fetchProductNameMap } from '@/lib/bilingual-display';
+import { fetchMaterialDocumentHeaderDates } from '@/lib/material-document';
+import { formatSapDate } from '@/lib/utils';
 
 interface MaterialDocumentItem {
   MaterialDocumentYear?: string;
@@ -33,6 +36,8 @@ export default function MaterialDocumentDetailPage() {
 
   const [items, setItems] = useState<MaterialDocumentItem[]>([]);
   const [materialName, setMaterialName] = useState<string>('');
+  const [documentDate, setDocumentDate] = useState<string>('');
+  const [postingDate, setPostingDate] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,15 +48,23 @@ export default function MaterialDocumentDetailPage() {
         const data = await res.json();
         if (data.success && data.data && data.data.length > 0) {
           setItems(data.data);
-          // Fetch material name for first item
           const firstMaterial = data.data[0]?.Material;
           if (firstMaterial) {
             try {
-              const pRes = await fetch('/api/sap/API_PRODUCT_SRV/A_Product?top=200');
-              const pJson = await pRes.json();
-              const products = (pJson.data || []) as { Product: string; ProductDescription: string }[];
-              const p = products.find(x => x.Product === firstMaterial);
-              if (p) setMaterialName(p.ProductDescription);
+              const nameMap = await fetchProductNameMap([firstMaterial]);
+              setMaterialName(nameMap[firstMaterial] || '');
+            } catch { /* ignore */ }
+          }
+          const doc = data.data[0];
+          if (doc?.MaterialDocument && doc?.MaterialDocumentYear) {
+            try {
+              const dates = await fetchMaterialDocumentHeaderDates([{
+                MaterialDocument: doc.MaterialDocument,
+                MaterialDocumentYear: doc.MaterialDocumentYear,
+              }]);
+              const header = dates[doc.MaterialDocument];
+              setDocumentDate(header?.documentDate || '');
+              setPostingDate(header?.postingDate || '');
             } catch { /* ignore */ }
           }
         } else {
@@ -105,8 +118,23 @@ export default function MaterialDocumentDetailPage() {
             <div className="fiori-objheader-title">{firstItem.MaterialDocument}</div>
             <div className="fiori-objheader-subtitle">
               年度: {firstItem.MaterialDocumentYear || '-'} · 行项目数: {items.length}
+              <span className="mx-1.5">·</span>
+              凭证日期: {formatSapDate(documentDate)}
+              <span className="mx-1.5">·</span>
+              过账日期: {formatSapDate(postingDate)}
             </div>
           </div>
+        </div>
+        <div className="fiori-objheader-fields mb-4">
+          {[
+            { label: '凭证日期', value: formatSapDate(documentDate) },
+            { label: '过账日期', value: formatSapDate(postingDate) },
+          ].map((field) => (
+            <div key={field.label} className="fiori-objheader-field">
+              <span className="fiori-objheader-field-label">{field.label}</span>
+              <span className="fiori-objheader-field-value">{field.value}</span>
+            </div>
+          ))}
         </div>
         {items.map((item, idx) => (
           <div key={idx} className="border-t border-gray-100 pt-3 mt-3">

@@ -8,6 +8,7 @@ import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { useViewMode } from '@/hooks/useViewMode';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useFilterPageFetch } from '@/hooks/useFilterPageFetch';
+import { fetchProductNameMap } from '@/lib/bilingual-display';
 
 interface StockItem {
   Material: string;
@@ -55,17 +56,9 @@ export default function MaterialStockPage() {
   const PAGE_SIZE = 20;
 
   const fetchMaterialNames = useCallback(async (materialCodes: string[]) => {
-    if (materialCodes.length === 0) return;
-    const names: Record<string, string> = {};
     try {
-      const res = await fetch('/api/sap/API_PRODUCT_SRV/A_Product?top=200');
-      const json = await res.json();
-      const products = (json.data || []) as { Product: string; ProductDescription: string }[];
-      for (const code of materialCodes) {
-        const p = products.find(x => x.Product === code);
-        if (p) names[code] = p.ProductDescription;
-      }
-      setMaterialNames(names);
+      const map = await fetchProductNameMap(materialCodes);
+      setMaterialNames(map);
     } catch { /* ignore */ }
   }, []);
 

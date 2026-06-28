@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readEnvLocal } from '@/lib/env-local';
+import { formatCustomerName } from '@/lib/bilingual-display';
 
 function getSapConfig() {
   return {
@@ -116,9 +117,9 @@ const SEARCH_CONFIGS: SearchConfig[] = [
     service: 'API_BUSINESS_PARTNER',
     entity: 'A_Customer',
     searchFields: ['Customer', 'CustomerName', 'CustomerFullName'],
-    selectFields: ['Customer', 'CustomerName', 'CustomerFullName', 'CustomerAccountGroup', 'Industry'],
+    selectFields: ['Customer', 'CustomerName', 'CustomerFullName', 'BPCustomerName', 'BPCustomerFullName', 'CustomerAccountGroup', 'Industry'],
     resultLabel: (item) => `客户 ${item.Customer}`,
-    resultDesc: (item) => `${item.CustomerName || ''} | 分组: ${item.CustomerAccountGroup}`,
+    resultDesc: (item) => `${formatCustomerName(item as Parameters<typeof formatCustomerName>[0])} | 分组: ${item.CustomerAccountGroup}`,
     detailPath: (item) => `/customers?id=${item.Customer}`,
     icon: 'Users',
     groupLabel: '客户',

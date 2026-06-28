@@ -7,6 +7,7 @@ import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { FioriOli, FioriBadge, FioriPageHeader, FioriSection, getSapStatusColor, getSapStatusLabel } from '@/components/fiori';
 import { useViewMode } from '@/hooks/useViewMode';
 import { useFilterPageFetch } from '@/hooks/useFilterPageFetch';
+import { fetchCustomerNameMap } from '@/lib/bilingual-display';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 interface SalesOrderItem {
@@ -173,16 +174,8 @@ export default function SalesOrdersPage() {
 
   const fetchCustomerNames = async (codes: string[]) => {
     try {
-      const filter = codes.map(c => `Customer eq '${c}'`).join(' or ');
-      const res = await fetch(`/api/sap/API_BUSINESS_PARTNER/A_Customer?filter=${encodeURIComponent(filter)}&top=100`);
-      const json = await res.json();
-      if (json.success && json.data) {
-        const map: Record<string, string> = {};
-        for (const c of json.data) {
-          map[c.Customer] = c.CustomerName || c.CustomerFullName || '';
-        }
-        setCustomerMap(prev => ({ ...prev, ...map }));
-      }
+      const map = await fetchCustomerNameMap(codes);
+      setCustomerMap(prev => ({ ...prev, ...map }));
     } catch {
       // ignore
     }

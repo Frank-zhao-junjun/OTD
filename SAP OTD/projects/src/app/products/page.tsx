@@ -8,6 +8,10 @@ import { exportToExcel, type ExportColumn } from '@/lib/export';
 import { useViewMode } from '@/hooks/useViewMode';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useFilterPageFetch } from '@/hooks/useFilterPageFetch';
+import {
+  formatProductDescription,
+  normalizeExpand,
+} from '@/lib/bilingual-display';
 
 interface ProductDescription {
   Product: string;
@@ -66,28 +70,6 @@ interface Product {
   to_Valuation?: { results: ProductValuation[] } | ProductValuation[];
 }
 
-// Helper: normalize expand result (SAP V2 returns {results:[...]}, proxy may return plain array)
-function normalizeExpand<T>(data: { results: T[] } | T[] | undefined): T[] {
-  if (!data) return [];
-  if (Array.isArray(data)) return data;
-  if (data.results && Array.isArray(data.results)) return data.results;
-  return [];
-}
-
-// Helper: extract ZH description from expand
-function getDescription(product: Product): string {
-  const descs = normalizeExpand(product.to_Description);
-  const zh = descs.find((d) => d.Language === 'ZH');
-  return zh?.ProductDescription || descs[0]?.ProductDescription || product.Product;
-}
-
-// Helper: extract EN description from expand
-function getEnDescription(product: Product): string | null {
-  const descs = normalizeExpand(product.to_Description);
-  const en = descs.find((d) => d.Language === 'EN');
-  return en?.ProductDescription || null;
-}
-
 // Helper: extract first valuation
 function getValuation(product: Product): ProductValuation | null {
   const vals = normalizeExpand(product.to_Valuation);
@@ -118,8 +100,7 @@ const PRODUCT_GROUP_MAP: Record<string, string> = {
 
 const productColumns: ExportColumn<Product>[] = [
   { header: '产品编号', key: 'Product', width: 14 },
-  { header: '中文描述', key: 'Product', width: 24, render: (d) => getDescription(d) },
-  { header: '英文描述', key: 'Product', width: 24, render: (d) => getEnDescription(d) || '-' },
+  { header: '描述', key: 'Product', width: 36, render: (d) => formatProductDescription(d.to_Description, d.Product) },
   { header: '类型', key: 'ProductType', width: 10, render: (d) => PRODUCT_TYPE_MAP[d.ProductType]?.label || d.ProductType },
   { header: '产品组', key: 'ProductGroup', width: 14, render: (d) => PRODUCT_GROUP_MAP[d.ProductGroup] || d.ProductGroup },
   { header: '价格', key: 'Product', width: 14, render: (d) => { const v = getValuation(d); return v ? `${v.StandardPrice !== '0.00' ? v.StandardPrice : v.MovingAveragePrice} ${v.Currency}` : '-'; } },
@@ -225,14 +206,13 @@ export default function ProductsPage() {
         <div className={`space-y-2 ${viewMode === 'table' ? 'lg:hidden' : ''}`}>
           {data.map((item) => {
             const typeInfo = PRODUCT_TYPE_MAP[item.ProductType] || { label: item.ProductType, variant: 'neutral' as const };
-            const desc = getDescription(item);
+            const desc = formatProductDescription(item.to_Description, item.Product);
             const price = getPrice(item);
             return (
               <div key={item.Product} className="fiori-oli cursor-pointer" onClick={() => router.push(`/products/${encodeURIComponent(item.Product)}`)}>
                 <div className={`fiori-oli-bar fiori-oli-bar--${typeInfo.variant}`} />
                 <div className="fiori-oli-content">
                   <div className="fiori-oli-title">{item.Product} <span className="mx-1.5" style={{ color: 'var(--border)' }}>|</span> {desc}</div>
-                  {(() => { const enDesc = getEnDescription(item); return enDesc && enDesc !== desc ? <div className="fiori-oli-subtitle" style={{ color: 'var(--muted-foreground)' }}>EN: {enDesc}</div> : null; })()}
                   <div className="fiori-oli-subtitle">
                     {PRODUCT_GROUP_MAP[item.ProductGroup] || item.ProductGroup}
                   </div>
@@ -253,21 +233,18 @@ export default function ProductsPage() {
           <table className="w-full text-sm">
             <thead><tr style={{ background: 'var(--muted)' }}>
               <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>产品编号</th>
-              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>中文描述</th>
-              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>英文描述</th>
+              <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>描述</th>
               <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>类型</th>
               <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>产品组</th>
               <th className="text-right px-4 py-2 font-semibold text-xs" style={{ color: 'var(--muted-foreground)' }}>价格</th>
             </tr></thead>
             <tbody>{data.map((item) => {
               const typeInfo = PRODUCT_TYPE_MAP[item.ProductType] || { label: item.ProductType, variant: 'neutral' as const };
-              const desc = getDescription(item);
+              const desc = formatProductDescription(item.to_Description, item.Product);
               const val = getValuation(item);
-              const enDesc = getEnDescription(item);
               return (<tr key={item.Product} className="border-t hover:bg-accent/50 transition-colors cursor-pointer" style={{ borderColor: 'var(--border)' }} onClick={() => router.push(`/products/${encodeURIComponent(item.Product)}`)}>
                 <td className="px-4 py-3 font-medium text-[#0070F2]">{item.Product}</td>
                 <td className="px-4 py-3">{desc}</td>
-                <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{enDesc || '-'}</td>
                 <td className="px-4 py-3 text-center"><FioriBadge variant={typeInfo.variant}>{typeInfo.label}</FioriBadge></td>
                 <td className="px-4 py-3">{PRODUCT_GROUP_MAP[item.ProductGroup] || item.ProductGroup}</td>
                 <td className="px-4 py-3 text-right tabular-nums">{val ? `${val.StandardPrice !== '0.00' ? val.StandardPrice : val.MovingAveragePrice} ${val.Currency}` : '-'}</td>

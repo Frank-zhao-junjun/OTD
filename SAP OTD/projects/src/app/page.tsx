@@ -67,8 +67,8 @@ const BUSINESS_TILES: Array<{
   { title: '生产订单', subtitle: '进行中', icon: Factory, path: '/production-orders', color: 'cyan', countKey: 'productionOrders' },
   { title: '发货单', subtitle: '全部发货', icon: Truck, path: '/outbound-delivery', color: 'green', countKey: 'deliveries' },
   { title: '开票单据', subtitle: '全部开票', icon: Receipt, path: '/billing-documents', color: 'purple', countKey: 'billingDocs' },
-  { title: '库存查询', subtitle: '库存条目', icon: BarChart3, path: '/material-stock', color: 'orange', countKey: 'materialStock' },
   { title: '入库单', subtitle: '物料凭证', icon: FileSpreadsheet, path: '/material-documents', color: 'teal', countKey: 'materialDocs' },
+  { title: '库存查询', subtitle: '库存条目', icon: BarChart3, path: '/material-stock', color: 'orange', countKey: 'materialStock' },
 ];
 
 const MASTER_TILES: Array<{

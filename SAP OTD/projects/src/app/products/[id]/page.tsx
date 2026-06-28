@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { FioriBadge, FioriErrorState } from '@/components/fiori';
 import { ArrowLeft, Package } from 'lucide-react';
 import { formatSapDate } from '@/lib/utils';
+import { formatProductDescription, normalizeExpand } from '@/lib/bilingual-display';
 
 interface ProductDescription {
   Product: string;
@@ -65,14 +66,6 @@ interface Product {
   to_Valuation?: { results: ProductValuation[] } | ProductValuation[];
 }
 
-// Helper: normalize expand result (SAP V2 returns {results:[...]}, proxy may return plain array)
-function normalizeExpand<T>(data: { results: T[] } | T[] | undefined): T[] {
-  if (!data) return [];
-  if (Array.isArray(data)) return data;
-  if (data.results && Array.isArray(data.results)) return data.results;
-  return [];
-}
-
 const PRODUCT_TYPE_MAP: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'neutral' }> = {
   'FERT': { label: '成品', variant: 'success' },
   'HAWA': { label: '贸易品', variant: 'info' },
@@ -91,12 +84,6 @@ const PROCUREMENT_TYPE_MAP: Record<string, string> = {
   'E': '自制',
   'F': '外购',
 };
-
-function getDescription(product: Product): string {
-  const descs = normalizeExpand(product.to_Description);
-  const zh = descs.find((d) => d.Language === 'ZH');
-  return zh?.ProductDescription || descs[0]?.ProductDescription || product.Product;
-}
 
 function getPlant(product: Product): ProductPlant | null {
   const plants = normalizeExpand(product.to_Plant);
@@ -165,7 +152,7 @@ export default function ProductDetailPage() {
   }
 
   const typeInfo = PRODUCT_TYPE_MAP[product.ProductType] || { label: product.ProductType, variant: 'neutral' as const };
-  const desc = getDescription(product);
+  const desc = formatProductDescription(product.to_Description, product.Product);
   const plant = getPlant(product);
   const val = getValuation(product);
 

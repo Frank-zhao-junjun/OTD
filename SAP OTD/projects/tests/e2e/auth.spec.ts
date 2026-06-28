@@ -70,11 +70,11 @@ test.describe('Authentication E2E', () => {
           username,
           password,
           captchaCode: captchaData.codeHint,
-          captchaId: captchaData.captchaId,
+          captchaToken: captchaData.captchaToken,
         }),
       });
       const loginData = await loginRes.json();
-      return { captchaCode: captchaData.codeHint, captchaId: captchaData.captchaId, ...loginData };
+      return { captchaCode: captchaData.codeHint, captchaToken: captchaData.captchaToken, ...loginData };
     }, { username, password });
 
     console.log('Login API result:', JSON.stringify(loginResult));
