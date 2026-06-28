@@ -1,0 +1,110 @@
+<!-- pages/register/register.wxml -->
+<view class="login-container">
+  <!-- Logo 区域 -->
+  <view class="login-header">
+    <view class="login-logo-icon">ES</view>
+    <text class="login-title">创建账号</text>
+    <text class="login-subtitle">注册后即可查询 SAP 业务数据</text>
+  </view>
+
+  <!-- 表单 -->
+  <view class="login-form">
+    <!-- 用户名 -->
+    <view class="form-item">
+      <view class="form-input-wrap">
+        <text class="form-icon">用</text>
+        <input
+          class="form-input {{errors.username ? 'form-input-error' : ''}}"
+          type="text"
+          placeholder="用户名"
+          placeholder-class="form-placeholder"
+          value="{{username}}"
+          bindinput="onUsernameInput"
+          maxlength="20"
+          auto-focus
+        />
+      </view>
+      <text class="form-error" wx:if="{{errors.username}}">{{errors.username}}</text>
+    </view>
+
+    <!-- 密码 -->
+    <view class="form-item">
+      <view class="form-input-wrap">
+        <text class="form-icon">密</text>
+        <input
+          class="form-input {{errors.password ? 'form-input-error' : ''}}"
+          type="{{showPassword ? 'text' : 'password'}}"
+          placeholder="密码（6-32位）"
+          placeholder-class="form-placeholder"
+          value="{{password}}"
+          bindinput="onPasswordInput"
+          maxlength="32"
+        />
+        <view class="form-suffix" bindtap="onTogglePassword">
+          <text>{{showPassword ? '隐' : '显'}}</text>
+        </view>
+      </view>
+      <text class="form-error" wx:if="{{errors.password}}">{{errors.password}}</text>
+    </view>
+
+    <!-- 确认密码 -->
+    <view class="form-item">
+      <view class="form-input-wrap">
+        <text class="form-icon">密</text>
+        <input
+          class="form-input {{errors.confirmPassword ? 'form-input-error' : ''}}"
+          type="{{showConfirmPassword ? 'text' : 'password'}}"
+          placeholder="确认密码"
+          placeholder-class="form-placeholder"
+          value="{{confirmPassword}}"
+          bindinput="onConfirmPasswordInput"
+          maxlength="32"
+        />
+        <view class="form-suffix" bindtap="onToggleConfirmPassword">
+          <text>{{showConfirmPassword ? '隐' : '显'}}</text>
+        </view>
+      </view>
+      <text class="form-error" wx:if="{{errors.confirmPassword}}">{{errors.confirmPassword}}</text>
+    </view>
+
+    <!-- 验证码 -->
+    <view class="form-item">
+      <view class="captcha-row">
+        <view class="form-input-wrap captcha-input-wrap">
+          <text class="form-icon">验</text>
+          <input
+            class="form-input {{errors.captcha ? 'form-input-error' : ''}}"
+            type="number"
+            placeholder="验证码"
+            placeholder-class="form-placeholder"
+            value="{{captcha}}"
+            bindinput="onCaptchaInput"
+            maxlength="4"
+          />
+        </view>
+        <view class="captcha-display" bindtap="onRefreshCaptcha">
+          <image class="captcha-image" src="{{captchaSvgBase64}}" mode="aspectFit" wx:if="{{captchaSvgBase64}}" />
+          <text class="captcha-text" wx:else>获取中...</text>
+          <text class="captcha-hint">点击刷新</text>
+        </view>
+      </view>
+      <text class="form-error" wx:if="{{errors.captcha}}">{{errors.captcha}}</text>
+    </view>
+
+    <!-- 注册按钮 -->
+    <button
+      class="login-btn {{submitting ? 'login-btn-disabled' : ''}}"
+      bindtap="onRegister"
+      disabled="{{submitting}}"
+      loading="{{submitting}}"
+    >
+      {{submitting ? '注册中...' : '注 册'}}
+    </button>
+
+    <!-- 返回登录 -->
+    <view class="login-footer">
+      <text class="login-footer-text">已有账号？</text>
+      <text class="login-footer-link" bindtap="onGoLogin">去登录 →</text>
+    </view>
+  </view>
+</view>

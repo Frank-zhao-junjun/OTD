@@ -1,0 +1,85 @@
+<!-- pages/search/search.wxml -->
+<view class="search-container">
+
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <view class="search-input-wrap">
+      <text class="search-icon">搜索</text>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="搜索订单、物料..."
+        placeholder-class="search-placeholder"
+        value="{{query}}"
+        bindinput="onInput"
+        bindfocus="onFocus"
+        focus="{{true}}"
+        confirm-type="search"
+      />
+      <text class="search-clear" wx:if="{{query.length > 0}}" bindtap="onClear">×</text>
+    </view>
+    <text class="search-cancel" bindtap="onCancel">取消</text>
+  </view>
+
+  <!-- 搜索中 -->
+  <view class="search-status" wx:if="{{searching}}">
+    <view class="searching-spinner"></view>
+    <text class="searching-text">搜索中...</text>
+  </view>
+
+  <!-- 搜索历史 (聚焦状态 + 无输入 + 无结果) -->
+  <view class="history-section" wx:if="{{focused && !query && results.length === 0 && !noResult}}">
+    <view class="history-header" wx:if="{{history.length > 0}}">
+      <text class="history-title">搜索历史</text>
+      <text class="history-clear" bindtap="clearHistory">清除历史</text>
+    </view>
+    <view class="history-tags" wx:if="{{history.length > 0}}">
+      <view
+        class="history-tag"
+        wx:for="{{history}}"
+        wx:key="*this"
+        data-keyword="{{item}}"
+        bindtap="onTapHistory"
+      >
+        <text class="tag-text">{{item}}</text>
+        <text class="tag-close" data-keyword="{{item}}" catchtap="removeHistory">×</text>
+      </view>
+    </view>
+    <view class="history-empty" wx:if="{{history.length === 0}}">
+      <text class="empty-hint">暂无搜索历史</text>
+    </view>
+  </view>
+
+  <!-- 搜索结果 -->
+  <view class="results-section" wx:if="{{results.length > 0}}">
+    <view class="result-group" wx:for="{{results}}" wx:key="group">
+      <view class="group-header">
+        <text class="group-icon">{{item.icon || '凭证'}}</text>
+        <text class="group-name">{{item.group}}</text>
+        <text class="group-count">({{item.items.length}})</text>
+      </view>
+      <view
+        class="result-item"
+        wx:for="{{item.items}}"
+        wx:for-item="r"
+        wx:key="label"
+        data-path="{{r.path}}"
+        bindtap="onTapResult"
+      >
+        <view class="result-info">
+          <text class="result-label">{{r.label}}</text>
+          <text class="result-desc" wx:if="{{r.description}}">{{r.description}}</text>
+        </view>
+        <text class="result-arrow">›</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空结果 -->
+  <view class="empty-result" wx:if="{{noResult && !searching}}">
+    <text class="empty-icon">搜索</text>
+    <text class="empty-title">未找到匹配数据</text>
+    <text class="empty-hint">请尝试其他关键词</text>
+  </view>
+
+</view>

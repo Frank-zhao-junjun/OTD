@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "销售订单",
-  "enablePullDownRefresh": true,
-  "usingComponents": {
-    "view-switch": "/components/view-switch/view-switch"
-  }
-}
